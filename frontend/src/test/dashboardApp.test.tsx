@@ -33,8 +33,10 @@ describe('dashboard app', () => {
   beforeEach(() => {
     vi.spyOn(globalThis, 'fetch').mockImplementation((input: RequestInfo | URL) => {
       const url = String(input)
+      const requestUrl = new URL(url, 'http://localhost')
+      const pathname = requestUrl.pathname
 
-      if (url.includes('/home/summary')) {
+      if (pathname.includes('/home/summary')) {
         return jsonResponse({
           hero: {
             platform: 'Sri Lanka Food Intelligence',
@@ -82,7 +84,7 @@ describe('dashboard app', () => {
         })
       }
 
-      if (url.includes('/intelligence/summary')) {
+      if (pathname.includes('/intelligence/summary')) {
         return jsonResponse({
           rankings: {
             top_value: [
@@ -118,7 +120,7 @@ describe('dashboard app', () => {
         })
       }
 
-      if (url.includes('/stats/summary')) {
+      if (pathname.includes('/stats/summary')) {
         return jsonResponse({
           offers_count: 1280,
           sources_count: 2,
@@ -127,9 +129,28 @@ describe('dashboard app', () => {
         })
       }
 
-      if (url.includes('/offers')) {
+      if (pathname.endsWith('/offers/1')) {
         return jsonResponse({
-          total: 1,
+          id: 1,
+          source: 'spar2u',
+          category: 'grocery',
+          brand: 'SPAR',
+          display_name: 'SPAR Local Coconut Oil',
+          canonical_name: 'local coconut oil',
+          price_lkr: 1600,
+          price_per_unit_lkr: 1600,
+          unit: 'l',
+          unit_amount: 1,
+          available: true,
+          url: 'https://spar2u.lk/products/spar-local-coconut-oil-1l',
+          price_band: 'good-value',
+          delta_vs_median_pct: 5.88,
+        })
+      }
+
+      if (pathname.includes('/offers')) {
+        return jsonResponse({
+          total: 2,
           items: [
             {
               id: 1,
@@ -147,11 +168,27 @@ describe('dashboard app', () => {
               price_band: 'good-value',
               delta_vs_median_pct: 5.88,
             },
+            {
+              id: 2,
+              source: 'glomark',
+              category: 'grocery',
+              brand: 'Glomark',
+              display_name: 'Glomark Local Coconut Oil',
+              canonical_name: 'local coconut oil',
+              price_lkr: 1680,
+              price_per_unit_lkr: 1680,
+              unit: 'l',
+              unit_amount: 1,
+              available: true,
+              url: 'https://glomark.lk/products/local-coconut-oil-1l',
+              price_band: 'fair',
+              delta_vs_median_pct: 1.82,
+            },
           ],
         })
       }
 
-      if (url.includes('/pipeline/status')) {
+      if (pathname.includes('/pipeline/status')) {
         return jsonResponse({
           items: [
             {
@@ -163,11 +200,20 @@ describe('dashboard app', () => {
               finished_at: '2026-05-11T15:00:00Z',
               error_message: null,
             },
+            {
+              source: 'glomark',
+              status: 'completed',
+              items_seen: 180,
+              items_stored: 176,
+              started_at: '2026-05-11T14:40:00Z',
+              finished_at: '2026-05-11T14:58:00Z',
+              error_message: null,
+            },
           ],
         })
       }
 
-      if (url.includes('/trends/grocery')) {
+      if (pathname.includes('/trends/grocery')) {
         return jsonResponse({
           items: [
             {
@@ -184,7 +230,7 @@ describe('dashboard app', () => {
         })
       }
 
-      if (url.includes('/market-quotes')) {
+      if (pathname.includes('/market-quotes')) {
         return jsonResponse({
           total: 2,
           items: [
@@ -216,7 +262,7 @@ describe('dashboard app', () => {
         })
       }
 
-      if (url.includes('/categories/summary')) {
+      if (pathname.includes('/categories/summary')) {
         return jsonResponse({
           items: [
             {
@@ -237,11 +283,13 @@ describe('dashboard app', () => {
         })
       }
 
-      if (url.includes('/compare/districts')) {
+      if (pathname.includes('/compare/districts')) {
+        const left = requestUrl.searchParams.get('left') || 'Colombo'
+        const right = requestUrl.searchParams.get('right') || 'Kandy'
         return jsonResponse({
           mode: 'district',
-          left: 'Colombo',
-          right: 'Kandy',
+          left,
+          right,
           items: [
             {
               item_name: 'Tomato',
@@ -255,12 +303,45 @@ describe('dashboard app', () => {
         })
       }
 
-      if (url.includes('/basket/estimate')) {
+      if (pathname.includes('/basket/estimate')) {
+        const preset = requestUrl.searchParams.get('preset') || 'essentials'
+        if (preset === 'smart-saver') {
+          return jsonResponse({
+            preset: {
+              id: 'smart-saver',
+              label: 'Smart Saver',
+            },
+            available_presets: [
+              { id: 'essentials', label: 'Essentials Basket' },
+              { id: 'smart-saver', label: 'Smart Saver' },
+              { id: 'market-fresh', label: 'Market Fresh' },
+            ],
+            summary: {
+              total_lkr: 1600,
+              available_items: 1,
+              missing_items: 0,
+            },
+            items: [
+              {
+                label: 'Local coconut oil',
+                kind: 'offer',
+                price_lkr: 1600,
+                source: 'spar2u',
+              },
+            ],
+          })
+        }
+
         return jsonResponse({
           preset: {
             id: 'essentials',
             label: 'Essentials Basket',
           },
+          available_presets: [
+            { id: 'essentials', label: 'Essentials Basket' },
+            { id: 'smart-saver', label: 'Smart Saver' },
+            { id: 'market-fresh', label: 'Market Fresh' },
+          ],
           summary: {
             total_lkr: 1920,
             available_items: 2,
@@ -298,7 +379,7 @@ describe('dashboard app', () => {
     expect(await screen.findByRole('link', { name: /intelligence/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /markets/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /basket/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /methods/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: /methods/i }).length).toBeGreaterThan(0)
   })
 
   it('renders the premium homepage hero and spotlights', async () => {
@@ -317,7 +398,8 @@ describe('dashboard app', () => {
 
     expect(await screen.findByRole('heading', { name: /methods/i })).toBeInTheDocument()
     expect(screen.getByText(/normalization/i)).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /fair-price logic/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /source freshness/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: /developers/i }).length).toBeGreaterThan(0)
   })
 
   it('renders the markets page with wet-market data', async () => {
@@ -341,6 +423,8 @@ describe('dashboard app', () => {
     renderApp(['/compare'])
 
     expect(await screen.findByRole('heading', { name: /compare stores, districts, and food clusters/i })).toBeInTheDocument()
+    expect(await screen.findByRole('combobox', { name: /left district/i })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /right district/i })).toBeInTheDocument()
     expect(await screen.findByText(/colombo vs kandy/i)).toBeInTheDocument()
     expect(await screen.findByText(/tomato/i)).toBeInTheDocument()
     expect(await screen.findByText(/left cheaper by rs 20/i)).toBeInTheDocument()
@@ -353,16 +437,20 @@ describe('dashboard app', () => {
     const basketView = renderApp(['/basket'])
 
     expect(await screen.findByRole('heading', { name: /basket workspace/i })).toBeInTheDocument()
-    expect(await screen.findByText(/essentials basket/i)).toBeInTheDocument()
+    expect(await screen.findByRole('combobox', { name: /basket preset/i })).toHaveValue('essentials')
     expect(await screen.findByText(/rs 1,920/i)).toBeInTheDocument()
 
+    await user.selectOptions(screen.getByRole('combobox', { name: /basket preset/i }), 'smart-saver')
+    expect(await screen.findByRole('heading', { name: /smart saver/i })).toBeInTheDocument()
+    expect((await screen.findAllByText(/rs 1,600/i)).length).toBeGreaterThan(0)
+
     await user.click(screen.getByRole('button', { name: /save preset to watchlists/i }))
-    expect(localStorage.getItem('food-platform.watchlists')).toContain('Essentials Basket')
+    expect(localStorage.getItem('food-platform.watchlists')).toContain('Smart Saver')
 
     basketView.unmount()
     renderApp(['/watchlists'])
 
     expect(await screen.findByRole('heading', { name: /watchlists/i })).toBeInTheDocument()
-    expect(await screen.findByText(/essentials basket/i)).toBeInTheDocument()
+    expect(await screen.findByText(/smart saver/i)).toBeInTheDocument()
   })
 })

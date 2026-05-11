@@ -4,13 +4,16 @@ import { AppShell } from '../components/layout/app-shell'
 import { BasketPage } from '../pages/basket-page'
 import { CategoriesPage } from '../pages/categories-page'
 import { ComparePage } from '../pages/compare-page'
+import { DevelopersPage } from '../pages/developers-page'
 import { HomePage } from '../pages/home-page'
 import { IntelligencePage } from '../pages/intelligence-page'
 import { MarketsPage } from '../pages/markets-page'
 import { MethodsPage } from '../pages/methods-page'
 import { OfferDetailPage } from '../pages/offer-detail-page'
 import { PipelinePage } from '../pages/pipeline-page'
+import { PrivacyPage } from '../pages/privacy-page'
 import { RetailPage } from '../pages/retail-page'
+import { TermsPage } from '../pages/terms-page'
 import { WatchlistsPage } from '../pages/watchlists-page'
 
 export function AppRoutes() {
@@ -26,6 +29,9 @@ export function AppRoutes() {
         <Route path="/basket" element={<BasketPage />} />
         <Route path="/watchlists" element={<WatchlistsPage />} />
         <Route path="/methods" element={<MethodsPage />} />
+        <Route path="/developers" element={<DevelopersPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
         <Route path="/pipeline" element={<PipelinePage />} />
         <Route path="/offers/:offerId" element={<OfferDetailPage />} />
       </Routes>

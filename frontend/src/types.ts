@@ -127,6 +127,10 @@ export type BasketEstimateResponse = {
     id: string
     label: string
   }
+  available_presets: Array<{
+    id: string
+    label: string
+  }>
   summary: {
     total_lkr: number
     available_items: number

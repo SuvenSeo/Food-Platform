@@ -3,6 +3,8 @@ import type { ReactNode } from 'react'
 import { BarChart3, BookOpenText, Bookmark, DatabaseZap, LayoutGrid, Scale, ShoppingBasket, Soup, Store, Waves } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
+import { SiteFooter } from './site-footer'
+
 const navItems = [
   { to: '/', label: 'Home', icon: LayoutGrid },
   { to: '/intelligence', label: 'Intelligence', icon: BarChart3 },
@@ -67,6 +69,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
 
         <main>{children}</main>
+        <SiteFooter />
       </div>
     </div>
   )

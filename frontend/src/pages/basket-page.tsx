@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 
 import { LoadingBlock } from '../components/ui/loading-block'
 import { SectionHeader } from '../components/ui/section-header'
@@ -7,9 +8,10 @@ import { api } from '../lib/api'
 import { formatCurrency } from '../lib/format'
 
 export function BasketPage() {
+  const [preset, setPreset] = useState('essentials')
   const basketQuery = useQuery({
-    queryKey: ['basket-estimate', 'essentials'],
-    queryFn: () => api.getBasketEstimate('essentials'),
+    queryKey: ['basket-estimate', preset],
+    queryFn: () => api.getBasketEstimate(preset),
   })
   const { saveEntry } = useWatchlists()
 
@@ -27,11 +29,27 @@ export function BasketPage() {
         description="A practical utility layer for household totals, substitutions, and future saved basket workflows."
       />
       <div className="rounded-[2rem] border border-orange-100 bg-orange-50 p-6 shadow-[0_20px_45px_rgba(201,111,29,0.10)]">
+        <label className="mb-6 block max-w-sm space-y-2 text-sm font-medium text-slate-700">
+          <span>Basket preset</span>
+          <select
+            aria-label="Basket preset"
+            value={preset}
+            onChange={(event) => setPreset(event.target.value)}
+            className="w-full rounded-2xl border border-orange-200 bg-white px-4 py-3 text-sm text-slate-900"
+          >
+            {data?.available_presets.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h3 className="text-xl font-semibold text-slate-950">{data?.preset.label}</h3>
             <p className="mt-2 text-base leading-7 text-slate-700">
-              Estimated from the cheapest currently available retail and market signals in the preset basket.
+              Estimated from the cheapest currently available retail and market signals in the selected preset basket.
             </p>
           </div>
           <button
@@ -41,8 +59,8 @@ export function BasketPage() {
                 id: `basket-${data?.preset.id}`,
                 title: data?.preset.label ?? 'Basket preset',
                 kind: 'basket',
-                href: '/basket',
-                summary: `Rs ${formatCurrency(data?.summary.total_lkr ?? 0)}`,
+                href: `/basket?preset=${data?.preset.id}`,
+                summary: `${data?.summary.available_items} items · Rs ${formatCurrency(data?.summary.total_lkr ?? 0)}`,
               })
             }
             className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white"

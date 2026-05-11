@@ -110,15 +110,20 @@ export function HomePage() {
           <SectionHeader
             eyebrow="Utility"
             title="Basket snapshot"
-            description="This section becomes the bridge into household tools without changing the product’s intelligence-first posture."
+            description="Household tools, trust surfaces, and public-product links now sit beside the intelligence layer instead of living as afterthoughts."
           />
           <div className="mt-6 space-y-4 text-sm leading-7 text-slate-700">
-            <p>Track the cost of a household basket across sources, districts, and future category presets.</p>
-            <p>Phase A introduces the landing surface here before the deeper basket workflow ships.</p>
+            <p>Track basket cost across presets and save repeat views into local watchlists.</p>
+            <p>Follow methods, developers, and public trust surfaces without leaving the main product story.</p>
           </div>
-          <Link to="/basket" className="mt-6 inline-flex rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
-            Open basket workspace
-          </Link>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link to="/basket" className="inline-flex rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
+              Open basket workspace
+            </Link>
+            <Link to="/methods" className="inline-flex rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200">
+              Review methods
+            </Link>
+          </div>
         </div>
       </section>
     </div>

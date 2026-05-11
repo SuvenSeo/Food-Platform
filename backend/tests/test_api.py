@@ -262,5 +262,18 @@ def test_basket_estimate_returns_total_for_essentials_preset() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["preset"]["id"] == "essentials"
+    assert any(item["id"] == "smart-saver" for item in payload["available_presets"])
     assert payload["summary"]["available_items"] == 2
     assert payload["summary"]["total_lkr"] == 1920.0
+
+
+def test_basket_estimate_supports_multiple_presets() -> None:
+    seed_api_data()
+
+    response = client.get("/api/v1/basket/estimate", params={"preset": "smart-saver"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["preset"]["id"] == "smart-saver"
+    assert payload["summary"]["available_items"] == 1
+    assert payload["summary"]["total_lkr"] == 1600.0

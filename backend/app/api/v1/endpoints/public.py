@@ -15,7 +15,21 @@ BASKET_PRESETS: dict[str, dict[str, object]] = {
             {"kind": "offer", "canonical_name": "local coconut oil", "label": "Local coconut oil"},
             {"kind": "market_quote", "item_name": "Tomato", "label": "Tomato"},
         ],
-    }
+    },
+    "smart-saver": {
+        "id": "smart-saver",
+        "label": "Smart Saver",
+        "items": [
+            {"kind": "offer", "canonical_name": "local coconut oil", "label": "Local coconut oil"},
+        ],
+    },
+    "market-fresh": {
+        "id": "market-fresh",
+        "label": "Market Fresh",
+        "items": [
+            {"kind": "market_quote", "item_name": "Tomato", "label": "Tomato"},
+        ],
+    },
 }
 
 
@@ -286,6 +300,10 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
 
     return {
         "preset": {"id": preset_config["id"], "label": preset_config["label"]},
+        "available_presets": [
+            {"id": config["id"], "label": config["label"]}
+            for config in BASKET_PRESETS.values()
+        ],
         "summary": {
             "total_lkr": total_lkr,
             "available_items": available_items,
