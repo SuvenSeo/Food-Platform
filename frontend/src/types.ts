@@ -97,3 +97,53 @@ export type IntelligenceSummary = {
   }
   sources: PipelineItem[]
 }
+
+export type CategorySummaryItem = {
+  category: string
+  retail_offers_count: number
+  market_quotes_count: number
+  retail_median_lkr: number | null
+  market_average_lkr: number | null
+}
+
+export type DistrictCompareItem = {
+  item_name: string
+  category: string
+  left_price_lkr: number
+  right_price_lkr: number
+  delta_lkr: number
+  cheaper_side: 'left' | 'right' | 'equal'
+}
+
+export type DistrictCompareSummary = {
+  mode: 'district'
+  left: string
+  right: string
+  items: DistrictCompareItem[]
+}
+
+export type BasketEstimateResponse = {
+  preset: {
+    id: string
+    label: string
+  }
+  summary: {
+    total_lkr: number
+    available_items: number
+    missing_items: number
+  }
+  items: Array<{
+    label: string
+    kind: string
+    price_lkr: number | null
+    source: string | null
+  }>
+}
+
+export type WatchlistEntry = {
+  id: string
+  title: string
+  kind: string
+  href: string
+  summary: string
+}

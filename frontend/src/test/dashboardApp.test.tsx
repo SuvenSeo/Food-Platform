@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 
 import { AppRoutes } from '../App'
@@ -215,12 +216,80 @@ describe('dashboard app', () => {
         })
       }
 
+      if (url.includes('/categories/summary')) {
+        return jsonResponse({
+          items: [
+            {
+              category: 'grocery',
+              retail_offers_count: 1,
+              market_quotes_count: 0,
+              retail_median_lkr: 1650,
+              market_average_lkr: null,
+            },
+            {
+              category: 'vegetables',
+              retail_offers_count: 0,
+              market_quotes_count: 2,
+              retail_median_lkr: null,
+              market_average_lkr: 330,
+            },
+          ],
+        })
+      }
+
+      if (url.includes('/compare/districts')) {
+        return jsonResponse({
+          mode: 'district',
+          left: 'Colombo',
+          right: 'Kandy',
+          items: [
+            {
+              item_name: 'Tomato',
+              category: 'vegetables',
+              left_price_lkr: 320,
+              right_price_lkr: 340,
+              delta_lkr: 20,
+              cheaper_side: 'left',
+            },
+          ],
+        })
+      }
+
+      if (url.includes('/basket/estimate')) {
+        return jsonResponse({
+          preset: {
+            id: 'essentials',
+            label: 'Essentials Basket',
+          },
+          summary: {
+            total_lkr: 1920,
+            available_items: 2,
+            missing_items: 0,
+          },
+          items: [
+            {
+              label: 'Local coconut oil',
+              kind: 'offer',
+              price_lkr: 1600,
+              source: 'spar2u',
+            },
+            {
+              label: 'Tomato',
+              kind: 'market_quote',
+              price_lkr: 320,
+              source: 'Pettah',
+            },
+          ],
+        })
+      }
+
       return Promise.reject(new Error(`Unhandled fetch for ${url}`))
     })
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
+    localStorage.clear()
   })
 
   it('renders the expanded premium navigation', async () => {
@@ -257,5 +326,43 @@ describe('dashboard app', () => {
     expect(await screen.findByRole('heading', { name: /markets/i })).toBeInTheDocument()
     expect(await screen.findByText(/pettah/i)).toBeInTheDocument()
     expect(await screen.findAllByText(/^tomato$/i)).toHaveLength(2)
+  })
+
+  it('renders category summary cards with real coverage counts', async () => {
+    renderApp(['/categories'])
+
+    expect(await screen.findByRole('heading', { name: /category intelligence/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /^grocery$/i })).toBeInTheDocument()
+    expect(await screen.findByText(/retail offers 1/i)).toBeInTheDocument()
+    expect(await screen.findByText(/market quotes 2/i)).toBeInTheDocument()
+  })
+
+  it('renders district comparison data', async () => {
+    renderApp(['/compare'])
+
+    expect(await screen.findByRole('heading', { name: /compare stores, districts, and food clusters/i })).toBeInTheDocument()
+    expect(await screen.findByText(/colombo vs kandy/i)).toBeInTheDocument()
+    expect(await screen.findByText(/tomato/i)).toBeInTheDocument()
+    expect(await screen.findByText(/left cheaper by rs 20/i)).toBeInTheDocument()
+  })
+
+  it('renders basket estimates and can save them to watchlists', async () => {
+    const user = userEvent.setup()
+    localStorage.clear()
+
+    const basketView = renderApp(['/basket'])
+
+    expect(await screen.findByRole('heading', { name: /basket workspace/i })).toBeInTheDocument()
+    expect(await screen.findByText(/essentials basket/i)).toBeInTheDocument()
+    expect(await screen.findByText(/rs 1,920/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /save preset to watchlists/i }))
+    expect(localStorage.getItem('food-platform.watchlists')).toContain('Essentials Basket')
+
+    basketView.unmount()
+    renderApp(['/watchlists'])
+
+    expect(await screen.findByRole('heading', { name: /watchlists/i })).toBeInTheDocument()
+    expect(await screen.findByText(/essentials basket/i)).toBeInTheDocument()
   })
 })

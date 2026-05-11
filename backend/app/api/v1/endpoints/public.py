@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
@@ -6,6 +6,17 @@ from app.db.session import get_db
 from app.models.tables import FairPriceScoreRecord, FoodOfferRecord, MarketQuoteRecord, PriceAggregateRecord, ScrapeRun
 
 router = APIRouter()
+
+BASKET_PRESETS: dict[str, dict[str, object]] = {
+    "essentials": {
+        "id": "essentials",
+        "label": "Essentials Basket",
+        "items": [
+            {"kind": "offer", "canonical_name": "local coconut oil", "label": "Local coconut oil"},
+            {"kind": "market_quote", "item_name": "Tomato", "label": "Tomato"},
+        ],
+    }
+}
 
 
 def _serialize_offer_summary(offer: FoodOfferRecord, score: FairPriceScoreRecord | None) -> dict[str, object]:
@@ -47,6 +58,50 @@ def stats_summary(db: Session = Depends(get_db)) -> dict[str, object]:
         "sources_count": sources_count,
         "categories_count": categories_count,
         "last_scrape_at": latest_run.isoformat() if latest_run else None,
+    }
+
+
+@router.get("/categories/summary")
+def categories_summary(db: Session = Depends(get_db)) -> dict[str, object]:
+    retail_counts = {
+        category: count
+        for category, count in db.execute(
+            select(FoodOfferRecord.category, func.count(FoodOfferRecord.id)).group_by(FoodOfferRecord.category)
+        ).all()
+    }
+    market_counts = {
+        category: count
+        for category, count in db.execute(
+            select(MarketQuoteRecord.category, func.count(MarketQuoteRecord.id)).group_by(MarketQuoteRecord.category)
+        ).all()
+    }
+    retail_price_summary = {
+        category: float(price or 0)
+        for category, price in db.execute(
+            select(PriceAggregateRecord.category, func.avg(PriceAggregateRecord.median_price_lkr)).group_by(
+                PriceAggregateRecord.category
+            )
+        ).all()
+    }
+    market_price_summary = {
+        category: float(price or 0)
+        for category, price in db.execute(
+            select(MarketQuoteRecord.category, func.avg(MarketQuoteRecord.price_lkr)).group_by(MarketQuoteRecord.category)
+        ).all()
+    }
+
+    categories = sorted(set(retail_counts) | set(market_counts))
+    return {
+        "items": [
+            {
+                "category": category,
+                "retail_offers_count": retail_counts.get(category, 0),
+                "market_quotes_count": market_counts.get(category, 0),
+                "retail_median_lkr": retail_price_summary.get(category),
+                "market_average_lkr": market_price_summary.get(category),
+            }
+            for category in categories
+        ]
     }
 
 
@@ -136,6 +191,107 @@ def intelligence_summary(db: Session = Depends(get_db)) -> dict[str, object]:
             }
             for row in source_rows[:4]
         ],
+    }
+
+
+@router.get("/compare/districts")
+def compare_districts(left: str, right: str, db: Session = Depends(get_db)) -> dict[str, object]:
+    rows = db.scalars(
+        select(MarketQuoteRecord)
+        .where(MarketQuoteRecord.district.in_([left, right]))
+        .order_by(MarketQuoteRecord.quoted_at.desc(), MarketQuoteRecord.item_name.asc())
+    ).all()
+
+    latest_by_side: dict[str, dict[str, MarketQuoteRecord]] = {left: {}, right: {}}
+    for row in rows:
+        latest_by_side[row.district].setdefault(row.item_name, row)
+
+    common_items = sorted(set(latest_by_side[left]) & set(latest_by_side[right]))
+    items = []
+    for item_name in common_items:
+        left_row = latest_by_side[left][item_name]
+        right_row = latest_by_side[right][item_name]
+        delta = float(right_row.price_lkr) - float(left_row.price_lkr)
+        items.append(
+            {
+                "item_name": item_name,
+                "category": left_row.category,
+                "left_price_lkr": float(left_row.price_lkr),
+                "right_price_lkr": float(right_row.price_lkr),
+                "delta_lkr": delta,
+                "cheaper_side": "left" if delta > 0 else "right" if delta < 0 else "equal",
+            }
+        )
+
+    return {
+        "mode": "district",
+        "left": left,
+        "right": right,
+        "items": items,
+    }
+
+
+@router.get("/basket/estimate")
+def basket_estimate(preset: str = Query(default="essentials"), db: Session = Depends(get_db)) -> dict[str, object]:
+    preset_config = BASKET_PRESETS.get(preset)
+    if not preset_config:
+        raise HTTPException(status_code=404, detail="Basket preset not found")
+
+    items = []
+    total_lkr = 0.0
+    available_items = 0
+
+    for preset_item in preset_config["items"]:
+        if preset_item["kind"] == "offer":
+            offer = db.scalar(
+                select(FoodOfferRecord)
+                .where(FoodOfferRecord.canonical_name == preset_item["canonical_name"])
+                .where(FoodOfferRecord.available.is_(True))
+                .order_by(FoodOfferRecord.price_lkr.asc())
+            )
+            if offer:
+                price = float(offer.price_lkr)
+                total_lkr += price
+                available_items += 1
+                items.append(
+                    {
+                        "label": preset_item["label"],
+                        "kind": "offer",
+                        "price_lkr": price,
+                        "source": offer.source,
+                    }
+                )
+                continue
+        else:
+            quote = db.scalar(
+                select(MarketQuoteRecord)
+                .where(MarketQuoteRecord.item_name == preset_item["item_name"])
+                .order_by(MarketQuoteRecord.price_lkr.asc(), MarketQuoteRecord.quoted_at.desc())
+            )
+            if quote:
+                price = float(quote.price_lkr)
+                total_lkr += price
+                available_items += 1
+                items.append(
+                    {
+                        "label": preset_item["label"],
+                        "kind": "market_quote",
+                        "price_lkr": price,
+                        "source": quote.market_name,
+                    }
+                )
+                continue
+
+        items.append({"label": preset_item["label"], "kind": preset_item["kind"], "price_lkr": None, "source": None})
+
+    return {
+        "preset": {"id": preset_config["id"], "label": preset_config["label"]},
+        "summary": {
+            "total_lkr": total_lkr,
+            "available_items": available_items,
+            "missing_items": len(preset_config["items"]) - available_items,
+        },
+        "items": items,
     }
 
 
@@ -276,14 +432,23 @@ def hub_manifest() -> dict[str, object]:
         "summary_endpoint": "/api/v1/hub/summary",
         "routes": {
             "overview": "/",
-            "explore": "/explore",
-            "trends": "/trends",
+            "intelligence": "/intelligence",
+            "retail": "/retail",
+            "markets": "/markets",
+            "categories": "/categories",
+            "compare": "/compare",
+            "basket": "/basket",
+            "watchlists": "/watchlists",
+            "methods": "/methods",
             "pipeline": "/pipeline",
         },
         "datasets": {
             "offers": "/api/v1/offers",
             "trends": "/api/v1/trends/{category}",
             "market_quotes": "/api/v1/market-quotes",
+            "categories_summary": "/api/v1/categories/summary",
+            "district_compare": "/api/v1/compare/districts?left={left}&right={right}",
+            "basket_estimate": "/api/v1/basket/estimate?preset={preset}",
         },
         "linked_platforms": {
             "property": {
@@ -307,7 +472,27 @@ def hub_manifest() -> dict[str, object]:
 def hub_summary(db: Session = Depends(get_db)) -> dict[str, object]:
     return {
         "platform": "food",
-        "offers_count": db.scalar(select(func.count(FoodOfferRecord.id))) or 0,
-        "market_quotes_count": db.scalar(select(func.count(MarketQuoteRecord.id))) or 0,
-        "sources_count": db.scalar(select(func.count(distinct(FoodOfferRecord.source)))) or 0,
+        "coverage": {
+            "offers_count": db.scalar(select(func.count(FoodOfferRecord.id))) or 0,
+            "market_quotes_count": db.scalar(select(func.count(MarketQuoteRecord.id))) or 0,
+            "sources_count": db.scalar(select(func.count(distinct(FoodOfferRecord.source)))) or 0,
+            "categories_count": db.scalar(select(func.count(distinct(FoodOfferRecord.category)))) or 0,
+        },
+        "available_pages": [
+            "home",
+            "intelligence",
+            "retail",
+            "markets",
+            "categories",
+            "compare",
+            "basket",
+            "watchlists",
+            "methods",
+            "pipeline",
+        ],
+        "utility_surfaces": {
+            "basket_preset": "essentials",
+            "compare_mode": "district",
+            "watchlists_storage": "local-browser",
+        },
     }

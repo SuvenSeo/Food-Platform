@@ -181,9 +181,26 @@ def test_hub_manifest_exposes_life_platform_contract() -> None:
     manifest = response.json()
     assert manifest["platform"] == "food"
     assert manifest["summary_endpoint"] == "/api/v1/hub/summary"
-    assert manifest["routes"]["explore"] == "/explore"
+    assert manifest["routes"]["intelligence"] == "/intelligence"
+    assert manifest["routes"]["watchlists"] == "/watchlists"
     assert "market_quotes" in manifest["datasets"]
+    assert "basket_estimate" in manifest["datasets"]
     assert manifest["linked_platforms"]["vehicle"]["url"].startswith("https://")
+
+
+def test_hub_summary_exposes_pages_and_utilities() -> None:
+    seed_api_data()
+
+    response = client.get("/api/v1/hub/summary")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["platform"] == "food"
+    assert payload["coverage"]["offers_count"] == 1
+    assert payload["coverage"]["market_quotes_count"] == 2
+    assert "categories" in payload["available_pages"]
+    assert "watchlists" in payload["available_pages"]
+    assert payload["utility_surfaces"]["basket_preset"] == "essentials"
 
 
 def test_homepage_summary_exposes_market_and_retail_signals() -> None:
@@ -208,3 +225,42 @@ def test_intelligence_summary_exposes_rankings_and_freshness() -> None:
     payload = response.json()
     assert payload["rankings"]["top_value"][0]["price_band"] == "good-value"
     assert payload["sources"][0]["source"] == "spar2u"
+
+
+def test_categories_summary_combines_retail_and_market_coverage() -> None:
+    seed_api_data()
+
+    response = client.get("/api/v1/categories/summary")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["items"][0]["category"] == "grocery"
+    assert payload["items"][0]["retail_offers_count"] == 1
+    assert payload["items"][1]["category"] == "vegetables"
+    assert payload["items"][1]["market_quotes_count"] == 2
+
+
+def test_district_compare_summary_exposes_price_delta() -> None:
+    seed_api_data()
+
+    response = client.get("/api/v1/compare/districts", params={"left": "Colombo", "right": "Kandy"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["mode"] == "district"
+    assert payload["items"][0]["item_name"] == "Tomato"
+    assert payload["items"][0]["left_price_lkr"] == 320.0
+    assert payload["items"][0]["right_price_lkr"] == 340.0
+    assert payload["items"][0]["cheaper_side"] == "left"
+
+
+def test_basket_estimate_returns_total_for_essentials_preset() -> None:
+    seed_api_data()
+
+    response = client.get("/api/v1/basket/estimate", params={"preset": "essentials"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["preset"]["id"] == "essentials"
+    assert payload["summary"]["available_items"] == 2
+    assert payload["summary"]["total_lkr"] == 1920.0

@@ -11,6 +11,7 @@ import { MethodsPage } from '../pages/methods-page'
 import { OfferDetailPage } from '../pages/offer-detail-page'
 import { PipelinePage } from '../pages/pipeline-page'
 import { RetailPage } from '../pages/retail-page'
+import { WatchlistsPage } from '../pages/watchlists-page'
 
 export function AppRoutes() {
   return (
@@ -23,6 +24,7 @@ export function AppRoutes() {
         <Route path="/categories" element={<CategoriesPage />} />
         <Route path="/compare" element={<ComparePage />} />
         <Route path="/basket" element={<BasketPage />} />
+        <Route path="/watchlists" element={<WatchlistsPage />} />
         <Route path="/methods" element={<MethodsPage />} />
         <Route path="/pipeline" element={<PipelinePage />} />
         <Route path="/offers/:offerId" element={<OfferDetailPage />} />

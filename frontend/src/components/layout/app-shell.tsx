@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import { BarChart3, BookOpenText, DatabaseZap, LayoutGrid, Scale, ShoppingBasket, Soup, Store, Waves } from 'lucide-react'
+import { BarChart3, BookOpenText, Bookmark, DatabaseZap, LayoutGrid, Scale, ShoppingBasket, Soup, Store, Waves } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 
 const navItems = [
@@ -11,6 +11,7 @@ const navItems = [
   { to: '/categories', label: 'Categories', icon: Soup },
   { to: '/compare', label: 'Compare', icon: Scale },
   { to: '/basket', label: 'Basket', icon: ShoppingBasket },
+  { to: '/watchlists', label: 'Watchlists', icon: Bookmark },
   { to: '/methods', label: 'Methods', icon: BookOpenText },
   { to: '/pipeline', label: 'Pipeline', icon: DatabaseZap },
 ]
