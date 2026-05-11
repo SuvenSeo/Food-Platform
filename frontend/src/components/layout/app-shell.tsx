@@ -21,16 +21,16 @@ const navItems = [
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen text-slate-950">
-      <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
-        <header className="rounded-[2rem] border border-white/60 bg-white/80 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+      <div className="app-container flex flex-col gap-8 py-6 sm:px-2">
+        <header className="surface-shell p-6">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-4xl space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-sm font-medium text-orange-700">
+              <div className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-sm font-medium text-orange-700 ring-1 ring-orange-100">
                 <Soup className="h-4 w-4" />
                 Sri Lanka Food Intelligence
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
+                <p className="eyebrow-label text-slate-500">
                   National price signals
                 </p>
                 <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
@@ -42,7 +42,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </p>
               </div>
             </div>
-            <div className="rounded-[1.5rem] border border-orange-100 bg-orange-50 px-5 py-4 text-sm text-orange-900">
+            <div className="surface-panel border-orange-100 bg-orange-50 px-5 py-4 text-sm text-orange-900">
               <p className="font-semibold uppercase tracking-[0.22em] text-orange-700">Current live coverage</p>
               <p className="mt-2">Retail sources, wet-market quotes, and premium summary surfaces.</p>
             </div>

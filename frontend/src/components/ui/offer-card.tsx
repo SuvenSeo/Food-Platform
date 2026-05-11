@@ -1,9 +1,10 @@
 import { formatCurrency } from '../../lib/format'
 import type { OfferItem } from '../../types'
+import { Link } from 'react-router-dom'
 
 export function OfferCard({ offer }: { offer: OfferItem }) {
   return (
-    <article className="rounded-[1.75rem] border border-white/70 bg-white/90 p-5 shadow-[0_20px_45px_rgba(15,23,42,0.06)] backdrop-blur">
+    <article className="fp-card">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{offer.source}</p>
@@ -19,7 +20,7 @@ export function OfferCard({ offer }: { offer: OfferItem }) {
         ) : null}
       </div>
 
-      <div className="mt-5 flex items-end justify-between gap-4">
+      <div className="mt-5 flex items-end justify-between gap-4 border-t border-slate-100 pt-4">
         <div>
           <p className="text-sm text-slate-500">Current price</p>
           <p className="text-2xl font-semibold text-slate-950">Rs {formatCurrency(offer.price_lkr)}</p>
@@ -27,6 +28,11 @@ export function OfferCard({ offer }: { offer: OfferItem }) {
         <div className="text-right text-sm text-slate-600">
           {offer.unit_amount ? `${offer.unit_amount}${offer.unit || ''}` : 'Unit pending'}
         </div>
+      </div>
+      <div className="mt-4 flex justify-end">
+        <Link to={`/offers/${offer.id}`} className="fp-button-secondary">
+          Open offer
+        </Link>
       </div>
     </article>
   )

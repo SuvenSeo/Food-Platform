@@ -26,6 +26,15 @@ class Settings(BaseSettings):
     def cors_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
+    @property
+    def is_development_like(self) -> bool:
+        normalized = self.app_env.strip().lower()
+        return normalized in {"dev", "development", "local", "test", "testing"}
+
+    @property
+    def has_insecure_admin_key(self) -> bool:
+        return self.admin_api_key.strip() in {"", "change-me"}
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

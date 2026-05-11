@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -10,15 +10,19 @@ from app.services.fair_price import score_offers_by_cluster
 from app.services.normalization import normalize_offer
 
 
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
 def start_scrape_run(db: Session, source: str) -> ScrapeRun:
-    run = ScrapeRun(source=source, status="running", started_at=datetime.utcnow())
+    run = ScrapeRun(source=source, status="running", started_at=utc_now())
     db.add(run)
     db.flush()
     return run
 
 
 def finish_scrape_run(db: Session, run: ScrapeRun, *, items_seen: int, items_stored: int, error_message: str | None = None) -> None:
-    run.finished_at = datetime.utcnow()
+    run.finished_at = utc_now()
     run.items_seen = items_seen
     run.items_stored = items_stored
     run.status = "failed" if error_message else "completed"
@@ -26,7 +30,7 @@ def finish_scrape_run(db: Session, run: ScrapeRun, *, items_seen: int, items_sto
 
 
 def store_raw_offers(db: Session, source: str, raw_offers: list[RawOffer], run: ScrapeRun | None = None) -> list[RawOfferRecord]:
-    now = datetime.utcnow()
+    now = utc_now()
     records: list[RawOfferRecord] = []
     for offer in raw_offers:
         record = RawOfferRecord(
@@ -129,7 +133,7 @@ def rebuild_normalized_views(db: Session) -> None:
                 max_price_lkr=item.max_price_lkr,
                 median_price_lkr=item.median_price_lkr,
                 average_price_lkr=item.average_price_lkr,
-                calculated_at=datetime.utcnow(),
+                calculated_at=utc_now(),
             )
             for item in aggregates
         ]
@@ -148,7 +152,7 @@ def rebuild_normalized_views(db: Session) -> None:
                 median_price_lkr=score.median_price_lkr,
                 delta_vs_median_pct=score.delta_vs_median_pct,
                 price_band=score.price_band,
-                calculated_at=datetime.utcnow(),
+                calculated_at=utc_now(),
             )
             for (source, source_item_id), score in scores.items()
         ]

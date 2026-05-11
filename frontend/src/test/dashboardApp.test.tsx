@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 
@@ -9,6 +9,13 @@ const jsonResponse = (data: unknown) =>
   Promise.resolve({
     ok: true,
     json: async () => data,
+  } as Response)
+
+const errorJsonResponse = (status: number, detail: string) =>
+  Promise.resolve({
+    ok: false,
+    status,
+    json: async () => ({ detail }),
   } as Response)
 
 function renderApp(initialEntries: string[] = ['/']) {
@@ -146,6 +153,10 @@ describe('dashboard app', () => {
           price_band: 'good-value',
           delta_vs_median_pct: 5.88,
         })
+      }
+
+      if (/\/offers\/\d+$/.test(pathname)) {
+        return errorJsonResponse(404, 'Offer not found')
       }
 
       if (pathname.includes('/offers')) {
@@ -405,9 +416,24 @@ describe('dashboard app', () => {
   it('renders the markets page with wet-market data', async () => {
     renderApp(['/markets'])
 
-    expect(await screen.findByRole('heading', { name: /markets/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /wet-market quotes/i })).toBeInTheDocument()
     expect(await screen.findByText(/pettah/i)).toBeInTheDocument()
     expect(await screen.findAllByText(/^tomato$/i)).toHaveLength(2)
+  })
+
+  it('renders retail controls and supports filtering', async () => {
+    const user = userEvent.setup()
+    renderApp(['/retail'])
+
+    expect(await screen.findByRole('heading', { name: /supermarket and grocery intelligence/i })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /search offers/i })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /source/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /compare districts/i })).toBeInTheDocument()
+    expect(await screen.findAllByRole('link', { name: /open offer/i })).toHaveLength(2)
+
+    await user.type(screen.getByRole('textbox', { name: /search offers/i }), 'glomark')
+    expect(await screen.findAllByRole('link', { name: /open offer/i })).toHaveLength(1)
+    expect(screen.getByText(/glomark local coconut oil/i)).toBeInTheDocument()
   })
 
   it('renders category summary cards with real coverage counts', async () => {
@@ -420,14 +446,20 @@ describe('dashboard app', () => {
   })
 
   it('renders district comparison data', async () => {
+    const user = userEvent.setup()
     renderApp(['/compare'])
 
     expect(await screen.findByRole('heading', { name: /compare stores, districts, and food clusters/i })).toBeInTheDocument()
     expect(await screen.findByRole('combobox', { name: /left district/i })).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: /right district/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /swap/i })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /search compared items/i })).toBeInTheDocument()
     expect(await screen.findByText(/colombo vs kandy/i)).toBeInTheDocument()
     expect(await screen.findByText(/tomato/i)).toBeInTheDocument()
     expect(await screen.findByText(/left cheaper by rs 20/i)).toBeInTheDocument()
+
+    await user.type(screen.getByRole('textbox', { name: /search compared items/i }), 'onion')
+    expect(await screen.findByText(/no overlapping produce items found/i)).toBeInTheDocument()
   })
 
   it('renders basket estimates and can save them to watchlists', async () => {
@@ -452,5 +484,42 @@ describe('dashboard app', () => {
 
     expect(await screen.findByRole('heading', { name: /watchlists/i })).toBeInTheDocument()
     expect(await screen.findByText(/smart saver/i)).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /search saved views/i })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /type/i })).toBeInTheDocument()
+  })
+
+  it('updates watchlists when local storage changes', async () => {
+    renderApp(['/watchlists'])
+
+    expect(await screen.findByText(/no saved views yet/i)).toBeInTheDocument()
+
+    act(() => {
+      localStorage.setItem(
+        'food-platform.watchlists',
+        JSON.stringify([
+          {
+            id: 'reactive-entry',
+            title: 'Reactive entry',
+            kind: 'basket',
+            href: '/basket',
+            summary: 'Reactive update',
+          },
+        ]),
+      )
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'food-platform.watchlists',
+          newValue: localStorage.getItem('food-platform.watchlists'),
+        }),
+      )
+    })
+
+    expect(await screen.findByText(/reactive entry/i)).toBeInTheDocument()
+  })
+
+  it('shows a graceful message when offer is missing', async () => {
+    renderApp(['/offers/999999'])
+
+    expect(await screen.findByText(/offer not found/i)).toBeInTheDocument()
   })
 })

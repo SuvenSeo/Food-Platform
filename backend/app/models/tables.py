@@ -1,9 +1,13 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class ScrapeRun(Base):
@@ -12,8 +16,8 @@ class ScrapeRun(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     source: Mapped[str] = mapped_column(String(64), index=True)
     status: Mapped[str] = mapped_column(String(32), default="running")
-    started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     items_seen: Mapped[int] = mapped_column(Integer, default=0)
     items_stored: Mapped[int] = mapped_column(Integer, default=0)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -38,7 +42,7 @@ class RawOfferRecord(Base):
     sku: Mapped[str | None] = mapped_column(String(128), nullable=True)
     url: Mapped[str] = mapped_column(String(1024))
     raw_payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-    scraped_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    scraped_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
 
     scrape_run: Mapped[ScrapeRun | None] = relationship(back_populates="raw_offers")
     normalized_offer: Mapped["FoodOfferRecord | None"] = relationship(back_populates="raw_offer")
@@ -68,8 +72,8 @@ class FoodOfferRecord(Base):
     district: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     city: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     cluster_key: Mapped[str] = mapped_column(String(255), index=True)
-    first_seen_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    last_seen_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
 
     raw_offer: Mapped[RawOfferRecord | None] = relationship(back_populates="normalized_offer")
 
@@ -89,7 +93,7 @@ class PriceAggregateRecord(Base):
     max_price_lkr: Mapped[float] = mapped_column(Numeric(12, 2))
     median_price_lkr: Mapped[float] = mapped_column(Numeric(12, 2))
     average_price_lkr: Mapped[float] = mapped_column(Numeric(12, 2))
-    calculated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    calculated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
 
 
 class FairPriceScoreRecord(Base):
@@ -102,7 +106,7 @@ class FairPriceScoreRecord(Base):
     median_price_lkr: Mapped[float] = mapped_column(Numeric(12, 2))
     delta_vs_median_pct: Mapped[float] = mapped_column(Float)
     price_band: Mapped[str] = mapped_column(String(32), index=True)
-    calculated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    calculated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
 
 
 class MarketQuoteRecord(Base):
@@ -116,5 +120,5 @@ class MarketQuoteRecord(Base):
     unit: Mapped[str] = mapped_column(String(32), default="kg")
     price_lkr: Mapped[float] = mapped_column(Numeric(12, 2), index=True)
     source: Mapped[str] = mapped_column(String(128), index=True)
-    quoted_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+    quoted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)

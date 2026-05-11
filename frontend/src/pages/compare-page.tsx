@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 
 import { LoadingBlock } from '../components/ui/loading-block'
 import { SectionHeader } from '../components/ui/section-header'
+import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
 import { useWatchlists } from '../hooks/use-watchlists'
 import { api } from '../lib/api'
 import { formatCurrency } from '../lib/format'
@@ -14,6 +15,8 @@ export function ComparePage() {
   })
   const [leftDistrict, setLeftDistrict] = useState('Colombo')
   const [rightDistrict, setRightDistrict] = useState('Kandy')
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<'delta-high' | 'delta-low' | 'item'>('delta-high')
   const compareQuery = useQuery({
     queryKey: ['district-compare', leftDistrict, rightDistrict],
     queryFn: () => api.getDistrictCompare(leftDistrict, rightDistrict),
@@ -25,30 +28,45 @@ export function ComparePage() {
     () => Array.from(new Set((marketsQuery.data?.items ?? []).map((item) => item.district))).sort(),
     [marketsQuery.data?.items],
   )
+  const data = compareQuery.data
+  const visibleItems = useMemo(() => {
+    const needle = search.trim().toLowerCase()
+    return (data?.items ?? [])
+      .filter((item) => `${item.item_name} ${item.category}`.toLowerCase().includes(needle))
+      .sort((left, right) => {
+        const leftDelta = Math.abs(left.delta_lkr)
+        const rightDelta = Math.abs(right.delta_lkr)
+        if (sortBy === 'item') return left.item_name.localeCompare(right.item_name)
+        if (sortBy === 'delta-low') return leftDelta - rightDelta
+        return rightDelta - leftDelta
+      })
+  }, [data?.items, search, sortBy])
 
   if (compareQuery.isLoading || marketsQuery.isLoading) {
     return <LoadingBlock />
   }
 
-  const data = compareQuery.data
+  if (marketsQuery.isError || compareQuery.isError) {
+    return <ErrorState message="District comparison data could not be loaded." onRetry={() => compareQuery.refetch()} />
+  }
 
   return (
     <section className="space-y-8">
       <SectionHeader
         eyebrow="Compare"
         title="Compare stores, districts, and food clusters"
-        description="The first compare workflow focuses on live district produce differences and a reusable save-to-watchlists pattern."
+        description="Select two districts, scan largest differences first, and carry decisions into watchlists or basket planning."
       />
 
-      <div className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-[0_20px_45px_rgba(15,23,42,0.06)]">
-        <div className="grid gap-4 rounded-[1.5rem] bg-slate-50 p-4 md:grid-cols-2">
+      <div className="fp-panel space-y-6">
+        <div className="grid gap-3 rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4 md:grid-cols-[1fr_auto_1fr]">
           <label className="space-y-2 text-sm font-medium text-slate-700">
             <span>Left district</span>
             <select
               aria-label="Left district"
               value={leftDistrict}
               onChange={(event) => setLeftDistrict(event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+              className="fp-select"
             >
               {districts.map((district) => (
                 <option key={district} value={district}>
@@ -57,13 +75,23 @@ export function ComparePage() {
               ))}
             </select>
           </label>
+          <button
+            type="button"
+            onClick={() => {
+              setLeftDistrict(rightDistrict)
+              setRightDistrict(leftDistrict)
+            }}
+            className="fp-button-secondary self-end"
+          >
+            Swap
+          </button>
           <label className="space-y-2 text-sm font-medium text-slate-700">
             <span>Right district</span>
             <select
               aria-label="Right district"
               value={rightDistrict}
               onChange={(event) => setRightDistrict(event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+              className="fp-select"
             >
               {districts.map((district) => (
                 <option key={district} value={district}>
@@ -74,7 +102,7 @@ export function ComparePage() {
           </label>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-2xl font-semibold text-slate-950">
             {data?.left} vs {data?.right}
           </h3>
@@ -89,20 +117,43 @@ export function ComparePage() {
                 summary: `${data?.items.length ?? 0} shared produce items`,
               })
             }
-            className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white"
+            className="fp-button-primary"
           >
             Save compare view
           </button>
         </div>
 
+        <div className="fp-toolbar md:grid-cols-[1.4fr_1fr] lg:grid-cols-[1.4fr_1fr]">
+          <label className="space-y-2 text-sm font-medium text-slate-700">
+            <span>Search compared items</span>
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="fp-input"
+              placeholder="Tomato, onion, leafy greens..."
+            />
+          </label>
+          <label className="space-y-2 text-sm font-medium text-slate-700">
+            <span>Sort</span>
+            <select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)} className="fp-select">
+              <option value="delta-high">Largest delta first</option>
+              <option value="delta-low">Smallest delta first</option>
+              <option value="item">Item name A-Z</option>
+            </select>
+          </label>
+        </div>
+
         <div className="mt-6 space-y-4">
-          {!data?.items.length ? (
-            <div className="rounded-[1.5rem] bg-slate-50 p-4 text-sm text-slate-600">
-              No overlapping produce items were found for the selected districts.
-            </div>
+          {!visibleItems.length ? (
+            <EmptyState
+              title="No overlapping produce items found"
+              description="Try a different district pair or continue with category-level insights."
+              actionLabel="Open categories"
+              actionTo="/categories"
+            />
           ) : null}
-          {data?.items.map((item) => (
-            <article key={item.item_name} className="rounded-[1.5rem] bg-slate-50 p-4">
+          {visibleItems.map((item) => (
+            <article key={item.item_name} className="fp-soft-card">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h4 className="text-lg font-semibold text-slate-950">{item.item_name}</h4>
@@ -113,11 +164,11 @@ export function ComparePage() {
                 </p>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl bg-white p-3 text-sm text-slate-600">
+                <div className="rounded-2xl border border-slate-100 bg-white p-3 text-sm text-slate-600">
                   <p className="font-semibold text-slate-950">{data?.left}</p>
                   <p>Rs {formatCurrency(item.left_price_lkr)}</p>
                 </div>
-                <div className="rounded-2xl bg-white p-3 text-sm text-slate-600">
+                <div className="rounded-2xl border border-slate-100 bg-white p-3 text-sm text-slate-600">
                   <p className="font-semibold text-slate-950">{data?.right}</p>
                   <p>Rs {formatCurrency(item.right_price_lkr)}</p>
                 </div>
@@ -125,6 +176,15 @@ export function ComparePage() {
             </article>
           ))}
         </div>
+
+        <NextActionLinks
+          title="Next actions"
+          links={[
+            { label: 'Build basket', to: '/basket' },
+            { label: 'Review watchlists', to: '/watchlists' },
+            { label: 'Open markets', to: '/markets' },
+          ]}
+        />
       </div>
     </section>
   )

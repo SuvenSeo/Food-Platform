@@ -12,6 +12,11 @@ settings = get_settings()
 
 
 def require_admin(x_admin_key: str | None = Header(default=None)) -> None:
+    if not settings.is_development_like and settings.has_insecure_admin_key:
+        raise HTTPException(
+            status_code=503,
+            detail="Admin API key is not securely configured for this environment.",
+        )
     if x_admin_key != settings.admin_api_key:
         raise HTTPException(status_code=403, detail="Forbidden")
 

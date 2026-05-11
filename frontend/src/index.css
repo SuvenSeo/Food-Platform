@@ -3,11 +3,17 @@
 @tailwind utilities;
 
 :root {
-  --app-bg: #f6f1e8;
-  --panel: rgba(255, 255, 255, 0.82);
+  --app-bg: #f7f3eb;
+  --surface: rgba(255, 255, 255, 0.9);
+  --surface-soft: rgba(255, 255, 255, 0.72);
+  --border-soft: rgba(148, 163, 184, 0.24);
   --ink: #0f172a;
   --muted: #475569;
   --accent: #c96f1d;
+  --radius-shell: 2rem;
+  --radius-panel: 1.5rem;
+  --shadow-soft: 0 22px 48px rgba(15, 23, 42, 0.08);
+  --shadow-panel: 0 14px 34px rgba(15, 23, 42, 0.06);
   color: var(--ink);
   background-color: var(--app-bg);
   font-family:
@@ -33,7 +39,81 @@ body,
 body {
   margin: 0;
   background:
-    radial-gradient(circle at top left, rgba(201, 111, 29, 0.18), transparent 32%),
-    radial-gradient(circle at top right, rgba(15, 23, 42, 0.08), transparent 28%),
-    linear-gradient(180deg, #f6f1e8 0%, #fbfaf8 42%, #ffffff 100%);
+    radial-gradient(circle at top left, rgba(201, 111, 29, 0.16), transparent 34%),
+    radial-gradient(circle at top right, rgba(15, 23, 42, 0.08), transparent 30%),
+    linear-gradient(180deg, #f7f3eb 0%, #fbfaf8 46%, #ffffff 100%);
+  color: var(--ink);
+}
+
+a {
+  color: inherit;
+}
+
+.app-container {
+  width: min(80rem, 100% - 2rem);
+  margin-inline: auto;
+}
+
+.surface-shell {
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-shell);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(6px);
+}
+
+.surface-panel {
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-panel);
+  background: var(--surface-soft);
+  box-shadow: var(--shadow-panel);
+}
+
+.eyebrow-label {
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+@layer components {
+  .fp-panel {
+    @apply rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-[0_20px_45px_rgba(15,23,42,0.06)];
+  }
+
+  .fp-card {
+    @apply rounded-[1.5rem] border border-slate-100 bg-white p-4 shadow-sm;
+  }
+
+  .fp-soft-card {
+    @apply rounded-[1.5rem] bg-slate-50 p-4;
+  }
+
+  .fp-toolbar {
+    @apply grid gap-3 rounded-[1.5rem] border border-slate-100 bg-slate-50/90 p-4 md:grid-cols-2 lg:grid-cols-4;
+  }
+
+  .fp-input {
+    @apply w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200;
+  }
+
+  .fp-select {
+    @apply w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200;
+  }
+
+  .fp-button-primary {
+    @apply inline-flex items-center justify-center rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800;
+  }
+
+  .fp-button-secondary {
+    @apply inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50;
+  }
+
+  .fp-kpi {
+    @apply rounded-[1.5rem] bg-white p-5;
+  }
+
+  .fp-empty {
+    @apply rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-600;
+  }
 }

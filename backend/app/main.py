@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -7,10 +9,17 @@ from app.db.migrate import run_upgrade
 
 settings = get_settings()
 
+
+@asynccontextmanager
+async def app_lifespan(_: FastAPI):
+    run_upgrade()
+    yield
+
 app = FastAPI(
     title=settings.app_name,
     description="Sri Lanka food price intelligence API.",
     version="0.1.0",
+    lifespan=app_lifespan,
 )
 
 app.add_middleware(
@@ -22,11 +31,6 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix=settings.api_prefix)
-
-
-@app.on_event("startup")
-def on_startup() -> None:
-    run_upgrade()
 
 
 @app.get("/")
