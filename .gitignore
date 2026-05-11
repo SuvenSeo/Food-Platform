@@ -5,11 +5,14 @@ frontend/.vite/
 
 # Python
 backend/.venv/
-backend/__pycache__/
+**/__pycache__/
+*.py[cod]
 backend/.pytest_cache/
 backend/.mypy_cache/
 backend/.ruff_cache/
 backend/.coverage
+backend/*.db
+backend/*.sqlite3
 
 # Environment files
 .env
