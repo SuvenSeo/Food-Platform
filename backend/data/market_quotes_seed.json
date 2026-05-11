@@ -1,0 +1,68 @@
+[
+  {
+    "district": "Colombo",
+    "market_name": "Pettah",
+    "item_name": "Tomato",
+    "category": "vegetables",
+    "unit": "kg",
+    "price_lkr": 320,
+    "source": "seed",
+    "quoted_at": "2026-05-11T16:00:00Z",
+    "notes": "Seeded district quote for MVP district UX."
+  },
+  {
+    "district": "Colombo",
+    "market_name": "Pettah",
+    "item_name": "Beans",
+    "category": "vegetables",
+    "unit": "kg",
+    "price_lkr": 420,
+    "source": "seed",
+    "quoted_at": "2026-05-11T16:00:00Z",
+    "notes": null
+  },
+  {
+    "district": "Kandy",
+    "market_name": "Kandy Central",
+    "item_name": "Tomato",
+    "category": "vegetables",
+    "unit": "kg",
+    "price_lkr": 340,
+    "source": "seed",
+    "quoted_at": "2026-05-11T16:00:00Z",
+    "notes": null
+  },
+  {
+    "district": "Kandy",
+    "market_name": "Kandy Central",
+    "item_name": "Beans",
+    "category": "vegetables",
+    "unit": "kg",
+    "price_lkr": 435,
+    "source": "seed",
+    "quoted_at": "2026-05-11T16:00:00Z",
+    "notes": null
+  },
+  {
+    "district": "Galle",
+    "market_name": "Galle Public Market",
+    "item_name": "Tomato",
+    "category": "vegetables",
+    "unit": "kg",
+    "price_lkr": 355,
+    "source": "seed",
+    "quoted_at": "2026-05-11T16:00:00Z",
+    "notes": null
+  },
+  {
+    "district": "Galle",
+    "market_name": "Galle Public Market",
+    "item_name": "Beans",
+    "category": "vegetables",
+    "unit": "kg",
+    "price_lkr": 445,
+    "source": "seed",
+    "quoted_at": "2026-05-11T16:00:00Z",
+    "notes": null
+  }
+]

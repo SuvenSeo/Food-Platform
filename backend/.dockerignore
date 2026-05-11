@@ -1,0 +1,8 @@
+.venv
+__pycache__
+.pytest_cache
+food_platform.db
+*.pyc
+*.pyo
+*.pyd
+tests

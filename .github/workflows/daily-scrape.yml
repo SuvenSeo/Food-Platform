@@ -1,0 +1,52 @@
+name: Daily Food Scraper
+
+on:
+  schedule:
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Choose a source to run or all approved sources."
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - spar2u
+          - glomark
+      max_items:
+        description: "Optional cap per source for manual runs."
+        required: false
+        default: "250"
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        source: [spar2u, glomark]
+    if: github.event_name == 'schedule' || github.event.inputs.source == 'all' || github.event.inputs.source == matrix.source
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ADMIN_API_KEY: ${{ secrets.ADMIN_API_KEY }}
+      SCRAPER_USER_AGENT: FoodPlatformBot/0.1 (+github-actions)
+      SCRAPE_MAX_ITEMS_PER_SOURCE: ${{ github.event.inputs.max_items || vars.SCRAPE_MAX_ITEMS_PER_SOURCE || '250' }}
+      CORS_ORIGINS: ${{ vars.CORS_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173' }}
+      ALLOW_SQLITE_FALLBACK: "false"
+      SPAR2U_ENABLED: ${{ matrix.source == 'spar2u' && 'true' || 'false' }}
+      GLOMARK_ENABLED: ${{ matrix.source == 'glomark' && 'true' || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -r requirements.txt
+      - name: Apply migrations
+        run: python -c "from app.db.migrate import run_upgrade; run_upgrade()"
+      - name: Sync source
+        run: python run_sync.py --sources "${{ matrix.source }}" --max-items "${{ github.event.inputs.max_items || vars.SCRAPE_MAX_ITEMS_PER_SOURCE || '250' }}"
