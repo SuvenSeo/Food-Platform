@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.db.session import SessionLocal, get_db
+from app.db.session import get_db
 from app.models.tables import FoodOfferRecord, MarketQuoteRecord, PriceAggregateRecord
 from app.services.market_quotes import ingest_official_market_quotes
 from app.services.source_sync import sync_sources
@@ -30,33 +30,23 @@ def require_admin(x_admin_key: str | None = Header(default=None)) -> None:
 # ─────────────────────────────────────────────
 
 def _bg_retail_sync(sources: list[str], max_items: int) -> None:
-    """Run retail scrape in background — opens and closes its own DB session."""
-    db = SessionLocal()
+    """Run retail scrape in background. sync_sources manages its own DB session."""
     try:
         logger.info("BG retail sync starting: sources=%s max_items=%d", sources, max_items)
         sync_sources(sources, max_items=max_items)
-        db.commit()
         logger.info("BG retail sync complete: sources=%s", sources)
     except Exception:
         logger.exception("BG retail sync failed: sources=%s", sources)
-        db.rollback()
-    finally:
-        db.close()
 
 
 def _bg_market_sync(sources: list[str] | None) -> None:
-    """Run official market scrape in background — opens and closes its own DB session."""
-    db = SessionLocal()
+    """Run official market scrape in background. ingest_official_market_quotes manages its own DB session."""
     try:
         logger.info("BG market sync starting: sources=%s", sources)
         ingest_official_market_quotes(sources=sources)
-        db.commit()
         logger.info("BG market sync complete: sources=%s", sources)
     except Exception:
         logger.exception("BG market sync failed: sources=%s", sources)
-        db.rollback()
-    finally:
-        db.close()
 
 
 # ─────────────────────────────────────────────
