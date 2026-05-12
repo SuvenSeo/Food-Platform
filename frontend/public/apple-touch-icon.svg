@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" fill="none">
+  <rect width="180" height="180" rx="40" fill="#0a0a0a"/>
+  <rect width="180" height="180" rx="40" fill="url(#grad)"/>
+  <!-- Bowl -->
+  <path d="M36 98 Q90 128 144 98" stroke="#f97316" stroke-width="8" stroke-linecap="round" fill="none"/>
+  <line x1="30" y1="98" x2="150" y2="98" stroke="#f97316" stroke-width="7" stroke-linecap="round" opacity="0.5"/>
+  <!-- Flame -->
+  <path d="M90 38 C80 50 73 57 76 70 C78 80 102 80 104 67 C107 52 100 42 90 38Z" fill="#f97316"/>
+  <path d="M78 46 C70 54 68 62 72 70 C74 77 88 77 90 70 C93 62 90 52 78 46Z" fill="#fb923c" opacity="0.75"/>
+  <!-- Brand mark -->
+  <text x="50" y="155" font-family="Georgia, serif" font-size="28" font-weight="800" fill="#f97316" letter-spacing="-1" opacity="0.9">FoodLK</text>
+  <defs>
+    <radialGradient id="grad" cx="30%" cy="20%" r="80%">
+      <stop offset="0%" stop-color="#1a0a00" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#0a0a0a" stop-opacity="1"/>
+    </radialGradient>
+  </defs>
+</svg>

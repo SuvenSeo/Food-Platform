@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { motion, type Variants } from 'framer-motion'
-import { ArrowRight, BarChart3, Scale, ShoppingBasket, Store, Waves, Soup, TrendingDown } from 'lucide-react'
+import { ArrowRight, BarChart3, Scale, ShoppingBasket, Store, Waves, TrendingDown } from 'lucide-react'
 
 import { OfferCard } from '../components/ui/offer-card'
 import { SectionHeader } from '../components/ui/section-header'
@@ -75,9 +75,13 @@ export function HomePage() {
             <motion.div variants={fadeUp} className="mb-8 flex items-center gap-3">
               <div className="inline-flex items-center gap-2.5 rounded-full border px-4 py-2"
                 style={{ borderColor: 'rgba(249,115,22,0.25)', background: 'rgba(249,115,22,0.08)' }}>
-                <Soup className="h-3.5 w-3.5 text-orange-400" aria-hidden="true" />
+                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-orange-400" aria-hidden="true">
+                  <path d="M6 17a10 10 0 0 0 20 0" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+                  <line x1="4" y1="17" x2="28" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.6"/>
+                  <path d="M16 6 C13 9 11 11 12 15 C13 17.5 19 17.5 20 14 C21.5 10 19 7 16 6Z" fill="currentColor"/>
+                </svg>
                 <span className="text-xs font-semibold uppercase tracking-[0.2em] text-orange-400">
-                  {home?.hero.platform ?? 'Sri Lanka food intelligence'}
+                  {home?.hero.platform ?? 'FoodLK · Sri Lanka price intelligence'}
                 </span>
                 <span className="live-dot-orange" aria-hidden="true" />
               </div>

@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Block API and admin endpoints from indexing
+Disallow: /api/
+Disallow: /api/v1/admin/
+
+# Sitemap location
+Sitemap: https://food-platform-one.vercel.app/sitemap.xml

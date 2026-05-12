@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { motion, type Variants } from 'framer-motion'
-import { Soup } from 'lucide-react'
 
 const footerLinks = [
   { label: 'Home', to: '/' },
@@ -46,21 +45,26 @@ export function SiteFooter() {
         >
           {/* Brand col */}
           <motion.div variants={itemVariants}>
+            {/* FoodLK Logo */}
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/15 ring-1 ring-orange-500/25">
-                <Soup className="h-5 w-5 text-orange-400" />
+                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-orange-400">
+                  <path d="M6 17a10 10 0 0 0 20 0" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+                  <line x1="4" y1="17" x2="28" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.6"/>
+                  <path d="M16 6 C13 9 11 11 12 15 C13 17.5 19 17.5 20 14 C21.5 10 19 7 16 6Z" fill="currentColor"/>
+                </svg>
               </div>
               <span
                 className="text-2xl text-white/90"
                 style={{ fontFamily: '"DM Serif Display", serif', letterSpacing: '-0.03em' }}
               >
-                FoodLens
+                FoodLK
               </span>
             </div>
 
             <p className="mt-5 max-w-sm text-sm leading-7 text-[#737373]">
-              National food price intelligence for Sri Lanka — retail offers, wet market signals,
-              freshness indicators, and basket tracking in one unified platform.
+              Sri Lanka's food price intelligence platform — retail offers, wet market signals,
+              historical price trends, and basket tracking from official government and market sources.
             </p>
 
             <div className="mt-6 flex items-center gap-3">
@@ -100,10 +104,10 @@ export function SiteFooter() {
           style={{ borderColor: 'rgba(255,255,255,0.06)' }}
         >
           <p className="text-xs text-[#404040]">
-            © {new Date().getFullYear()} Ardeno Studio. All rights reserved.
+            © {new Date().getFullYear()} FoodLK · Ardeno Studio. All rights reserved.
           </p>
           <p className="text-xs text-[#404040]">
-            Sri Lanka food price intelligence platform
+            Sri Lanka's open food price intelligence platform
           </p>
         </motion.div>
       </div>

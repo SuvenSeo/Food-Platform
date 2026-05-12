@@ -180,6 +180,37 @@ export type PlatformFreshnessSummary = {
   }
 }
 
+export type PriceTrendPoint = {
+  period: string
+  avg_price: number | null
+  min_price: number | null
+  max_price: number | null
+  data_points: number
+}
+
+export type PriceTrendResponse = {
+  item: string
+  district: string | null
+  granularity: string
+  series: PriceTrendPoint[]
+  total_data_points: number
+  date_range: { from: string | null; to: string | null }
+}
+
+export type TrendSummaryItem = {
+  item_name: string
+  data_points: number
+  earliest: string | null
+  latest: string | null
+  avg_price_lkr: number | null
+}
+
+export type TrendsSummaryResponse = {
+  total_market_data_points: number
+  top_items: TrendSummaryItem[]
+  sources: Array<{ source: string; data_points: number; earliest: string | null; latest: string | null }>
+}
+
 export type IntelligenceBrief = {
   generated_at: string | null
   trust: PlatformFreshnessSummary

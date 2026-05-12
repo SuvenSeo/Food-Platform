@@ -65,17 +65,22 @@ def _get_csv_url(timeout: float) -> str:
     return WFP_DIRECT_CSV_URL
 
 
-def fetch_wfp_market_quotes(timeout: float = 45.0, max_rows: int = 3000, months_back: int = 24) -> list[dict]:
+def fetch_wfp_market_quotes(timeout: float = 60.0, max_rows: int = 50000, months_back: int = 0) -> list[dict]:
     """
     Fetch and parse WFP food price data for Sri Lanka.
 
     Returns a list of dicts compatible with MarketQuoteRecord:
     district, market_name, item_name, category, unit, price_lkr, source, quoted_at, notes
 
-    Only returns rows from the last `months_back` months to keep the dataset current.
+    Returns all historical data when months_back=0 (default), enabling 20+ year price
+    trend analysis. Set months_back > 0 to limit to recent data only.
     """
     from datetime import timedelta
-    cutoff = datetime.now(timezone.utc) - timedelta(days=months_back * 30)
+    cutoff = (
+        datetime.now(timezone.utc) - timedelta(days=months_back * 30)
+        if months_back > 0
+        else datetime(2000, 1, 1, tzinfo=timezone.utc)
+    )
 
     csv_url = _get_csv_url(timeout)
 

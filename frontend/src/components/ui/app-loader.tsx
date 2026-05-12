@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Soup } from 'lucide-react'
+// FoodLK icon inline (no lucide dep here)
 
 const STORAGE_KEY = 'fp.has_entered'
 
@@ -110,7 +110,11 @@ export function AppLoader({ children }: AppLoaderProps) {
                 transition={{ delay: 0.2, duration: 0.5, ease: 'easeOut' }}
                 className="flex h-14 w-14 items-center justify-center rounded-full bg-[#111111] ring-1 ring-white/[0.08]"
               >
-                <Soup className="h-6 w-6 text-orange-400" aria-hidden="true" />
+                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-orange-400" aria-hidden="true">
+                  <path d="M6 17a10 10 0 0 0 20 0" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+                  <line x1="4" y1="17" x2="28" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.55"/>
+                  <path d="M16 6 C13 9 11 11 12 15 C13 17.5 19 17.5 20 14 C21.5 10 19 7 16 6Z" fill="currentColor"/>
+                </svg>
               </motion.div>
             </div>
 
@@ -122,13 +126,13 @@ export function AppLoader({ children }: AppLoaderProps) {
               className="mt-8 text-center"
             >
               <p
-                className="text-2xl text-white/90"
-                style={{ fontFamily: '"DM Serif Display", serif', letterSpacing: '-0.03em' }}
+                className="text-3xl font-bold text-white/90 tracking-tight"
+                style={{ fontFamily: '"DM Serif Display", serif', letterSpacing: '-0.04em' }}
               >
-                Food Intelligence
+                FoodLK
               </p>
               <p className="mt-1 text-xs uppercase tracking-[0.28em] text-white/30" aria-hidden="true">
-                Sri Lanka
+                Sri Lanka Price Intelligence
               </p>
             </motion.div>
 

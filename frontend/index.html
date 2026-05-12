@@ -2,36 +2,122 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#000000" />
+
+    <!-- Primary meta -->
+    <title>FoodLK | Sri Lanka Food Price Intelligence</title>
     <meta
       name="description"
-      content="Track Sri Lankan grocery and wet-market pricing with richer comparisons, stronger signal design, and practical tools for everyday decisions."
+      content="FoodLK tracks Sri Lankan grocery and wet-market food prices in real time — retail offers from Spar, Glomark, Keells and Cargills, official market data from WFP and CBSL, historical price trends, district comparisons, and household basket estimates."
     />
-    <meta name="robots" content="index,follow" />
+    <meta name="keywords" content="Sri Lanka food prices, grocery prices Sri Lanka, wet market prices, food intelligence, price tracker Sri Lanka, Colombo food prices, retail prices Sri Lanka" />
+    <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1" />
+    <meta name="author" content="FoodLK · Ardeno Studio" />
+    <link rel="canonical" href="https://food-platform-one.vercel.app/" />
+
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="FoodLens | Sri Lanka Food Price Intelligence" />
+    <meta property="og:site_name" content="FoodLK" />
+    <meta property="og:url" content="https://food-platform-one.vercel.app/" />
+    <meta property="og:title" content="FoodLK | Sri Lanka Food Price Intelligence" />
     <meta
       property="og:description"
-      content="Track Sri Lankan grocery and wet-market pricing with richer comparisons, stronger signal design, and practical tools."
+      content="Track Sri Lankan grocery and wet-market food prices — retail, official government data, historical trends, and district comparisons in one intelligence platform."
     />
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:title" content="FoodLens | Sri Lanka Food Price Intelligence" />
+    <meta property="og:locale" content="en_LK" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="FoodLK | Sri Lanka Food Price Intelligence" />
     <meta
-      property="twitter:description"
-      content="Sri Lanka food price intelligence — retail, wet-market, basket, and district comparison in one platform."
+      name="twitter:description"
+      content="Real-time Sri Lankan food prices from Spar, Glomark, Keells, WFP, CBSL and more — retail, market quotes, trends."
     />
-    <title>FoodLens | Sri Lanka Food Price Intelligence</title>
+
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- JSON-LD structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://food-platform-one.vercel.app/#organization",
+          "name": "FoodLK",
+          "url": "https://food-platform-one.vercel.app/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://food-platform-one.vercel.app/favicon.svg"
+          },
+          "description": "Sri Lanka food price intelligence platform tracking retail and market prices.",
+          "foundingLocation": {
+            "@type": "Country",
+            "name": "Sri Lanka"
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://food-platform-one.vercel.app/#website",
+          "url": "https://food-platform-one.vercel.app/",
+          "name": "FoodLK",
+          "description": "Real-time food price intelligence for Sri Lanka — grocery, wet markets, trends, and basket estimates.",
+          "publisher": {
+            "@id": "https://food-platform-one.vercel.app/#organization"
+          },
+          "inLanguage": "en-LK",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://food-platform-one.vercel.app/retail?search={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "WebApplication",
+          "name": "FoodLK Price Intelligence",
+          "url": "https://food-platform-one.vercel.app/",
+          "applicationCategory": "FinanceApplication",
+          "operatingSystem": "Web",
+          "description": "Track grocery and market food prices across Sri Lanka with real-time data from Spar, Glomark, Keells, WFP, CBSL and other official sources.",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "LKR"
+          },
+          "featureList": [
+            "Real-time retail price tracking",
+            "Wet market price monitoring",
+            "Historical price trends",
+            "District price comparison",
+            "Household basket estimation",
+            "Official government data integration"
+          ]
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <!-- Skip navigation for keyboard/screen reader users -->
     <a
       href="#main-content"
-      class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[9999] focus:rounded-md focus:bg-orange-500 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-black focus:outline-none"
+      class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[9999] focus:rounded-full focus:bg-orange-500 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-black focus:outline-none"
     >
       Skip to main content
     </a>

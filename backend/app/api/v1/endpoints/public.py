@@ -872,3 +872,145 @@ def retention_subscription_preview(
             "integration_status": "preview-only",
         },
     }
+
+
+# ──────────────────────────────────────────────
+# Price Trends (historical intelligence)
+# ──────────────────────────────────────────────
+
+@router.get("/trends/market")
+def get_market_price_trends(
+    item: str = Query(..., description="Item name to query (e.g. 'Rice (red nadu)')"),
+    district: str | None = Query(None, description="Filter by district"),
+    granularity: str = Query("monthly", description="monthly | yearly"),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    """
+    Return historical price trend for a specific market quote item.
+
+    Uses all available market_quotes data (WFP historical + CBSL + DCS).
+    Returns monthly or yearly average prices suitable for Recharts LineChart.
+    """
+    from sqlalchemy.dialects import sqlite
+
+    # Build grouping expression based on granularity and DB dialect
+    provider = get_database_provider_status()
+    dialect = provider.get("dialect", "sqlite")
+
+    if dialect.startswith("postgresql"):
+        if granularity == "yearly":
+            period_expr = func.date_trunc("year", MarketQuoteRecord.quoted_at)
+            period_fmt = "YYYY"
+        else:
+            period_expr = func.date_trunc("month", MarketQuoteRecord.quoted_at)
+            period_fmt = "YYYY-MM"
+        period_label = func.to_char(period_expr, period_fmt)
+    else:
+        # SQLite
+        if granularity == "yearly":
+            period_label = func.strftime("%Y", MarketQuoteRecord.quoted_at)
+        else:
+            period_label = func.strftime("%Y-%m", MarketQuoteRecord.quoted_at)
+
+    q = (
+        select(
+            period_label.label("period"),
+            func.avg(MarketQuoteRecord.price_lkr).label("avg_price"),
+            func.min(MarketQuoteRecord.price_lkr).label("min_price"),
+            func.max(MarketQuoteRecord.price_lkr).label("max_price"),
+            func.count().label("data_points"),
+        )
+        .where(func.lower(MarketQuoteRecord.item_name).contains(item.lower()))
+        .group_by(period_label.label("period"))
+        .order_by(period_label.label("period"))
+    )
+
+    if district:
+        q = q.where(func.lower(MarketQuoteRecord.district).contains(district.lower()))
+
+    rows = db.execute(q).fetchall()
+
+    series = [
+        {
+            "period": row.period,
+            "avg_price": round(float(row.avg_price), 2) if row.avg_price else None,
+            "min_price": round(float(row.min_price), 2) if row.min_price else None,
+            "max_price": round(float(row.max_price), 2) if row.max_price else None,
+            "data_points": row.data_points,
+        }
+        for row in rows
+    ]
+
+    return {
+        "item": item,
+        "district": district,
+        "granularity": granularity,
+        "series": series,
+        "total_data_points": sum(s["data_points"] for s in series),
+        "date_range": {
+            "from": series[0]["period"] if series else None,
+            "to": series[-1]["period"] if series else None,
+        },
+    }
+
+
+@router.get("/trends/summary")
+def get_trends_summary(db: Session = Depends(get_db)) -> dict[str, object]:
+    """
+    Return a summary of available price trend data:
+    - Top items by historical data coverage
+    - Year range available
+    - Source breakdown
+    """
+    # Top items by data points
+    top_items_q = (
+        select(
+            MarketQuoteRecord.item_name,
+            func.count().label("count"),
+            func.min(MarketQuoteRecord.quoted_at).label("earliest"),
+            func.max(MarketQuoteRecord.quoted_at).label("latest"),
+            func.avg(MarketQuoteRecord.price_lkr).label("avg_price"),
+        )
+        .group_by(MarketQuoteRecord.item_name)
+        .order_by(func.count().desc())
+        .limit(20)
+    )
+    top_items = [
+        {
+            "item_name": row.item_name,
+            "data_points": row.count,
+            "earliest": _to_iso(row.earliest),
+            "latest": _to_iso(row.latest),
+            "avg_price_lkr": round(float(row.avg_price), 2) if row.avg_price else None,
+        }
+        for row in db.execute(top_items_q).fetchall()
+    ]
+
+    # Source breakdown
+    source_q = (
+        select(
+            MarketQuoteRecord.source,
+            func.count().label("count"),
+            func.min(MarketQuoteRecord.quoted_at).label("earliest"),
+            func.max(MarketQuoteRecord.quoted_at).label("latest"),
+        )
+        .group_by(MarketQuoteRecord.source)
+        .order_by(func.count().desc())
+    )
+    sources = [
+        {
+            "source": row.source,
+            "data_points": row.count,
+            "earliest": _to_iso(row.earliest),
+            "latest": _to_iso(row.latest),
+        }
+        for row in db.execute(source_q).fetchall()
+    ]
+
+    total = db.scalar(select(func.count(MarketQuoteRecord.id))) or 0
+
+    return {
+        "total_market_data_points": total,
+        "top_items": top_items,
+        "sources": sources,
+    }

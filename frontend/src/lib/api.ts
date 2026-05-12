@@ -9,8 +9,10 @@ import type {
   OffersResponse,
   PlatformFreshnessSummary,
   PipelineItem,
+  PriceTrendResponse,
   StatsSummary,
   TrendItem,
+  TrendsSummaryResponse,
 } from '../types'
 
 const API_BASE = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/$/, '')
@@ -58,4 +60,10 @@ export const api = {
   getTrends: (category: string) => fetchJson<{ items: TrendItem[] }>(`/trends/${category}`),
   getPipeline: () => fetchJson<{ items: PipelineItem[] }>('/pipeline/status'),
   getMarketQuotes: (searchParams = '') => fetchJson<{ items: MarketQuoteItem[]; total: number }>(`/market-quotes${searchParams}`),
+  getMarketPriceTrend: (item: string, district?: string, granularity: 'monthly' | 'yearly' = 'monthly') => {
+    const params = new URLSearchParams({ item, granularity })
+    if (district) params.set('district', district)
+    return fetchJson<PriceTrendResponse>(`/trends/market?${params.toString()}`)
+  },
+  getTrendsSummary: () => fetchJson<TrendsSummaryResponse>('/trends/summary'),
 }

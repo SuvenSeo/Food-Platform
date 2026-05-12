@@ -1,0 +1,25 @@
+{
+  "name": "FoodLK — Sri Lanka Food Price Intelligence",
+  "short_name": "FoodLK",
+  "description": "Track Sri Lankan grocery and market food prices in real time.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#f97316",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "180x180",
+      "purpose": "apple touch icon"
+    }
+  ],
+  "categories": ["food", "finance", "productivity"],
+  "lang": "en-LK"
+}
