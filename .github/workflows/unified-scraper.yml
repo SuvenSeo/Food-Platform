@@ -1,0 +1,182 @@
+name: FoodLK — Unified Data Scraper
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Runs every 6 hours (00:10, 06:10, 12:10, 18:10 Sri Lanka Standard Time)
+# and can be triggered manually via GitHub Actions → "Run workflow".
+#
+# Sources:
+#   Retail    → spar2u, glomark, keells, cargills
+#   Market    → wfp (WFP/HDX), cbsl (Central Bank), dcs (Census & Statistics)
+#
+# Manual run: leave "Source filter" blank to run all, or pick one source.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  schedule:
+    # 00:10 SLT (UTC+5:30 = 18:40 UTC previous day)
+    - cron: "40 18 * * *"
+    # 06:10 SLT
+    - cron: "40 0 * * *"
+    # 12:10 SLT
+    - cron: "40 6 * * *"
+    # 18:10 SLT
+    - cron: "40 12 * * *"
+
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Source to scrape — leave blank to run ALL sources"
+        required: false
+        default: ""
+        type: choice
+        options:
+          - ""
+          - spar2u
+          - glomark
+          - keells
+          - cargills
+          - wfp
+          - cbsl
+          - dcs
+      max_items:
+        description: "Max offers per retail source (default 500)"
+        required: false
+        default: "500"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Retail sources — Spar2u, Glomark, Keells, Cargills
+# Each source runs as a separate parallel job.
+# ─────────────────────────────────────────────────────────────────────────────
+jobs:
+  retail:
+    name: "Retail — ${{ matrix.source }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Run all on schedule or when no filter is set; run only matching source otherwise
+    if: ${{ !inputs.source || inputs.source == matrix.source }}
+    strategy:
+      fail-fast: false
+      matrix:
+        source: [spar2u, glomark, keells, cargills]
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ADMIN_API_KEY: ${{ secrets.ADMIN_API_KEY }}
+      SCRAPER_USER_AGENT: >-
+        Mozilla/5.0 (compatible; FoodLKBot/1.0;
+        +https://food-platform-one.vercel.app)
+      SCRAPE_MAX_ITEMS_PER_SOURCE: ${{ inputs.max_items || '500' }}
+      ALLOW_SQLITE_FALLBACK: "false"
+      CORS_ORIGINS: "https://food-platform-one.vercel.app"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Validate scraper modules compile
+        run: |
+          python -m py_compile \
+            run_sync.py \
+            app/scrapers/spar2u.py \
+            app/scrapers/glomark.py \
+            app/scrapers/keells.py \
+            app/scrapers/cargills.py \
+            app/services/source_sync.py \
+            app/services/pipeline.py \
+            app/services/normalization.py
+          echo "All retail scraper modules compile OK"
+
+      - name: Apply DB migrations
+        run: python -c "from app.db.migrate import run_upgrade; run_upgrade()"
+
+      - name: Scrape ${{ matrix.source }}
+        run: |
+          python run_sync.py \
+            --sources "${{ matrix.source }}" \
+            --max-items "${{ inputs.max_items || '500' }}"
+
+      - name: Upload debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: retail-${{ matrix.source }}-fail-${{ github.run_id }}
+          path: |
+            backend/*.log
+            backend/*.json
+          retention-days: 7
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Official market data — WFP, CBSL, DCS
+# Each source runs as a separate parallel job.
+# Sources: WFP (20+ years history), CBSL (daily PDF), DCS (weekly Excel)
+# ─────────────────────────────────────────────────────────────────────────────
+  market:
+    name: "Market — ${{ matrix.source }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: ${{ !inputs.source || inputs.source == matrix.source }}
+    strategy:
+      fail-fast: false
+      matrix:
+        source: [wfp, cbsl, dcs]
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ADMIN_API_KEY: ${{ secrets.ADMIN_API_KEY }}
+      ALLOW_SQLITE_FALLBACK: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Validate market scraper modules compile
+        run: |
+          python -m py_compile \
+            run_official_market_sync.py \
+            app/scrapers/wfp.py \
+            app/scrapers/cbsl.py \
+            app/scrapers/dcs.py \
+            app/services/market_quotes.py
+          echo "All market scraper modules compile OK"
+
+      - name: Apply DB migrations
+        run: python -c "from app.db.migrate import run_upgrade; run_upgrade()"
+
+      - name: Scrape ${{ matrix.source }}
+        run: python run_official_market_sync.py --sources "${{ matrix.source }}"
+        # continue-on-error so one source failure doesn't cancel the others
+        continue-on-error: true
+
+      - name: Upload debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: market-${{ matrix.source }}-fail-${{ github.run_id }}
+          path: |
+            backend/*.log
+            backend/*.json
+          retention-days: 7

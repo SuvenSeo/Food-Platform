@@ -7,6 +7,7 @@ on:
 
 jobs:
   frontend:
+    name: Frontend — lint, test, build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -24,6 +25,7 @@ jobs:
       - run: npm run build
 
   backend:
+    name: Backend — tests + scraper validation
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -33,6 +35,30 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python -m pip install --upgrade pip
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
       - run: pip install -r requirements.txt
-      - run: python -m pytest
+
+      - name: Validate all scraper modules compile
+        run: |
+          python -m py_compile \
+            run_sync.py \
+            run_official_market_sync.py \
+            run_market_sync.py \
+            app/scrapers/spar2u.py \
+            app/scrapers/glomark.py \
+            app/scrapers/keells.py \
+            app/scrapers/cargills.py \
+            app/scrapers/wfp.py \
+            app/scrapers/cbsl.py \
+            app/scrapers/dcs.py \
+            app/services/source_sync.py \
+            app/services/pipeline.py \
+            app/services/normalization.py \
+            app/services/market_quotes.py \
+            app/api/v1/endpoints/public.py \
+            app/api/v1/endpoints/admin.py
+          echo "All scraper modules compile OK"
+
+      - name: Run tests
+        run: python -m pytest
