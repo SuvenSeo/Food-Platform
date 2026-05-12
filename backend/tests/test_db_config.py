@@ -1,6 +1,9 @@
 import pytest
+from types import SimpleNamespace
+from sqlalchemy.engine import make_url
 
 from app.core.config import Settings
+from app.db import session as session_module
 
 
 def test_development_env_can_fallback_to_sqlite_when_database_url_missing() -> None:
@@ -49,3 +52,24 @@ def test_market_quote_sync_config_fields_are_readable_from_env() -> None:
     assert settings.market_quotes_timeout_seconds == 12.5
     assert settings.market_quotes_format == "json"
     assert settings.market_quotes_seed_fallback_enabled is False
+
+
+@pytest.mark.parametrize(
+    ("database_url", "expected_provider", "expected_is_supabase_host"),
+    [
+        ("postgresql://user:pass@db.supabase.co:5432/food", "supabase-postgres", True),
+        ("mysql://user:pass@db.supabase.co:3306/food", "mysql", False),
+    ],
+)
+def test_provider_status_only_flags_supabase_for_postgres(
+    monkeypatch: pytest.MonkeyPatch,
+    database_url: str,
+    expected_provider: str,
+    expected_is_supabase_host: bool,
+) -> None:
+    monkeypatch.setattr(session_module, "engine", SimpleNamespace(url=make_url(database_url)))
+
+    status = session_module.get_database_provider_status()
+
+    assert status["provider"] == expected_provider
+    assert status["is_supabase_host"] is expected_is_supabase_host
