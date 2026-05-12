@@ -9,16 +9,15 @@ name: FoodLK — Unified Data Scraper
 #   Market  → wfp (WFP/HDX history), cbsl (Central Bank PDF), dcs (DCS Excel)
 #
 # How it works:
-#   1. Wakes the Fly.io backend (it auto-stops when idle).
-#   2. Calls POST /api/v1/admin/trigger/sync or /market-sync via the admin API.
-#      The API queues the scraper as a background task and returns immediately,
-#      so Fly.io's 60-second proxy timeout is never hit.
-#   3. Waits for the scraper to finish, then calls GET /admin/status to confirm.
+#   1. setup job resolves which sources to run into JSON arrays.
+#   2. retail/market jobs use fromJSON() to build their matrices dynamically.
+#      This avoids referencing `matrix` in a job-level `if`, which GitHub
+#      Actions rejects at workflow_dispatch validation time.
+#   3. Each job wakes the Fly.io backend, triggers the scraper via admin API,
+#      waits for the background task, then verifies row counts.
 #
 # Required GitHub Actions secrets:
 #   ADMIN_API_KEY  — must match the ADMIN_API_KEY set on Fly.io
-#
-# No DATABASE_URL secret needed — scrapers run inside Fly.io with its own DB.
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
@@ -56,19 +55,57 @@ on:
 env:
   BACKEND: "https://food-platform-backend.fly.dev"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Retail sources — Spar2u, Glomark, Keells, Cargills
-# ─────────────────────────────────────────────────────────────────────────────
 jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Resolve which sources to run. Outputs two JSON arrays (retail, market) that
+  # the downstream jobs consume via fromJSON(). This avoids any reference to
+  # the matrix context inside a job-level `if`, which GitHub forbids.
+  # ─────────────────────────────────────────────────────────────────────────────
+  setup:
+    name: "Resolve source matrix"
+    runs-on: ubuntu-latest
+    outputs:
+      retail: ${{ steps.matrix.outputs.retail }}
+      market: ${{ steps.matrix.outputs.market }}
+    steps:
+      - name: Compute matrices
+        id: matrix
+        run: |
+          SOURCE="${{ github.event.inputs.source }}"
+
+          if [ -z "$SOURCE" ]; then
+            # No filter — run all sources
+            echo 'retail=["spar2u","glomark","keells","cargills"]' >> "$GITHUB_OUTPUT"
+            echo 'market=["wfp","cbsl","dcs"]'                     >> "$GITHUB_OUTPUT"
+          elif [[ "$SOURCE" == spar2u || "$SOURCE" == glomark || "$SOURCE" == keells || "$SOURCE" == cargills ]]; then
+            echo "retail=[\"$SOURCE\"]" >> "$GITHUB_OUTPUT"
+            echo 'market=[]'           >> "$GITHUB_OUTPUT"
+          elif [[ "$SOURCE" == wfp || "$SOURCE" == cbsl || "$SOURCE" == dcs ]]; then
+            echo 'retail=[]'           >> "$GITHUB_OUTPUT"
+            echo "market=[\"$SOURCE\"]" >> "$GITHUB_OUTPUT"
+          else
+            echo 'retail=[]' >> "$GITHUB_OUTPUT"
+            echo 'market=[]' >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "Retail sources : $(grep retail $GITHUB_OUTPUT | tail -1)"
+          echo "Market sources : $(grep market $GITHUB_OUTPUT | tail -1)"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Retail sources — Spar2u, Glomark, Keells, Cargills
+  # ─────────────────────────────────────────────────────────────────────────────
   retail:
     name: "Retail — ${{ matrix.source }}"
+    needs: setup
+    # Skip entirely if the setup job resolved an empty retail list.
+    # Uses needs context (always available at job level) — no matrix context needed.
+    if: ${{ needs.setup.outputs.retail != '[]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ !inputs.source || inputs.source == matrix.source }}
     strategy:
       fail-fast: false
       matrix:
-        source: [spar2u, glomark, keells, cargills]
+        source: ${{ fromJSON(needs.setup.outputs.retail) }}
 
     steps:
       - name: Wake backend (Fly.io cold start can take ~30 s)
@@ -85,10 +122,9 @@ jobs:
         run: |
           echo "POSTing to admin trigger/sync for ${{ matrix.source }} ..."
           RESP=$(curl -sf \
-            -X POST "$BACKEND/api/v1/admin/trigger/sync?sources=${{ matrix.source }}&max_items=${{ inputs.max_items || '500' }}" \
+            -X POST "$BACKEND/api/v1/admin/trigger/sync?sources=${{ matrix.source }}&max_items=${{ github.event.inputs.max_items || '500' }}" \
             -H "X-Admin-Key: ${{ secrets.ADMIN_API_KEY }}")
           echo "Response: $RESP"
-          # Fail if we got no response at all
           [ -n "$RESP" ] || { echo "ERROR: empty response from trigger endpoint"; exit 1; }
 
       - name: Wait for scrape to complete (~3 min for 500 items)
@@ -112,18 +148,19 @@ jobs:
             echo "⚠️  Warning: DB shows 0 retail offers after scrape."
           fi
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Official market data — WFP, CBSL, DCS
-# ─────────────────────────────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Official market data — WFP, CBSL, DCS
+  # ─────────────────────────────────────────────────────────────────────────────
   market:
     name: "Market — ${{ matrix.source }}"
+    needs: setup
+    if: ${{ needs.setup.outputs.market != '[]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ${{ !inputs.source || inputs.source == matrix.source }}
     strategy:
       fail-fast: false
       matrix:
-        source: [wfp, cbsl, dcs]
+        source: ${{ fromJSON(needs.setup.outputs.market) }}
 
     steps:
       - name: Wake backend (Fly.io cold start can take ~30 s)
