@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Soup } from 'lucide-react'
 
@@ -19,31 +19,53 @@ export function AppLoader({ children }: AppLoaderProps) {
   const [progress, setProgress] = useState(0)
   const [exiting, setExiting] = useState(false)
 
+  // Track all pending async work so we can cancel on unmount
+  const rafRef = useRef<number | null>(null)
+  const t1Ref = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const t2Ref = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const mountedRef = useRef(true)
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
+
   useEffect(() => {
     if (entered) return
 
     const start = performance.now()
     const duration = 1600
 
-    const raf = requestAnimationFrame(function tick(now) {
+    function tick(now: number) {
+      if (!mountedRef.current) return
       const elapsed = now - start
       const p = Math.min(elapsed / duration, 1)
       setProgress(p)
 
       if (p < 1) {
-        requestAnimationFrame(tick)
+        rafRef.current = requestAnimationFrame(tick)
       } else {
-        setTimeout(() => {
+        t1Ref.current = setTimeout(() => {
+          if (!mountedRef.current) return
           setExiting(true)
-          setTimeout(() => {
+          t2Ref.current = setTimeout(() => {
+            if (!mountedRef.current) return
             try { sessionStorage.setItem(STORAGE_KEY, '1') } catch {}
             setEntered(true)
           }, 500)
         }, 200)
       }
-    })
+    }
 
-    return () => cancelAnimationFrame(raf)
+    rafRef.current = requestAnimationFrame(tick)
+
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+      if (t1Ref.current !== null) clearTimeout(t1Ref.current)
+      if (t2Ref.current !== null) clearTimeout(t2Ref.current)
+    }
   }, [entered])
 
   return (
@@ -55,8 +77,10 @@ export function AppLoader({ children }: AppLoaderProps) {
             initial={{ opacity: 1 }}
             animate={{ opacity: exiting ? 0 : 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
             className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-black"
+            role="status"
+            aria-label="Loading FoodLens platform"
           >
             {/* Ambient glow */}
             <div
@@ -65,6 +89,7 @@ export function AppLoader({ children }: AppLoaderProps) {
                 background:
                   'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(249,115,22,0.08) 0%, transparent 70%)',
               }}
+              aria-hidden="true"
             />
 
             {/* Logo ring */}
@@ -77,14 +102,15 @@ export function AppLoader({ children }: AppLoaderProps) {
                   borderTopColor: '#f97316',
                   borderRightColor: 'rgba(249,115,22,0.3)',
                 }}
+                aria-hidden="true"
               />
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ delay: 0.2, duration: 0.5, ease: 'easeOut' }}
                 className="flex h-14 w-14 items-center justify-center rounded-full bg-[#111111] ring-1 ring-white/[0.08]"
               >
-                <Soup className="h-6 w-6 text-orange-400" />
+                <Soup className="h-6 w-6 text-orange-400" aria-hidden="true" />
               </motion.div>
             </div>
 
@@ -92,16 +118,16 @@ export function AppLoader({ children }: AppLoaderProps) {
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ delay: 0.4, duration: 0.6, ease: 'easeOut' }}
               className="mt-8 text-center"
             >
               <p
-                className="font-display text-2xl text-white/90"
+                className="text-2xl text-white/90"
                 style={{ fontFamily: '"DM Serif Display", serif', letterSpacing: '-0.03em' }}
               >
                 Food Intelligence
               </p>
-              <p className="mt-1 text-xs uppercase tracking-[0.28em] text-white/30">
+              <p className="mt-1 text-xs uppercase tracking-[0.28em] text-white/30" aria-hidden="true">
                 Sri Lanka
               </p>
             </motion.div>
@@ -112,11 +138,14 @@ export function AppLoader({ children }: AppLoaderProps) {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
               className="mt-10 h-px w-48 overflow-hidden rounded-full bg-white/[0.08]"
+              role="progressbar"
+              aria-valuenow={Math.round(progress * 100)}
+              aria-valuemin={0}
+              aria-valuemax={100}
             >
-              <motion.div
+              <div
                 className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-400"
-                style={{ width: `${progress * 100}%` }}
-                transition={{ ease: 'linear' }}
+                style={{ width: `${progress * 100}%`, transition: 'width 80ms linear' }}
               />
             </motion.div>
           </motion.div>

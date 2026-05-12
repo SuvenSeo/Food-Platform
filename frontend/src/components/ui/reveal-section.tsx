@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, type ReactNode, type ElementType } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { cn } from '../../lib/utils'
 
 interface RevealSectionProps {
@@ -6,7 +6,6 @@ interface RevealSectionProps {
   className?: string
   delay?: number
   threshold?: number
-  as?: ElementType
 }
 
 export function RevealSection({
@@ -14,9 +13,8 @@ export function RevealSection({
   className,
   delay = 0,
   threshold = 0.12,
-  as: Tag = 'div',
 }: RevealSectionProps) {
-  const ref = useRef<HTMLElement>(null)
+  const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const el = ref.current
@@ -40,10 +38,9 @@ export function RevealSection({
     return () => observer.disconnect()
   }, [delay, threshold])
 
-  const TagComp = Tag as 'div'
   return (
-    <TagComp ref={ref as React.RefObject<HTMLDivElement>} className={cn('reveal', className)}>
+    <div ref={ref} className={cn('reveal', className)}>
       {children}
-    </TagComp>
+    </div>
   )
 }

@@ -21,28 +21,56 @@ const OfferDetailPage = lazy(() => import('../pages/offer-detail-page').then((mo
 
 const routeMetadata: Record<string, { title: string; description: string }> = {
   '/': {
-    title: 'Food Platform | Discovery + Intelligence',
-    description: 'Explore Sri Lankan food price discovery and intelligence with trusted freshness, coverage, and trend surfaces.',
+    title: 'FoodLens | Sri Lanka Food Price Intelligence',
+    description: 'Track Sri Lankan grocery and wet-market pricing with richer comparisons, stronger signal design, and practical tools for everyday decisions.',
   },
   '/intelligence': {
-    title: 'Intelligence | Food Platform',
+    title: 'Intelligence Desk | FoodLens',
     description: 'Track high-signal price rankings, trend snapshots, and source freshness across Sri Lanka.',
   },
   '/retail': {
-    title: 'Retail Discovery | Food Platform',
-    description: 'Browse normalized supermarket and grocery offers with source-aware filters and transparent pricing.',
+    title: 'Retail Discovery | FoodLens',
+    description: 'Browse normalised supermarket and grocery offers with source-aware filters and transparent pricing.',
   },
   '/markets': {
-    title: 'Market Discovery | Food Platform',
+    title: 'Market Quotes | FoodLens',
     description: 'Discover wet-market quotes by district to compare public market movement with retail shelves.',
   },
   '/categories': {
-    title: 'Category Coverage | Food Platform',
-    description: 'Review category-level retail and market coverage to understand where signals are strongest.',
+    title: 'Category Intelligence | FoodLens',
+    description: 'Review category-level retail and market coverage to understand where price signals are strongest.',
   },
   '/compare': {
-    title: 'Compare Prices | Food Platform',
-    description: 'Compare districts and sources to identify where household food costs diverge.',
+    title: 'Compare Districts | FoodLens',
+    description: 'Compare districts and sources to identify where household food costs diverge across Sri Lanka.',
+  },
+  '/basket': {
+    title: 'Basket Workspace | FoodLens',
+    description: 'Estimate household basket costs from live retail and market signals across preset categories.',
+  },
+  '/watchlists': {
+    title: 'Watchlists | FoodLens',
+    description: 'Save and resume basket presets, compare pairs, and offer views for recurring price discovery sessions.',
+  },
+  '/pipeline': {
+    title: 'Data Pipeline | FoodLens',
+    description: 'Monitor source health, ingest rates, and job status across all active retail and market data feeds.',
+  },
+  '/methods': {
+    title: 'Methods & Trust | FoodLens',
+    description: 'Understand how FoodLens normalises prices, scores confidence, and maintains source freshness.',
+  },
+  '/developers': {
+    title: 'Developers | FoodLens',
+    description: 'Integrate FoodLens data into apps, widgets, and newsroom tools via public JSON endpoints.',
+  },
+  '/privacy': {
+    title: 'Privacy | FoodLens',
+    description: 'FoodLens privacy policy — what is stored locally, what is public, and operational telemetry limits.',
+  },
+  '/terms': {
+    title: 'Terms | FoodLens',
+    description: 'Terms of use for FoodLens — informational pricing data, attribution, and platform evolution.',
   },
 }
 
