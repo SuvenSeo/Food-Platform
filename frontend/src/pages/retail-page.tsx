@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
+import { Search } from 'lucide-react'
 
 import { OfferCard } from '../components/ui/offer-card'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { SectionHeader } from '../components/ui/section-header'
+import { RevealSection } from '../components/ui/reveal-section'
 import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
 import { api } from '../lib/api'
 
@@ -11,32 +13,31 @@ export function RetailPage() {
   const [search, setSearch] = useState('')
   const [sourceFilter, setSourceFilter] = useState('all')
   const [sortBy, setSortBy] = useState<'price-low' | 'price-high' | 'name'>('price-low')
+
   const offersQuery = useQuery({
     queryKey: ['offers', 'retail-page'],
     queryFn: () => api.getOffers('?limit=12'),
   })
   const offers = useMemo(() => offersQuery.data?.items ?? [], [offersQuery.data?.items])
-  const sources = useMemo(() => Array.from(new Set(offers.map((offer) => offer.source))).sort(), [offers])
+  const sources = useMemo(
+    () => Array.from(new Set(offers.map((o) => o.source))).sort(),
+    [offers]
+  )
   const visibleOffers = useMemo(() => {
     const needle = search.trim().toLowerCase()
     return offers
-      .filter((offer) => (sourceFilter === 'all' ? true : offer.source === sourceFilter))
-      .filter((offer) => {
+      .filter((o) => (sourceFilter === 'all' ? true : o.source === sourceFilter))
+      .filter((o) => {
         if (!needle) return true
-        return [offer.display_name, offer.canonical_name, offer.brand, offer.category, offer.source]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase()
-          .includes(needle)
+        return [o.display_name, o.canonical_name, o.brand, o.category, o.source]
+          .filter(Boolean).join(' ').toLowerCase().includes(needle)
       })
-      .sort((left, right) => {
-        if (sortBy === 'price-high') return right.price_lkr - left.price_lkr
-        if (sortBy === 'name') return left.display_name.localeCompare(right.display_name)
-        return left.price_lkr - right.price_lkr
+      .sort((a, b) => {
+        if (sortBy === 'price-high') return b.price_lkr - a.price_lkr
+        if (sortBy === 'name') return a.display_name.localeCompare(b.display_name)
+        return a.price_lkr - b.price_lkr
       })
   }, [offers, search, sortBy, sourceFilter])
-
-  const isLoading = offersQuery.isLoading
 
   return (
     <section className="space-y-8">
@@ -45,7 +46,8 @@ export function RetailPage() {
         title="Supermarket and grocery intelligence"
         description="Discovery surface for active retail offers with source provenance and value confidence hints."
       />
-      {offersQuery.isError ? (
+
+      {offersQuery.isError && (
         <ErrorState
           title="Retail discovery feed unavailable"
           message="Retail offers could not be loaded right now."
@@ -56,75 +58,76 @@ export function RetailPage() {
             { label: 'Open compare', to: '/compare' },
           ]}
         />
-      ) : null}
+      )}
+
       <div className="fp-panel space-y-6">
+        {/* Toolbar */}
         <div className="fp-toolbar">
-          <label className="space-y-2 text-sm font-medium text-slate-700 md:col-span-2">
-            <span>Search offers</span>
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              className="fp-input"
-              placeholder="Search by item, brand, source, or category"
-            />
+          <label className="space-y-2 md:col-span-2">
+            <span className="eyebrow-label">Search offers</span>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#737373]" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="fp-input pl-10"
+                placeholder="Search by item, brand, source, or category"
+              />
+            </div>
           </label>
-          <label className="space-y-2 text-sm font-medium text-slate-700">
-            <span>Source</span>
-            <select value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)} className="fp-select">
+          <label className="space-y-2">
+            <span className="eyebrow-label">Source</span>
+            <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className="fp-select">
               <option value="all">All sources</option>
-              {sources.map((source) => (
-                <option key={source} value={source}>
-                  {source}
-                </option>
+              {sources.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </label>
+          <label className="space-y-2">
+            <span className="eyebrow-label">Sort</span>
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="fp-select">
+              <option value="price-low">Price: low → high</option>
+              <option value="price-high">Price: high → low</option>
+              <option value="name">Name: A–Z</option>
+            </select>
+          </label>
+        </div>
+
+        {/* Meta strip */}
+        <div className="hairline-grid rounded-lg overflow-hidden grid-cols-3">
+          {[
+            { label: 'Visible offers', value: visibleOffers.length },
+            { label: 'Sources in view', value: new Set(visibleOffers.map((o) => o.source)).size || 0 },
+            { label: 'Catalog size', value: offersQuery.data?.total ?? offers.length },
+          ].map(({ label, value }) => (
+            <div key={label} className="bg-[#0a0a0a] px-4 py-3">
+              <p className="eyebrow-label">{label}</p>
+              <p className="num mt-1.5 text-xl font-semibold text-[#f5f5f5]">{value.toLocaleString()}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Results */}
+        <RevealSection>
+          {offersQuery.isLoading ? (
+            <SectionSkeleton cards={4} />
+          ) : !visibleOffers.length ? (
+            <EmptyState
+              title="No retail offers match these filters"
+              description="Adjust your search, reset source filters, or switch discovery surfaces."
+              hint="Next action: continue in markets or compare."
+              actionLabel="Open markets discovery"
+              actionTo="/markets"
+              secondaryActionLabel="Open compare"
+              secondaryActionTo="/compare"
+            />
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-2">
+              {visibleOffers.map((offer) => (
+                <OfferCard key={offer.id} offer={offer} />
               ))}
-            </select>
-          </label>
-          <label className="space-y-2 text-sm font-medium text-slate-700">
-            <span>Sort</span>
-            <select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)} className="fp-select">
-              <option value="price-low">Price: low to high</option>
-              <option value="price-high">Price: high to low</option>
-              <option value="name">Name: A-Z</option>
-            </select>
-          </label>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-3">
-          <article className="fp-kpi">
-            <p className="text-sm text-slate-500">Visible offers</p>
-            <p className="mt-2 text-2xl font-semibold text-slate-950">{visibleOffers.length}</p>
-          </article>
-          <article className="fp-kpi">
-            <p className="text-sm text-slate-500">Sources in view</p>
-            <p className="mt-2 text-2xl font-semibold text-slate-950">
-              {new Set(visibleOffers.map((item) => item.source)).size || 0}
-            </p>
-          </article>
-          <article className="fp-kpi">
-            <p className="text-sm text-slate-500">Catalog size</p>
-            <p className="mt-2 text-2xl font-semibold text-slate-950">{offersQuery.data?.total ?? offers.length}</p>
-          </article>
-        </div>
-
-        {isLoading ? (
-          <SectionSkeleton cards={4} />
-        ) : !visibleOffers.length ? (
-          <EmptyState
-            title="No retail offers match these filters"
-            description="Adjust your search, reset source filters, or switch discovery surfaces."
-            hint="Next action: continue in markets or compare."
-            actionLabel="Open markets discovery"
-            actionTo="/markets"
-            secondaryActionLabel="Open compare"
-            secondaryActionTo="/compare"
-          />
-        ) : (
-          <div className="grid gap-4 lg:grid-cols-2">
-            {visibleOffers.map((offer) => (
-              <OfferCard key={offer.id} offer={offer} />
-            ))}
-          </div>
-        )}
+            </div>
+          )}
+        </RevealSection>
 
         <NextActionLinks
           title="Next actions"

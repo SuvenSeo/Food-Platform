@@ -1,10 +1,16 @@
 import type { ReactNode } from 'react'
-
-import { BarChart3, BookOpenText, Bookmark, DatabaseZap, LayoutGrid, Scale, ShoppingBasket, Soup, Store, Waves } from 'lucide-react'
+import { useRef } from 'react'
+import {
+  BarChart3, BookOpenText, Bookmark, DatabaseZap,
+  LayoutGrid, Scale, ShoppingBasket, Soup, Store, Waves,
+} from 'lucide-react'
 import { NavLink } from 'react-router-dom'
+import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion'
 
 import { usePlatformFreshness } from '../../hooks/use-platform-freshness'
-import { formatCompactDate } from '../../lib/format'
+import { NoiseOverlay } from '../ui/noise-overlay'
+import { ScrollProgressBar } from '../ui/scroll-progress-bar'
+import { AppLoader } from '../ui/app-loader'
 import { SiteFooter } from './site-footer'
 
 const navGroups = [
@@ -38,108 +44,142 @@ const navGroups = [
   },
 ]
 
-export function AppShell({ children }: { children: ReactNode }) {
+function MorphingHeader() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { scrollY } = useScroll()
+  
+  const borderRadius = useTransform(scrollY, [0, 120], ['28px', '9999px'])
+  const paddingX = useTransform(scrollY, [0, 120], ['1.5rem', '1.25rem'])
+  const paddingY = useTransform(scrollY, [0, 120], ['1.25rem', '0.625rem'])
+  const maxWidth = useTransform(scrollY, [0, 120], ['100%', '960px'])
+  const marginTop = useTransform(scrollY, [0, 120], ['0px', '12px'])
+
+  const springRadius = useSpring(borderRadius, { stiffness: 200, damping: 30 })
+  const springPX = useSpring(paddingX, { stiffness: 200, damping: 30 })
+  const springPY = useSpring(paddingY, { stiffness: 200, damping: 30 })
+  const springMaxW = useSpring(maxWidth, { stiffness: 200, damping: 30 })
+  const springMT = useSpring(marginTop, { stiffness: 200, damping: 30 })
+  const bgOpacity = useTransform(scrollY, [0, 80], [0.85, 0.96])
+  const borderOpacity = useTransform(scrollY, [0, 80], [0.08, 0.14])
+
   const freshnessQuery = usePlatformFreshness()
   const freshness = freshnessQuery.data
   const confidenceGrade = freshness?.confidence.grade ?? 'medium'
   const confidenceTone =
     confidenceGrade === 'high'
-      ? 'text-emerald-700 bg-emerald-50 ring-emerald-100'
+      ? 'bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/25'
       : confidenceGrade === 'low'
-      ? 'text-rose-700 bg-rose-50 ring-rose-100'
-      : 'text-amber-700 bg-amber-50 ring-amber-100'
+      ? 'bg-red-500/15 text-red-400 ring-1 ring-red-500/25'
+      : 'bg-amber-500/15 text-amber-400 ring-1 ring-amber-500/25'
 
   return (
-    <div className="min-h-screen text-slate-950">
-      <div className="app-container flex flex-col gap-8 py-6 sm:px-2">
-        <header className="surface-shell p-6">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-4xl space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-sm font-medium text-orange-700 ring-1 ring-orange-100">
-                <Soup className="h-4 w-4" />
-                Sri Lanka Food Intelligence
-              </div>
-              <div>
-                <p className="eyebrow-label text-slate-500">
-                  National price signals
-                </p>
-                <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
-                  Food prices, markets, and household signals in one premium intelligence platform.
-                </h1>
-                <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600 sm:text-lg">
-                  Follow Sri Lankan grocery and wet-market pricing with richer comparisons, stronger signal design,
-                  and practical tools that grow into the wider life platform over time.
-                </p>
-              </div>
+    <div
+      ref={containerRef}
+      className="sticky top-0 z-50 flex justify-center px-4 sm:px-6"
+    >
+      <motion.header
+        style={{
+          borderRadius: springRadius,
+          paddingLeft: springPX,
+          paddingRight: springPX,
+          paddingTop: springPY,
+          paddingBottom: springPY,
+          maxWidth: springMaxW,
+          marginTop: springMT,
+          width: '100%',
+          backgroundColor: `rgba(10,10,10,${bgOpacity.get()})`,
+          borderColor: `rgba(255,255,255,${borderOpacity.get()})`,
+          backdropFilter: 'blur(20px) saturate(120%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(120%)',
+          borderWidth: '1px',
+          borderStyle: 'solid',
+        }}
+      >
+        <div className="flex items-center justify-between gap-4">
+          {/* Brand */}
+          <NavLink to="/" className="flex items-center gap-2.5 shrink-0">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/15 ring-1 ring-orange-500/25">
+              <Soup className="h-4 w-4 text-orange-400" />
             </div>
-            <div className="surface-panel border-orange-100 bg-orange-50 px-5 py-4 text-sm text-orange-900 lg:max-w-sm">
-              <p className="font-semibold uppercase tracking-[0.22em] text-orange-700">Trust and freshness</p>
-              {freshnessQuery.isLoading ? (
-                <p className="mt-2">Checking latest source activity and confidence signals...</p>
-              ) : freshness ? (
-                <div className="mt-2 space-y-3">
-                  <p className="text-orange-900">
-                    Last scrape {formatCompactDate(freshness.freshness.last_scrape_at)} across {freshness.coverage.sources_count} sources.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${confidenceTone}`}>
-                      Confidence {freshness.confidence.score}/100
-                    </span>
-                    <span className="inline-flex rounded-full bg-white/80 px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-orange-100">
-                      Latency{' '}
-                      {freshness.freshness.scrape_latency_minutes != null
-                        ? `${freshness.freshness.scrape_latency_minutes}m`
-                        : 'unknown'}
-                    </span>
-                    <span className="inline-flex rounded-full bg-white/80 px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-orange-100">
-                      Offers {freshness.coverage.offers_count.toLocaleString()}
-                    </span>
-                    <span className="inline-flex rounded-full bg-white/80 px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-orange-100">
-                      Market quotes {freshness.coverage.market_quotes_count.toLocaleString()}
-                    </span>
-                  </div>
-                  <p className="text-xs text-orange-900/80">{freshness.confidence.note}</p>
-                  <p className="text-xs text-orange-900/80">
-                    Pipeline {freshness.pipeline.healthy_sources}/{freshness.pipeline.total_sources} healthy sources
-                    {freshness.pipeline.latest_status ? ` (${freshness.pipeline.latest_status})` : ''}.
-                  </p>
-                </div>
-              ) : (
-                <p className="mt-2">Freshness service is temporarily unavailable. Core data views remain active.</p>
-              )}
-            </div>
-          </div>
+            <span
+              className="text-base font-semibold text-[#f5f5f5] hidden sm:block"
+              style={{ fontFamily: '"DM Serif Display", serif', letterSpacing: '-0.02em' }}
+            >
+              FoodLens
+            </span>
+          </NavLink>
 
-          <nav className="mt-8 space-y-4">
-            {navGroups.map((group) => (
-              <div key={group.label}>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{group.label}</p>
-                <div className="flex flex-wrap gap-2">
-                  {group.items.map(({ to, label, icon: Icon }) => (
-                    <NavLink
-                      key={to}
-                      to={to}
-                      className={({ isActive }) =>
-                        `inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition ${
-                          isActive
-                            ? 'bg-slate-950 text-white shadow-sm'
-                            : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100'
-                        }`
-                      }
-                    >
-                      <Icon className="h-4 w-4" />
-                      {label}
-                    </NavLink>
-                  ))}
-                </div>
-              </div>
+          {/* Scrolled-state: compact nav pills */}
+          <nav className="flex flex-wrap items-center gap-1">
+            {navGroups.flatMap((g) => g.items).map(({ to, label, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === '/'}
+                className={({ isActive }) =>
+                  `relative inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-xs font-medium transition-colors ${
+                    isActive
+                      ? 'text-[#f5f5f5]'
+                      : 'text-[#737373] hover:text-[#a3a3a3]'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <motion.span
+                        layoutId="nav-pill"
+                        className="absolute inset-0 rounded-pill bg-white/[0.09] border border-white/[0.12]"
+                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                      />
+                    )}
+                    <Icon className="relative h-3.5 w-3.5" />
+                    <span className="relative hidden sm:inline">{label}</span>
+                  </>
+                )}
+              </NavLink>
             ))}
           </nav>
-        </header>
 
-        <main>{children}</main>
+          {/* Freshness badge */}
+          {freshness && (
+            <div className="hidden lg:flex shrink-0 items-center gap-2">
+              <span className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[11px] font-semibold ${confidenceTone}`}>
+                <span className="live-dot-orange" />
+                {freshness.confidence.score}/100
+              </span>
+            </div>
+          )}
+        </div>
+      </motion.header>
+    </div>
+  )
+}
+
+export function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <AppLoader>
+      <div className="min-h-screen" style={{ backgroundColor: '#000000' }}>
+        <NoiseOverlay />
+        <ScrollProgressBar />
+        <MorphingHeader />
+
+        <main className="mx-auto max-w-[1200px] px-4 sm:px-6 pt-8 pb-24">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={typeof window !== 'undefined' ? window.location.pathname : ''}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+
         <SiteFooter />
       </div>
-    </div>
+    </AppLoader>
   )
 }

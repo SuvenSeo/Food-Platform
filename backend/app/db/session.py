@@ -31,11 +31,10 @@ def get_database_provider_status() -> dict[str, object]:
     db_url = engine.url
     backend = db_url.get_backend_name()
     host = (db_url.host or "").lower()
-    is_supabase_postgres = backend.startswith("postgresql") and "supabase" in host
 
     if backend.startswith("sqlite"):
         provider = "sqlite"
-    elif is_supabase_postgres:
+    elif backend.startswith("postgresql") and "supabase" in host:
         provider = "supabase-postgres"
     elif backend.startswith("postgresql"):
         provider = "postgres-compatible"
@@ -45,7 +44,7 @@ def get_database_provider_status() -> dict[str, object]:
     return {
         "provider": provider,
         "dialect": backend,
-        "is_supabase_host": is_supabase_postgres,
+        "is_supabase_host": bool("supabase" in host),
         "host_hint": host.split(".")[-2:] if host else [],
         "database_present": bool(db_url.database),
     }

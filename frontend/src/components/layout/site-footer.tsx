@@ -1,47 +1,111 @@
 import { Link } from 'react-router-dom'
+import { motion, type Variants } from 'framer-motion'
+import { Soup } from 'lucide-react'
 
 const footerLinks = [
-  { to: '/methods', label: 'Methods' },
-  { to: '/developers', label: 'Developers' },
-  { to: '/privacy', label: 'Privacy' },
-  { to: '/terms', label: 'Terms' },
+  { label: 'Home', to: '/' },
+  { label: 'Retail', to: '/retail' },
+  { label: 'Markets', to: '/markets' },
+  { label: 'Intelligence', to: '/intelligence' },
+  { label: 'Compare', to: '/compare' },
+  { label: 'Basket', to: '/basket' },
+  { label: 'Methods', to: '/methods' },
+  { label: 'Developers', to: '/developers' },
+  { label: 'Privacy', to: '/privacy' },
+  { label: 'Terms', to: '/terms' },
 ]
+
+const containerVariants: Variants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.06,
+      delayChildren: 0.1,
+    },
+  },
+}
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+}
 
 export function SiteFooter() {
   return (
-    <footer className="rounded-[2rem] border border-white/60 bg-white/85 px-6 py-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Public product surfaces</p>
-          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
-            Food intelligence should explain itself as clearly as it ranks prices.
-          </h2>
-          <p className="mt-3 text-sm leading-7 text-slate-600">
-            Explore methodology, public data surfaces, and the trust layers that make this platform useful to everyday households and future life-platform integrations.
-          </p>
-        </div>
-
-        <div className="space-y-3 text-sm">
-          <div className="flex flex-wrap gap-2">
-            {footerLinks.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                className="rounded-full bg-slate-100 px-4 py-2 font-medium text-slate-700 transition hover:bg-slate-200"
+    <footer
+      className="relative mt-16 border-t"
+      style={{ borderColor: 'rgba(255,255,255,0.07)', backgroundColor: '#0a0a0a' }}
+    >
+      <div className="mx-auto max-w-[1200px] px-4 sm:px-6 py-16">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-40px' }}
+          className="grid gap-12 lg:grid-cols-[1.4fr_1fr]"
+        >
+          {/* Brand col */}
+          <motion.div variants={itemVariants}>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/15 ring-1 ring-orange-500/25">
+                <Soup className="h-5 w-5 text-orange-400" />
+              </div>
+              <span
+                className="text-2xl text-white/90"
+                style={{ fontFamily: '"DM Serif Display", serif', letterSpacing: '-0.03em' }}
               >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-          <a
-            href="https://github.com/SuvenSeo/Food-Platform"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex text-sm font-semibold text-orange-700 hover:text-orange-800"
-          >
-            View the public repository
-          </a>
-        </div>
+                FoodLens
+              </span>
+            </div>
+
+            <p className="mt-5 max-w-sm text-sm leading-7 text-[#737373]">
+              National food price intelligence for Sri Lanka — retail offers, wet market signals,
+              freshness indicators, and basket tracking in one unified platform.
+            </p>
+
+            <div className="mt-6 flex items-center gap-3">
+              <span className="inline-flex items-center gap-2 rounded-pill bg-orange-500/10 px-3 py-1.5 text-xs font-semibold text-orange-400 ring-1 ring-orange-500/20">
+                <span className="live-dot-orange" />
+                Live data
+              </span>
+              <span className="text-xs text-[#404040]">Sri Lanka · Updated daily</span>
+            </div>
+          </motion.div>
+
+          {/* Links col */}
+          <motion.div variants={itemVariants}>
+            <p className="eyebrow-label mb-5">Platform</p>
+            <ul className="grid grid-cols-2 gap-x-8 gap-y-3">
+              {footerLinks.map((link) => (
+                <li key={link.to}>
+                  <Link
+                    to={link.to}
+                    className="text-sm text-[#737373] transition-colors hover:text-[#f5f5f5]"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        </motion.div>
+
+        {/* Bottom bar */}
+        <motion.div
+          variants={itemVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          className="mt-12 flex flex-col items-start justify-between gap-4 border-t pt-8 sm:flex-row sm:items-center"
+          style={{ borderColor: 'rgba(255,255,255,0.06)' }}
+        >
+          <p className="text-xs text-[#404040]">
+            © {new Date().getFullYear()} Ardeno Studio. All rights reserved.
+          </p>
+          <p className="text-xs text-[#404040]">
+            Sri Lanka food price intelligence platform
+          </p>
+        </motion.div>
       </div>
     </footer>
   )
