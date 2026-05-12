@@ -16,6 +16,17 @@ The backend reads configuration from environment variables (or a local `.env` fi
 - `APP_ENV`
   - Use `development`, `test`, `staging`, or `production`.
   - `staging` and `production` are treated as production-like environments.
+- `MARKET_QUOTES_URL`
+  - Remote JSON feed URL for market quotes.
+  - Supported payloads: JSON array, or object with an `items` array.
+- `MARKET_QUOTES_TIMEOUT_SECONDS`
+  - HTTP timeout (seconds) for remote market quote fetches.
+- `MARKET_QUOTES_FORMAT`
+  - Payload format for market quote ingestion.
+  - Current supported value: `json`.
+- `MARKET_QUOTES_SEED_FALLBACK_ENABLED`
+  - When `true`, `run_market_sync.py` can fallback to `data/market_quotes_seed.json` if remote fetch fails.
+  - Recommended `true` for local dev and `false` for production automation.
 
 ## Runtime Safety Rules
 
@@ -44,3 +55,43 @@ For fast local iteration:
 - Leave `DATABASE_URL` unset or empty
 
 The app will fallback to `sqlite:///./food_platform.db`.
+
+## Market Quote Sync
+
+- Run default behavior:
+  - `python run_market_sync.py`
+- Override remote source:
+  - `python run_market_sync.py --url "https://example.com/market-quotes.json"`
+
+Behavior:
+
+- Remote fetch/parse failures do not partially overwrite data.
+- If fallback is disabled, remote failures fail the sync command.
+- If fallback is enabled, failed remote fetches fallback to local seed quotes.
+
+## DB Provider Runtime Indicator
+
+Use this endpoint to confirm provider class without exposing credentials:
+
+- `GET /api/v1/ops/database/provider`
+
+It returns a safe indicator such as `sqlite`, `supabase-postgres`, or `postgres-compatible` using runtime engine metadata.
+
+## GitHub Actions Setup (Daily Automation)
+
+Workflow `.github/workflows/daily-scrape.yml` runs:
+
+- Retail source sync (`spar2u`, `glomark`) on schedule
+- Market quote sync on schedule
+
+Required GitHub secrets:
+
+- `DATABASE_URL`
+- `ADMIN_API_KEY`
+- `MARKET_QUOTES_URL`
+
+Optional GitHub vars:
+
+- `SCRAPE_MAX_ITEMS_PER_SOURCE` (default `250`)
+- `MARKET_QUOTES_TIMEOUT_SECONDS` (default `20` in workflow)
+- `MARKET_QUOTES_FORMAT` (default `json`)

@@ -50,3 +50,31 @@ jobs:
         run: python -c "from app.db.migrate import run_upgrade; run_upgrade()"
       - name: Sync source
         run: python run_sync.py --sources "${{ matrix.source }}" --max-items "${{ github.event.inputs.max_items || vars.SCRAPE_MAX_ITEMS_PER_SOURCE || '250' }}"
+
+  market-quotes:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ADMIN_API_KEY: ${{ secrets.ADMIN_API_KEY }}
+      APP_ENV: production
+      ALLOW_SQLITE_FALLBACK: "false"
+      MARKET_QUOTES_URL: ${{ secrets.MARKET_QUOTES_URL }}
+      MARKET_QUOTES_TIMEOUT_SECONDS: ${{ vars.MARKET_QUOTES_TIMEOUT_SECONDS || '20' }}
+      MARKET_QUOTES_FORMAT: ${{ vars.MARKET_QUOTES_FORMAT || 'json' }}
+      MARKET_QUOTES_SEED_FALLBACK_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -r requirements.txt
+      - name: Validate market quote source secret
+        run: python -c "import os,sys; url=os.getenv('MARKET_QUOTES_URL','').strip(); print('MARKET_QUOTES_URL is configured.' if url else 'Missing required MARKET_QUOTES_URL secret.'); sys.exit(0 if url else 1)"
+      - name: Apply migrations
+        run: python -c "from app.db.migrate import run_upgrade; run_upgrade()"
+      - name: Sync market quotes
+        run: python run_market_sync.py

@@ -508,9 +508,9 @@ describe('dashboard app', () => {
 
     expect(await screen.findByText(/sri lanka food intelligence/i)).toBeInTheDocument()
     expect(await screen.findByText(/track how food prices move across retail shelves and public markets/i)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /explore intelligence/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /open basket workspace/i })).toBeInTheDocument()
     expect(await screen.findAllByText(/what moved today/i)).toHaveLength(2)
-    expect(await screen.findByText(/basket snapshot/i)).toBeInTheDocument()
+    expect(await screen.findByText(/decision workspace/i)).toBeInTheDocument()
     expect(await screen.findAllByText(/spar local coconut oil/i)).toHaveLength(2)
   })
 
@@ -642,3 +642,5 @@ describe('dashboard app', () => {
     expect(await screen.findByText(/offer not found/i)).toBeInTheDocument()
   })
 })
+
+

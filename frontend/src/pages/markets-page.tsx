@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 
-import { LoadingBlock } from '../components/ui/loading-block'
+import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { SectionHeader } from '../components/ui/section-header'
 import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
 import { api } from '../lib/api'
-import { formatCurrency } from '../lib/format'
+import { formatCompactDate, formatCurrency } from '../lib/format'
 
 export function MarketsPage() {
   const [search, setSearch] = useState('')
@@ -35,21 +35,27 @@ export function MarketsPage() {
       })
   }, [categoryFilter, districtFilter, quotes, search, sortBy])
 
-  if (marketQuotesQuery.isLoading) {
-    return <LoadingBlock />
-  }
-
-  if (marketQuotesQuery.isError) {
-    return <ErrorState message="Market quotes could not be loaded." onRetry={() => marketQuotesQuery.refetch()} />
-  }
+  const isLoading = marketQuotesQuery.isLoading
 
   return (
     <section className="space-y-8">
       <SectionHeader
-        eyebrow="Markets"
+        eyebrow="Discovery"
         title="Wet-market quotes"
-        description="Filter by district and category, then sort by price to quickly spot where household staples are cheaper."
+        description="Public-market discovery surface with district filters, freshness context, and provenance hints."
       />
+      {marketQuotesQuery.isError ? (
+        <ErrorState
+          title="Market discovery feed unavailable"
+          message="Market quotes could not be loaded."
+          helper="Continue with retail discovery and district compare while market ingestion recovers."
+          onRetry={() => marketQuotesQuery.refetch()}
+          links={[
+            { label: 'Open retail discovery', to: '/retail' },
+            { label: 'Open compare', to: '/compare' },
+          ]}
+        />
+      ) : null}
       <div className="fp-panel space-y-6">
         <div className="fp-toolbar">
           <label className="space-y-2 text-sm font-medium text-slate-700 md:col-span-2">
@@ -93,12 +99,17 @@ export function MarketsPage() {
           </label>
         </div>
 
-        {!visibleQuotes.length ? (
+        {isLoading ? (
+          <SectionSkeleton cards={4} />
+        ) : !visibleQuotes.length ? (
           <EmptyState
             title="No market quotes found"
-            description="Try broader filters or move to retail offers to continue your pricing workflow."
-            actionLabel="Open retail"
+            description="Try broader filters or move to another discovery surface."
+            hint="Next action: continue in retail or compare."
+            actionLabel="Open retail discovery"
             actionTo="/retail"
+            secondaryActionLabel="Open compare"
+            secondaryActionTo="/compare"
           />
         ) : (
           <div className="grid gap-4 lg:grid-cols-2">
@@ -110,6 +121,12 @@ export function MarketsPage() {
                 <p className="text-sm text-slate-600">{quote.category}</p>
                 <p className="mt-4 text-2xl font-semibold text-slate-950">Rs {formatCurrency(quote.price_lkr)}</p>
                 <p className="text-sm text-slate-500">per {quote.unit}</p>
+                <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">Source: {quote.source}</span>
+                  <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-medium text-orange-700">
+                    Quoted: {formatCompactDate(quote.quoted_at)}
+                  </span>
+                </div>
               </article>
             ))}
           </div>

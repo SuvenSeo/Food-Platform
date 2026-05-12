@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     scrape_max_items_per_source: int = Field(default=250, alias="SCRAPE_MAX_ITEMS_PER_SOURCE")
     spar2u_enabled: bool = Field(default=True, alias="SPAR2U_ENABLED")
     glomark_enabled: bool = Field(default=True, alias="GLOMARK_ENABLED")
+    market_quotes_url: str = Field(default="", alias="MARKET_QUOTES_URL")
+    market_quotes_timeout_seconds: float = Field(default=15.0, alias="MARKET_QUOTES_TIMEOUT_SECONDS")
+    market_quotes_format: str = Field(default="json", alias="MARKET_QUOTES_FORMAT")
+    market_quotes_seed_fallback_enabled: bool = Field(default=True, alias="MARKET_QUOTES_SEED_FALLBACK_ENABLED")
 
     @property
     def cors_list(self) -> list[str]:

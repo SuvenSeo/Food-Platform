@@ -5,8 +5,9 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db
+from app.db.session import get_database_provider_status, get_db
 from app.models.tables import FairPriceScoreRecord, FoodOfferRecord, MarketQuoteRecord, PriceAggregateRecord, ScrapeRun
+from app.services.trust import build_reliability_summary, compute_platform_trust_snapshot
 
 router = APIRouter()
 
@@ -125,85 +126,6 @@ def _to_iso(value: datetime | None) -> str | None:
     return value.isoformat()
 
 
-def _minutes_since(value: datetime | None) -> int | None:
-    if not value:
-        return None
-    reference = value if value.tzinfo else value.replace(tzinfo=timezone.utc)
-    return int((datetime.now(timezone.utc) - reference).total_seconds() // 60)
-
-
-def _compute_platform_freshness(db: Session) -> dict[str, object]:
-    offers_count = db.scalar(select(func.count(FoodOfferRecord.id))) or 0
-    market_quotes_count = db.scalar(select(func.count(MarketQuoteRecord.id))) or 0
-    sources_count = db.scalar(select(func.count(distinct(FoodOfferRecord.source)))) or 0
-    categories_count = db.scalar(select(func.count(distinct(FoodOfferRecord.category)))) or 0
-
-    latest_scrape_at = db.scalar(select(func.max(ScrapeRun.finished_at)))
-    latest_offer_seen_at = db.scalar(select(func.max(FoodOfferRecord.last_seen_at)))
-    latest_market_quote_at = db.scalar(select(func.max(MarketQuoteRecord.quoted_at)))
-    latest_pipeline_status = db.scalar(select(ScrapeRun.status).order_by(ScrapeRun.finished_at.desc()).limit(1))
-
-    total_pipeline_sources = db.scalar(select(func.count(distinct(ScrapeRun.source)))) or 0
-    healthy_pipeline_sources = (
-        db.scalar(select(func.count(distinct(ScrapeRun.source))).where(ScrapeRun.status == "completed")) or 0
-    )
-
-    source_health_ratio = (
-        healthy_pipeline_sources / total_pipeline_sources if total_pipeline_sources > 0 else 0.0
-    )
-    scrape_latency_minutes = _minutes_since(latest_scrape_at)
-    confidence_score = 100
-    if scrape_latency_minutes is None:
-        confidence_score -= 35
-    elif scrape_latency_minutes > 720:
-        confidence_score -= 25
-    elif scrape_latency_minutes > 180:
-        confidence_score -= 15
-    if source_health_ratio < 0.6:
-        confidence_score -= 20
-    elif source_health_ratio < 0.85:
-        confidence_score -= 10
-    if latest_pipeline_status not in {"completed", None}:
-        confidence_score -= 10
-    confidence_score = max(0, min(confidence_score, 100))
-
-    confidence_grade = "high" if confidence_score >= 80 else "medium" if confidence_score >= 60 else "low"
-    confidence_note = (
-        "Fresh multi-source coverage"
-        if confidence_grade == "high"
-        else "Use with caution while feeds stabilize"
-        if confidence_grade == "medium"
-        else "Freshness lag detected; verify critical decisions"
-    )
-
-    return {
-        "generated_at": _to_iso(datetime.now(timezone.utc)),
-        "freshness": {
-            "last_scrape_at": _to_iso(latest_scrape_at),
-            "last_offer_seen_at": _to_iso(latest_offer_seen_at),
-            "last_market_quote_at": _to_iso(latest_market_quote_at),
-            "scrape_latency_minutes": scrape_latency_minutes,
-        },
-        "coverage": {
-            "offers_count": offers_count,
-            "market_quotes_count": market_quotes_count,
-            "sources_count": sources_count,
-            "categories_count": categories_count,
-        },
-        "pipeline": {
-            "healthy_sources": healthy_pipeline_sources,
-            "total_sources": total_pipeline_sources,
-            "latest_status": latest_pipeline_status,
-            "source_health_ratio": round(source_health_ratio, 2) if total_pipeline_sources else None,
-        },
-        "confidence": {
-            "score": confidence_score,
-            "grade": confidence_grade,
-            "note": confidence_note,
-        },
-    }
-
-
 @router.get("/health")
 def health_check(db: Session = Depends(get_db)) -> dict[str, object]:
     return {
@@ -215,12 +137,23 @@ def health_check(db: Session = Depends(get_db)) -> dict[str, object]:
 
 @router.get("/platform/freshness")
 def platform_freshness(db: Session = Depends(get_db)) -> dict[str, object]:
-    return _compute_platform_freshness(db)
+    return compute_platform_trust_snapshot(db)
+
+
+@router.get("/ops/reliability/summary")
+def ops_reliability_summary(db: Session = Depends(get_db)) -> dict[str, object]:
+    snapshot = compute_platform_trust_snapshot(db)
+    return build_reliability_summary(snapshot)
+
+
+@router.get("/ops/database/provider")
+def ops_database_provider() -> dict[str, object]:
+    return get_database_provider_status()
 
 
 @router.get("/intelligence/brief")
 def intelligence_brief(db: Session = Depends(get_db)) -> dict[str, object]:
-    trust = _compute_platform_freshness(db)
+    trust = compute_platform_trust_snapshot(db)
     confidence = trust["confidence"]
     freshness = trust["freshness"]
     pipeline = trust["pipeline"]

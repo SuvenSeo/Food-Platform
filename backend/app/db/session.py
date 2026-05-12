@@ -25,3 +25,26 @@ def get_db() -> Generator[Session, None, None]:
 def verify_database_connection() -> None:
     with engine.connect() as connection:
         connection.execute(text("SELECT 1"))
+
+
+def get_database_provider_status() -> dict[str, object]:
+    db_url = engine.url
+    backend = db_url.get_backend_name()
+    host = (db_url.host or "").lower()
+
+    if backend.startswith("sqlite"):
+        provider = "sqlite"
+    elif backend.startswith("postgresql") and "supabase" in host:
+        provider = "supabase-postgres"
+    elif backend.startswith("postgresql"):
+        provider = "postgres-compatible"
+    else:
+        provider = backend
+
+    return {
+        "provider": provider,
+        "dialect": backend,
+        "is_supabase_host": bool("supabase" in host),
+        "host_hint": host.split(".")[-2:] if host else [],
+        "database_present": bool(db_url.database),
+    }

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 
 import { IntelligencePage } from './intelligence-page'
 import { useIntelligenceBrief } from '../hooks/use-intelligence-brief'
@@ -26,9 +27,11 @@ function renderPage() {
   })
 
   return render(
-    <QueryClientProvider client={queryClient}>
-      <IntelligencePage />
-    </QueryClientProvider>,
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <IntelligencePage />
+      </QueryClientProvider>
+    </MemoryRouter>,
   )
 }
 

@@ -154,6 +154,10 @@ def test_platform_freshness_exposes_confidence_and_provenance() -> None:
     assert payload["pipeline"]["healthy_sources"] >= 1
     assert payload["confidence"]["score"] >= 0
     assert payload["confidence"]["grade"] in {"high", "medium", "low"}
+    assert payload["datasets"]["offers"]["dataset"] == "offers"
+    assert payload["datasets"]["offers"]["reliability"]["grade"] in {"high", "medium", "low"}
+    assert payload["datasets"]["market_quotes"]["dataset"] == "market_quotes"
+    assert payload["datasets"]["price_aggregates"]["dataset"] == "price_aggregates"
 
 
 def test_intelligence_brief_exposes_trust_and_actions() -> None:
@@ -166,8 +170,38 @@ def test_intelligence_brief_exposes_trust_and_actions() -> None:
     assert payload["brief"]["urgency"] in {"routine", "watch", "action-needed"}
     assert len(payload["brief"]["recommendations"]) == 3
     assert payload["trust"]["confidence"]["grade"] in {"high", "medium", "low"}
+    assert payload["trust"]["datasets"]["offers"]["records_count"] == 1
     assert payload["top_value_offer"]["display_name"] == "SPAR Local Coconut Oil"
     assert payload["latest_market_signal"]["item_name"] == "Tomato"
+
+
+def test_ops_reliability_summary_exposes_dataset_health() -> None:
+    seed_api_data()
+
+    response = client.get("/api/v1/ops/reliability/summary")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] in {"ok", "degraded", "critical"}
+    assert payload["confidence"]["grade"] in {"high", "medium", "low"}
+    assert payload["pipeline"]["healthy_sources"] >= 1
+    assert isinstance(payload["stale_datasets"], list)
+    assert len(payload["datasets"]) == 3
+    assert payload["datasets"][0]["dataset"] == "offers"
+
+
+def test_ops_database_provider_exposes_safe_runtime_indicator() -> None:
+    seed_api_data()
+
+    response = client.get("/api/v1/ops/database/provider")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["provider"] in {"sqlite", "supabase-postgres", "postgres-compatible"}
+    assert payload["dialect"] in {"sqlite", "postgresql"}
+    assert isinstance(payload["is_supabase_host"], bool)
+    assert isinstance(payload["host_hint"], list)
+    assert isinstance(payload["database_present"], bool)
 
 
 def test_trends_and_pipeline_status() -> None:

@@ -35,3 +35,17 @@ def test_staging_env_accepts_postgres_database_url() -> None:
     )
 
     assert settings.resolved_database_url.startswith("postgresql+psycopg://")
+
+
+def test_market_quote_sync_config_fields_are_readable_from_env() -> None:
+    settings = Settings(
+        MARKET_QUOTES_URL="https://example.com/market-quotes.json",
+        MARKET_QUOTES_TIMEOUT_SECONDS="12.5",
+        MARKET_QUOTES_FORMAT="json",
+        MARKET_QUOTES_SEED_FALLBACK_ENABLED="false",
+    )
+
+    assert settings.market_quotes_url == "https://example.com/market-quotes.json"
+    assert settings.market_quotes_timeout_seconds == 12.5
+    assert settings.market_quotes_format == "json"
+    assert settings.market_quotes_seed_fallback_enabled is False

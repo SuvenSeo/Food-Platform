@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 
 import { OfferCard } from '../components/ui/offer-card'
-import { LoadingBlock } from '../components/ui/loading-block'
+import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { SectionHeader } from '../components/ui/section-header'
 import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
 import { api } from '../lib/api'
@@ -36,21 +36,27 @@ export function RetailPage() {
       })
   }, [offers, search, sortBy, sourceFilter])
 
-  if (offersQuery.isLoading) {
-    return <LoadingBlock />
-  }
-
-  if (offersQuery.isError) {
-    return <ErrorState message="Retail offers are unavailable right now." onRetry={() => offersQuery.refetch()} />
-  }
+  const isLoading = offersQuery.isLoading
 
   return (
     <section className="space-y-8">
       <SectionHeader
-        eyebrow="Retail"
+        eyebrow="Discovery"
         title="Supermarket and grocery intelligence"
-        description="Scan active retail offers, focus on specific sources, and jump directly into compare and basket workflows."
+        description="Discovery surface for active retail offers with source provenance and value confidence hints."
       />
+      {offersQuery.isError ? (
+        <ErrorState
+          title="Retail discovery feed unavailable"
+          message="Retail offers could not be loaded right now."
+          helper="You can continue with public-market discovery while this source reconnects."
+          onRetry={() => offersQuery.refetch()}
+          links={[
+            { label: 'Open markets', to: '/markets' },
+            { label: 'Open compare', to: '/compare' },
+          ]}
+        />
+      ) : null}
       <div className="fp-panel space-y-6">
         <div className="fp-toolbar">
           <label className="space-y-2 text-sm font-medium text-slate-700 md:col-span-2">
@@ -100,12 +106,17 @@ export function RetailPage() {
           </article>
         </div>
 
-        {!visibleOffers.length ? (
+        {isLoading ? (
+          <SectionSkeleton cards={4} />
+        ) : !visibleOffers.length ? (
           <EmptyState
             title="No retail offers match these filters"
-            description="Adjust your search, reset source filters, or jump to market quotes to continue the workflow."
-            actionLabel="Open markets"
+            description="Adjust your search, reset source filters, or switch discovery surfaces."
+            hint="Next action: continue in markets or compare."
+            actionLabel="Open markets discovery"
             actionTo="/markets"
+            secondaryActionLabel="Open compare"
+            secondaryActionTo="/compare"
           />
         ) : (
           <div className="grid gap-4 lg:grid-cols-2">

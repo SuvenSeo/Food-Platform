@@ -3,6 +3,15 @@ import type { OfferItem } from '../../types'
 import { Link } from 'react-router-dom'
 
 export function OfferCard({ offer }: { offer: OfferItem }) {
+  const confidenceHint =
+    offer.delta_vs_median_pct === null
+      ? 'Signal calibrating'
+      : Math.abs(offer.delta_vs_median_pct) <= 8
+      ? 'High confidence'
+      : Math.abs(offer.delta_vs_median_pct) <= 15
+      ? 'Medium confidence'
+      : 'Lower confidence'
+
   return (
     <article className="fp-card">
       <div className="flex items-start justify-between gap-4">
@@ -33,6 +42,10 @@ export function OfferCard({ offer }: { offer: OfferItem }) {
         <Link to={`/offers/${offer.id}`} className="fp-button-secondary">
           Open offer
         </Link>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">Source: {offer.source}</span>
+        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">{confidenceHint}</span>
       </div>
     </article>
   )

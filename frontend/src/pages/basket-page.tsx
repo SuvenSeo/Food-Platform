@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 
-import { LoadingBlock } from '../components/ui/loading-block'
+import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { SectionHeader } from '../components/ui/section-header'
 import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
 import { useWatchlists } from '../hooks/use-watchlists'
@@ -19,6 +19,10 @@ export function BasketPage() {
   })
   const { saveEntry } = useWatchlists()
   const data = basketQuery.data
+  const presetOptions =
+    data?.available_presets.length && data.available_presets.length > 0
+      ? data.available_presets
+      : [{ id: preset, label: 'Loading preset...' }]
   const visibleItems = useMemo(() => {
     const needle = search.trim().toLowerCase()
     return (data?.items ?? [])
@@ -37,27 +41,33 @@ export function BasketPage() {
       })
   }, [availabilityFilter, data?.items, search, sortBy])
 
-  if (basketQuery.isLoading) {
-    return <LoadingBlock />
-  }
-
-  if (basketQuery.isError) {
-    return <ErrorState message="Basket estimates are currently unavailable." onRetry={() => basketQuery.refetch()} />
-  }
+  const isLoading = basketQuery.isLoading
 
   return (
     <section className="space-y-8">
       <SectionHeader
-        eyebrow="Basket"
+        eyebrow="Discovery tools"
         title="Basket workspace"
-        description="Estimate household totals, isolate missing items, and save reusable baskets for recurring shopping decisions."
+        description="Execution surface for household estimates with continuity from discovery and trust hints for each line item."
       />
+      {basketQuery.isError ? (
+        <ErrorState
+          title="Basket workspace unavailable"
+          message="Basket estimates are currently unavailable."
+          helper="Continue with retail and compare discovery while basket calculations recover."
+          onRetry={() => basketQuery.refetch()}
+          links={[
+            { label: 'Open retail discovery', to: '/retail' },
+            { label: 'Open compare', to: '/compare' },
+          ]}
+        />
+      ) : null}
       <div className="fp-panel space-y-6 border-orange-100 bg-orange-50">
         <div className="fp-toolbar lg:grid-cols-4">
           <label className="space-y-2 text-sm font-medium text-slate-700">
             <span>Basket preset</span>
             <select aria-label="Basket preset" value={preset} onChange={(event) => setPreset(event.target.value)} className="fp-select">
-              {data?.available_presets.map((item) => (
+              {presetOptions.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.label}
                 </option>
@@ -119,6 +129,8 @@ export function BasketPage() {
           </button>
         </div>
 
+        {isLoading ? <SectionSkeleton cards={4} /> : null}
+
         <div className="mt-6 grid gap-4 md:grid-cols-[0.85fr_1.15fr]">
           <div className="fp-kpi">
             <p className="text-sm text-slate-500">Estimated total</p>
@@ -129,12 +141,15 @@ export function BasketPage() {
           </div>
 
           <div className="space-y-3">
-            {!visibleItems.length ? (
+            {!isLoading && !visibleItems.length ? (
               <EmptyState
                 title="No basket items match this filter"
-                description="Try broader filters or switch presets to continue your basket analysis."
-                actionLabel="Open markets"
+                description="Try broader filters, switch presets, or continue with adjacent discovery workflows."
+                hint="Next action: continue in markets or compare."
+                actionLabel="Open markets discovery"
                 actionTo="/markets"
+                secondaryActionLabel="Open compare"
+                secondaryActionTo="/compare"
               />
             ) : (
               visibleItems.map((item) => (
@@ -147,6 +162,14 @@ export function BasketPage() {
                     <p className="text-lg font-semibold text-slate-950">
                       {item.price_lkr === null ? 'N/A' : `Rs ${formatCurrency(item.price_lkr)}`}
                     </p>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                      Provenance: {item.source ?? 'No source in current snapshot'}
+                    </span>
+                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                      Confidence: {item.price_lkr === null ? 'Needs coverage' : 'Price confirmed'}
+                    </span>
                   </div>
                 </article>
               ))
