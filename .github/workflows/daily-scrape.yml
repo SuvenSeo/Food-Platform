@@ -14,6 +14,8 @@ on:
           - all
           - spar2u
           - glomark
+          - keells
+          - cargills
       max_items:
         description: "Optional cap per source for manual runs."
         required: false
@@ -25,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        source: [spar2u, glomark]
+        source: [spar2u, glomark, keells, cargills]
     if: github.event_name == 'schedule' || github.event.inputs.source == 'all' || github.event.inputs.source == matrix.source
     defaults:
       run:
@@ -33,12 +35,10 @@ jobs:
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       ADMIN_API_KEY: ${{ secrets.ADMIN_API_KEY }}
-      SCRAPER_USER_AGENT: FoodPlatformBot/0.1 (+github-actions)
-      SCRAPE_MAX_ITEMS_PER_SOURCE: ${{ github.event.inputs.max_items || vars.SCRAPE_MAX_ITEMS_PER_SOURCE || '250' }}
+      SCRAPER_USER_AGENT: "Mozilla/5.0 (compatible; FoodLensBot/1.0; +https://food-platform-one.vercel.app)"
+      SCRAPE_MAX_ITEMS_PER_SOURCE: ${{ github.event.inputs.max_items || vars.SCRAPE_MAX_ITEMS_PER_SOURCE || '500' }}
       CORS_ORIGINS: ${{ vars.CORS_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173' }}
       ALLOW_SQLITE_FALLBACK: "false"
-      SPAR2U_ENABLED: ${{ matrix.source == 'spar2u' && 'true' || 'false' }}
-      GLOMARK_ENABLED: ${{ matrix.source == 'glomark' && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -49,7 +49,7 @@ jobs:
       - name: Apply migrations
         run: python -c "from app.db.migrate import run_upgrade; run_upgrade()"
       - name: Sync source
-        run: python run_sync.py --sources "${{ matrix.source }}" --max-items "${{ github.event.inputs.max_items || vars.SCRAPE_MAX_ITEMS_PER_SOURCE || '250' }}"
+        run: python run_sync.py --sources "${{ matrix.source }}" --max-items "${{ github.event.inputs.max_items || vars.SCRAPE_MAX_ITEMS_PER_SOURCE || '500' }}"
 
   market-quotes:
     runs-on: ubuntu-latest

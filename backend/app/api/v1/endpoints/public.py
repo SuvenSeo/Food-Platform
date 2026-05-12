@@ -113,6 +113,7 @@ def _serialize_offer_summary(offer: FoodOfferRecord, score: FairPriceScoreRecord
         "unit_amount": offer.unit_amount,
         "available": offer.available,
         "url": offer.url,
+        "image_url": offer.image_url,
         "price_band": score.price_band if score else None,
         "delta_vs_median_pct": score.delta_vs_median_pct if score else None,
     }

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(slots=True)
@@ -14,6 +14,7 @@ class RawOffer:
     available: bool
     sku: str | None
     url: str
+    image_url: str | None = None
 
 
 @dataclass(slots=True)
@@ -35,6 +36,7 @@ class NormalizedOffer:
     sku: str | None
     url: str
     cluster_key: str
+    image_url: str | None = None
 
 
 @dataclass(slots=True)

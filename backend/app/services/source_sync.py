@@ -3,7 +3,9 @@ from sqlalchemy import func, select
 from app.core.config import get_settings
 from app.db.session import SessionLocal
 from app.models.tables import FoodOfferRecord, PriceAggregateRecord
+from app.scrapers.cargills import fetch_cargills_catalog
 from app.scrapers.glomark import fetch_glomark_catalog
+from app.scrapers.keells import fetch_keells_catalog
 from app.scrapers.spar2u import fetch_spar2u_catalog
 from app.services.pipeline import finish_scrape_run, rebuild_normalized_views, start_scrape_run, store_raw_offers
 
@@ -12,6 +14,8 @@ settings = get_settings()
 SOURCE_FETCHERS = {
     "spar2u": fetch_spar2u_catalog,
     "glomark": fetch_glomark_catalog,
+    "keells": fetch_keells_catalog,
+    "cargills": fetch_cargills_catalog,
 }
 
 

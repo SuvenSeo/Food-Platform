@@ -24,6 +24,7 @@ export type OfferItem = {
   unit_amount: number | null
   available: boolean
   url: string
+  image_url: string | null
   price_band: string | null
   delta_vs_median_pct: number | null
 }

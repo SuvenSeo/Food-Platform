@@ -46,6 +46,7 @@ def store_raw_offers(db: Session, source: str, raw_offers: list[RawOffer], run: 
             available=offer.available,
             sku=offer.sku,
             url=offer.url,
+            image_url=offer.image_url,
             raw_payload={
                 "title": offer.title,
                 "variant_title": offer.variant_title,
@@ -54,6 +55,7 @@ def store_raw_offers(db: Session, source: str, raw_offers: list[RawOffer], run: 
                 "available": offer.available,
                 "sku": offer.sku,
                 "url": offer.url,
+                "image_url": offer.image_url,
             },
             scraped_at=now,
         )
@@ -87,6 +89,7 @@ def rebuild_normalized_views(db: Session) -> None:
                 available=raw_record.available,
                 sku=raw_record.sku,
                 url=raw_record.url,
+                image_url=raw_record.image_url,
             )
         )
         normalized_domain.append(normalized)
@@ -109,6 +112,7 @@ def rebuild_normalized_views(db: Session) -> None:
                 available=normalized.available,
                 sku=normalized.sku,
                 url=normalized.url,
+                image_url=normalized.image_url,
                 cluster_key=normalized.cluster_key,
                 first_seen_at=raw_record.scraped_at,
                 last_seen_at=raw_record.scraped_at,

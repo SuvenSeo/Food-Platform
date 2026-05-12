@@ -41,6 +41,7 @@ class RawOfferRecord(Base):
     available: Mapped[bool] = mapped_column(Boolean, default=True)
     sku: Mapped[str | None] = mapped_column(String(128), nullable=True)
     url: Mapped[str] = mapped_column(String(1024))
+    image_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     raw_payload: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     scraped_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
 
@@ -69,6 +70,7 @@ class FoodOfferRecord(Base):
     available: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     sku: Mapped[str | None] = mapped_column(String(128), nullable=True)
     url: Mapped[str] = mapped_column(String(1024))
+    image_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     district: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     city: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     cluster_key: Mapped[str] = mapped_column(String(255), index=True)

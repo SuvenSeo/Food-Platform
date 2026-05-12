@@ -202,10 +202,10 @@ function MorphingHeader() {
               </span>
             </NavLink>
 
-            {/* Desktop nav — horizontal scroll, no wrap */}
+            {/* Desktop nav — horizontal scroll, no wrap; show at sm+ (640px) */}
             <nav
               aria-label="Site navigation"
-              className="hidden min-w-0 flex-1 md:flex"
+              className="hidden min-w-0 flex-1 sm:flex"
             >
               <div className="flex items-center gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {navItems.map((item) => (
@@ -215,12 +215,12 @@ function MorphingHeader() {
             </nav>
 
             {/* Spacer for mobile */}
-            <div className="flex-1 md:hidden" />
+            <div className="flex-1 sm:hidden" />
 
             {/* Right side: freshness + mobile toggle */}
             <div className="flex shrink-0 items-center gap-2">
               {freshness && (
-                <span className={`hidden lg:inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${confidenceTone}`}>
+                <span className={`hidden md:inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${confidenceTone}`}>
                   <span className="live-dot-orange" aria-hidden="true" />
                   <span aria-label={`Data confidence score: ${freshness.confidence.score} out of 100`}>
                     {freshness.confidence.score}/100
@@ -228,10 +228,11 @@ function MorphingHeader() {
                 </span>
               )}
 
-              {/* Mobile hamburger */}
+              {/* Mobile hamburger — visible below sm (640px) */}
               <button
                 onClick={() => setMobileOpen(true)}
-                className="md:hidden flex h-8 w-8 items-center justify-center rounded-full text-[#737373] transition hover:bg-white/[0.06] hover:text-[#f5f5f5]"
+                className="sm:hidden flex h-8 w-8 items-center justify-center rounded-full text-[#a3a3a3] transition hover:bg-white/[0.08] hover:text-[#f5f5f5] border"
+                style={{ borderColor: 'rgba(255,255,255,0.10)' }}
                 aria-label="Open navigation menu"
                 aria-expanded={mobileOpen}
                 aria-haspopup="dialog"

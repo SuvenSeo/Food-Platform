@@ -130,16 +130,17 @@ body {
   color: var(--color-text-primary);
   font-family: 'Geist', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
   font-size: var(--text-body);
-  line-height: 1.6;
+  line-height: 1.65;
   font-weight: 400;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   letter-spacing: -0.016em;
+  /* Subtle radial orange warmth from top-left */
   background-image:
-    radial-gradient(ellipse at 20% 0%, rgba(249, 115, 22, 0.07) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 10%, rgba(249, 115, 22, 0.04) 0%, transparent 40%);
+    radial-gradient(ellipse 70% 50% at 15% 0%, rgba(249, 115, 22, 0.06) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 35% at 85% 5%, rgba(249, 115, 22, 0.03) 0%, transparent 45%);
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -236,16 +237,16 @@ a {
 }
 
 .eyebrow-label {
-  font-size: var(--text-micro);
-  font-weight: 600;
-  letter-spacing: 0.22em;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--color-text-muted);
 }
 
 .eyebrow-accent {
-  font-size: var(--text-micro);
-  font-weight: 600;
+  font-size: 0.7rem;
+  font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--color-accent);

@@ -66,4 +66,5 @@ def normalize_offer(raw: RawOffer) -> NormalizedOffer:
         sku=raw.sku,
         url=raw.url,
         cluster_key=cluster_key,
+        image_url=raw.image_url,
     )
