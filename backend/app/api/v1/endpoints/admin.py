@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -86,7 +86,7 @@ def trigger_aggregate(
 @router.post("/admin/trigger/sync")
 def trigger_sync(
     background_tasks: BackgroundTasks,
-    sources: list[str] | None = None,
+    sources: list[str] | None = Query(default=None),
     max_items: int = 500,
     _: None = Depends(require_admin),
     db: Session = Depends(get_db),
@@ -119,7 +119,7 @@ def trigger_sync(
 @router.post("/admin/trigger/market-sync")
 def trigger_market_sync(
     background_tasks: BackgroundTasks,
-    sources: list[str] | None = None,
+    sources: list[str] | None = Query(default=None),
     _: None = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
