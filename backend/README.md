@@ -95,3 +95,29 @@ Optional GitHub vars:
 - `SCRAPE_MAX_ITEMS_PER_SOURCE` (default `250`)
 - `MARKET_QUOTES_TIMEOUT_SECONDS` (default `20` in workflow)
 - `MARKET_QUOTES_FORMAT` (default `json`)
+
+### Operator Commands (Manual Secret Rotation)
+
+Fly.io:
+
+- Set or rotate DB URL:
+  - `flyctl secrets set DATABASE_URL="postgresql+psycopg://<user>:<password>@<host>:5432/<db>" --app <fly-app-name>`
+- Set or rotate admin key:
+  - `flyctl secrets set ADMIN_API_KEY="<strong-random-key>" --app <fly-app-name>`
+- Verify non-secret runtime DB provider after deploy:
+  - `curl -s https://<fly-app-host>/api/v1/ops/database/provider`
+
+GitHub Actions secrets:
+
+- Set or rotate `DATABASE_URL`:
+  - `gh secret set DATABASE_URL --repo <owner>/<repo> --body "postgresql+psycopg://<user>:<password>@<host>:5432/<db>"`
+- Set or rotate `ADMIN_API_KEY`:
+  - `gh secret set ADMIN_API_KEY --repo <owner>/<repo> --body "<strong-random-key>"`
+- Set or rotate `MARKET_QUOTES_URL`:
+  - `gh secret set MARKET_QUOTES_URL --repo <owner>/<repo> --body "https://<provider>/market-quotes.json"`
+
+GitHub Actions vars:
+
+- `gh variable set MARKET_QUOTES_TIMEOUT_SECONDS --repo <owner>/<repo> --body "20"`
+- `gh variable set MARKET_QUOTES_FORMAT --repo <owner>/<repo> --body "json"`
+- `gh variable set SCRAPE_MAX_ITEMS_PER_SOURCE --repo <owner>/<repo> --body "250"`
