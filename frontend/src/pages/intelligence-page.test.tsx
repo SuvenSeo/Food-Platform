@@ -44,7 +44,7 @@ describe('IntelligencePage null-safety', () => {
         },
         sources: [],
       },
-    } as ReturnType<typeof useIntelligenceSummary>)
+    } as unknown as ReturnType<typeof useIntelligenceSummary>)
 
     mockedUseIntelligenceBrief.mockReturnValue({
       isLoading: false,
@@ -52,7 +52,7 @@ describe('IntelligencePage null-safety', () => {
       data: {
         generated_at: null,
       },
-    } as ReturnType<typeof useIntelligenceBrief>)
+    } as unknown as ReturnType<typeof useIntelligenceBrief>)
 
     renderPage()
 
@@ -66,13 +66,13 @@ describe('IntelligencePage null-safety', () => {
       isLoading: false,
       isError: true,
       data: undefined,
-    } as ReturnType<typeof useIntelligenceSummary>)
+    } as unknown as ReturnType<typeof useIntelligenceSummary>)
 
     mockedUseIntelligenceBrief.mockReturnValue({
       isLoading: false,
       isError: true,
       data: undefined,
-    } as ReturnType<typeof useIntelligenceBrief>)
+    } as unknown as ReturnType<typeof useIntelligenceBrief>)
 
     renderPage()
 
