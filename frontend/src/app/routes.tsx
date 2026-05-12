@@ -1,40 +1,99 @@
-import { Route, Routes } from 'react-router-dom'
+import { Suspense, lazy, useEffect } from 'react'
+import { Route, Routes, useLocation } from 'react-router-dom'
 
 import { AppShell } from '../components/layout/app-shell'
-import { BasketPage } from '../pages/basket-page'
-import { CategoriesPage } from '../pages/categories-page'
-import { ComparePage } from '../pages/compare-page'
-import { DevelopersPage } from '../pages/developers-page'
-import { HomePage } from '../pages/home-page'
-import { IntelligencePage } from '../pages/intelligence-page'
-import { MarketsPage } from '../pages/markets-page'
-import { MethodsPage } from '../pages/methods-page'
-import { OfferDetailPage } from '../pages/offer-detail-page'
-import { PipelinePage } from '../pages/pipeline-page'
-import { PrivacyPage } from '../pages/privacy-page'
-import { RetailPage } from '../pages/retail-page'
-import { TermsPage } from '../pages/terms-page'
-import { WatchlistsPage } from '../pages/watchlists-page'
+import { LoadingBlock } from '../components/ui/loading-block'
+
+const HomePage = lazy(() => import('../pages/home-page').then((module) => ({ default: module.HomePage })))
+const IntelligencePage = lazy(() => import('../pages/intelligence-page').then((module) => ({ default: module.IntelligencePage })))
+const RetailPage = lazy(() => import('../pages/retail-page').then((module) => ({ default: module.RetailPage })))
+const MarketsPage = lazy(() => import('../pages/markets-page').then((module) => ({ default: module.MarketsPage })))
+const CategoriesPage = lazy(() => import('../pages/categories-page').then((module) => ({ default: module.CategoriesPage })))
+const ComparePage = lazy(() => import('../pages/compare-page').then((module) => ({ default: module.ComparePage })))
+const BasketPage = lazy(() => import('../pages/basket-page').then((module) => ({ default: module.BasketPage })))
+const WatchlistsPage = lazy(() => import('../pages/watchlists-page').then((module) => ({ default: module.WatchlistsPage })))
+const MethodsPage = lazy(() => import('../pages/methods-page').then((module) => ({ default: module.MethodsPage })))
+const DevelopersPage = lazy(() => import('../pages/developers-page').then((module) => ({ default: module.DevelopersPage })))
+const PrivacyPage = lazy(() => import('../pages/privacy-page').then((module) => ({ default: module.PrivacyPage })))
+const TermsPage = lazy(() => import('../pages/terms-page').then((module) => ({ default: module.TermsPage })))
+const PipelinePage = lazy(() => import('../pages/pipeline-page').then((module) => ({ default: module.PipelinePage })))
+const OfferDetailPage = lazy(() => import('../pages/offer-detail-page').then((module) => ({ default: module.OfferDetailPage })))
+
+const routeMetadata: Record<string, { title: string; description: string }> = {
+  '/': {
+    title: 'Food Platform | Discovery + Intelligence',
+    description: 'Explore Sri Lankan food price discovery and intelligence with trusted freshness, coverage, and trend surfaces.',
+  },
+  '/intelligence': {
+    title: 'Intelligence | Food Platform',
+    description: 'Track high-signal price rankings, trend snapshots, and source freshness across Sri Lanka.',
+  },
+  '/retail': {
+    title: 'Retail Discovery | Food Platform',
+    description: 'Browse normalized supermarket and grocery offers with source-aware filters and transparent pricing.',
+  },
+  '/markets': {
+    title: 'Market Discovery | Food Platform',
+    description: 'Discover wet-market quotes by district to compare public market movement with retail shelves.',
+  },
+  '/categories': {
+    title: 'Category Coverage | Food Platform',
+    description: 'Review category-level retail and market coverage to understand where signals are strongest.',
+  },
+  '/compare': {
+    title: 'Compare Prices | Food Platform',
+    description: 'Compare districts and sources to identify where household food costs diverge.',
+  },
+}
+
+function applyMeta(name: string, content: string) {
+  const selector = `meta[name="${name}"]`
+  let element = document.head.querySelector(selector)
+  if (!element) {
+    element = document.createElement('meta')
+    element.setAttribute('name', name)
+    document.head.appendChild(element)
+  }
+  element.setAttribute('content', content)
+}
+
+function RouteMetadata() {
+  const location = useLocation()
+
+  useEffect(() => {
+    const metadata = routeMetadata[location.pathname] ?? {
+      title: 'Food Platform | Sri Lanka Food Intelligence',
+      description: 'Sri Lanka food platform with balanced discovery and intelligence tooling for trusted pricing signals.',
+    }
+    document.title = metadata.title
+    applyMeta('description', metadata.description)
+  }, [location.pathname])
+
+  return null
+}
 
 export function AppRoutes() {
   return (
     <AppShell>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/intelligence" element={<IntelligencePage />} />
-        <Route path="/retail" element={<RetailPage />} />
-        <Route path="/markets" element={<MarketsPage />} />
-        <Route path="/categories" element={<CategoriesPage />} />
-        <Route path="/compare" element={<ComparePage />} />
-        <Route path="/basket" element={<BasketPage />} />
-        <Route path="/watchlists" element={<WatchlistsPage />} />
-        <Route path="/methods" element={<MethodsPage />} />
-        <Route path="/developers" element={<DevelopersPage />} />
-        <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="/terms" element={<TermsPage />} />
-        <Route path="/pipeline" element={<PipelinePage />} />
-        <Route path="/offers/:offerId" element={<OfferDetailPage />} />
-      </Routes>
+      <RouteMetadata />
+      <Suspense fallback={<LoadingBlock />}>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/intelligence" element={<IntelligencePage />} />
+          <Route path="/retail" element={<RetailPage />} />
+          <Route path="/markets" element={<MarketsPage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
+          <Route path="/compare" element={<ComparePage />} />
+          <Route path="/basket" element={<BasketPage />} />
+          <Route path="/watchlists" element={<WatchlistsPage />} />
+          <Route path="/methods" element={<MethodsPage />} />
+          <Route path="/developers" element={<DevelopersPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/pipeline" element={<PipelinePage />} />
+          <Route path="/offers/:offerId" element={<OfferDetailPage />} />
+        </Routes>
+      </Suspense>
     </AppShell>
   )
 }

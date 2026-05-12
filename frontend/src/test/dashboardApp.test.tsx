@@ -3,7 +3,7 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 
-import { AppRoutes } from '../App'
+import { AppRoutes } from '../app/routes'
 
 const jsonResponse = (data: unknown) =>
   Promise.resolve({
@@ -112,6 +112,18 @@ describe('dashboard app', () => {
                 delta_vs_median_pct: 5.88,
               },
             ],
+            trend_snapshot: [
+              {
+                cluster_key: 'spar|local coconut oil|l|1.000',
+                canonical_name: 'local coconut oil',
+                brand: 'SPAR',
+                median_price_lkr: 1650,
+                average_price_lkr: 1650,
+                offers_count: 2,
+                unit: 'l',
+                unit_amount: 1,
+              },
+            ],
           },
           sources: [
             {
@@ -127,12 +139,110 @@ describe('dashboard app', () => {
         })
       }
 
+      if (pathname.includes('/intelligence/brief')) {
+        return jsonResponse({
+          generated_at: '2026-05-11T15:03:00Z',
+          trust: {
+            generated_at: '2026-05-11T15:02:00Z',
+            freshness: {
+              last_scrape_at: '2026-05-11T15:00:00Z',
+              last_offer_seen_at: '2026-05-11T15:00:00Z',
+              last_market_quote_at: '2026-05-11T15:00:00Z',
+              scrape_latency_minutes: 3,
+            },
+            coverage: {
+              offers_count: 1280,
+              market_quotes_count: 6,
+              sources_count: 2,
+              categories_count: 12,
+            },
+            pipeline: {
+              healthy_sources: 2,
+              total_sources: 2,
+              latest_status: 'completed',
+              source_health_ratio: 1,
+            },
+            confidence: {
+              score: 94,
+              grade: 'high',
+              note: 'Fresh multi-source coverage',
+            },
+          },
+          brief: {
+            urgency: 'routine',
+            headline: 'High-confidence signals available.',
+            highlights: [
+              { label: 'Scrape latency', value: '3 min' },
+              { label: 'Pipeline health', value: '2/2 healthy sources' },
+              { label: 'Coverage depth', value: '1280 offers · 6 market quotes' },
+            ],
+            recommendations: [
+              'Confidence is healthy; prioritize top-value monitoring and category watchlists.',
+              'Keep basket and compare surfaces aligned with confidence notes for user trust continuity.',
+              'Expand market quote collection to strengthen district-level intelligence coverage.',
+            ],
+          },
+          top_value_offer: {
+            id: 1,
+            source: 'spar2u',
+            category: 'grocery',
+            brand: 'SPAR',
+            display_name: 'SPAR Local Coconut Oil',
+            canonical_name: 'local coconut oil',
+            price_lkr: 1600,
+            price_per_unit_lkr: 1600,
+            unit: 'l',
+            unit_amount: 1,
+            available: true,
+            url: 'https://spar2u.lk/products/spar-local-coconut-oil-1l',
+            price_band: 'good-value',
+            delta_vs_median_pct: 5.88,
+          },
+          latest_market_signal: {
+            district: 'Colombo',
+            market_name: 'Pettah',
+            item_name: 'Tomato',
+            price_lkr: 320,
+            quoted_at: '2026-05-11T15:00:00Z',
+          },
+        })
+      }
+
       if (pathname.includes('/stats/summary')) {
         return jsonResponse({
           offers_count: 1280,
           sources_count: 2,
           categories_count: 12,
           last_scrape_at: '2026-05-11T15:00:00Z',
+        })
+      }
+
+      if (pathname.includes('/platform/freshness')) {
+        return jsonResponse({
+          generated_at: '2026-05-11T15:02:00Z',
+          freshness: {
+            last_scrape_at: '2026-05-11T15:00:00Z',
+            last_offer_seen_at: '2026-05-11T15:00:00Z',
+            last_market_quote_at: '2026-05-11T15:00:00Z',
+            scrape_latency_minutes: 2,
+          },
+          coverage: {
+            offers_count: 1280,
+            market_quotes_count: 6,
+            sources_count: 2,
+            categories_count: 12,
+          },
+          pipeline: {
+            healthy_sources: 2,
+            total_sources: 2,
+            latest_status: 'completed',
+            source_health_ratio: 1,
+          },
+          confidence: {
+            score: 94,
+            grade: 'high',
+            note: 'Fresh multi-source coverage',
+          },
         })
       }
 
@@ -443,6 +553,15 @@ describe('dashboard app', () => {
     expect(await screen.findByRole('heading', { name: /^grocery$/i })).toBeInTheDocument()
     expect(await screen.findByText(/retail offers 1/i)).toBeInTheDocument()
     expect(await screen.findByText(/market quotes 2/i)).toBeInTheDocument()
+  })
+
+  it('renders intelligence command brief with recommendations', async () => {
+    renderApp(['/intelligence'])
+
+    expect(await screen.findByText(/command brief/i)).toBeInTheDocument()
+    expect(await screen.findByText(/high-confidence signals available/i)).toBeInTheDocument()
+    expect(await screen.findByText(/pipeline health/i)).toBeInTheDocument()
+    expect(await screen.findByText(/recommended actions/i)).toBeInTheDocument()
   })
 
   it('renders district comparison data', async () => {

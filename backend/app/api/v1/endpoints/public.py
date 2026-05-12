@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import distinct, func, select
@@ -115,12 +117,199 @@ def _serialize_offer_summary(offer: FoodOfferRecord, score: FairPriceScoreRecord
     }
 
 
+def _to_iso(value: datetime | None) -> str | None:
+    if not value:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc).isoformat()
+    return value.isoformat()
+
+
+def _minutes_since(value: datetime | None) -> int | None:
+    if not value:
+        return None
+    reference = value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    return int((datetime.now(timezone.utc) - reference).total_seconds() // 60)
+
+
+def _compute_platform_freshness(db: Session) -> dict[str, object]:
+    offers_count = db.scalar(select(func.count(FoodOfferRecord.id))) or 0
+    market_quotes_count = db.scalar(select(func.count(MarketQuoteRecord.id))) or 0
+    sources_count = db.scalar(select(func.count(distinct(FoodOfferRecord.source)))) or 0
+    categories_count = db.scalar(select(func.count(distinct(FoodOfferRecord.category)))) or 0
+
+    latest_scrape_at = db.scalar(select(func.max(ScrapeRun.finished_at)))
+    latest_offer_seen_at = db.scalar(select(func.max(FoodOfferRecord.last_seen_at)))
+    latest_market_quote_at = db.scalar(select(func.max(MarketQuoteRecord.quoted_at)))
+    latest_pipeline_status = db.scalar(select(ScrapeRun.status).order_by(ScrapeRun.finished_at.desc()).limit(1))
+
+    total_pipeline_sources = db.scalar(select(func.count(distinct(ScrapeRun.source)))) or 0
+    healthy_pipeline_sources = (
+        db.scalar(select(func.count(distinct(ScrapeRun.source))).where(ScrapeRun.status == "completed")) or 0
+    )
+
+    source_health_ratio = (
+        healthy_pipeline_sources / total_pipeline_sources if total_pipeline_sources > 0 else 0.0
+    )
+    scrape_latency_minutes = _minutes_since(latest_scrape_at)
+    confidence_score = 100
+    if scrape_latency_minutes is None:
+        confidence_score -= 35
+    elif scrape_latency_minutes > 720:
+        confidence_score -= 25
+    elif scrape_latency_minutes > 180:
+        confidence_score -= 15
+    if source_health_ratio < 0.6:
+        confidence_score -= 20
+    elif source_health_ratio < 0.85:
+        confidence_score -= 10
+    if latest_pipeline_status not in {"completed", None}:
+        confidence_score -= 10
+    confidence_score = max(0, min(confidence_score, 100))
+
+    confidence_grade = "high" if confidence_score >= 80 else "medium" if confidence_score >= 60 else "low"
+    confidence_note = (
+        "Fresh multi-source coverage"
+        if confidence_grade == "high"
+        else "Use with caution while feeds stabilize"
+        if confidence_grade == "medium"
+        else "Freshness lag detected; verify critical decisions"
+    )
+
+    return {
+        "generated_at": _to_iso(datetime.now(timezone.utc)),
+        "freshness": {
+            "last_scrape_at": _to_iso(latest_scrape_at),
+            "last_offer_seen_at": _to_iso(latest_offer_seen_at),
+            "last_market_quote_at": _to_iso(latest_market_quote_at),
+            "scrape_latency_minutes": scrape_latency_minutes,
+        },
+        "coverage": {
+            "offers_count": offers_count,
+            "market_quotes_count": market_quotes_count,
+            "sources_count": sources_count,
+            "categories_count": categories_count,
+        },
+        "pipeline": {
+            "healthy_sources": healthy_pipeline_sources,
+            "total_sources": total_pipeline_sources,
+            "latest_status": latest_pipeline_status,
+            "source_health_ratio": round(source_health_ratio, 2) if total_pipeline_sources else None,
+        },
+        "confidence": {
+            "score": confidence_score,
+            "grade": confidence_grade,
+            "note": confidence_note,
+        },
+    }
+
+
 @router.get("/health")
 def health_check(db: Session = Depends(get_db)) -> dict[str, object]:
     return {
         "status": "ok",
         "db": "connected",
         "offers_count": db.scalar(select(func.count(FoodOfferRecord.id))) or 0,
+    }
+
+
+@router.get("/platform/freshness")
+def platform_freshness(db: Session = Depends(get_db)) -> dict[str, object]:
+    return _compute_platform_freshness(db)
+
+
+@router.get("/intelligence/brief")
+def intelligence_brief(db: Session = Depends(get_db)) -> dict[str, object]:
+    trust = _compute_platform_freshness(db)
+    confidence = trust["confidence"]
+    freshness = trust["freshness"]
+    pipeline = trust["pipeline"]
+    coverage = trust["coverage"]
+
+    top_offer = db.execute(
+        select(FoodOfferRecord, FairPriceScoreRecord)
+        .outerjoin(FairPriceScoreRecord, FairPriceScoreRecord.food_offer_id == FoodOfferRecord.id)
+        .where(FoodOfferRecord.available.is_(True))
+        .order_by(FoodOfferRecord.price_lkr.asc(), FoodOfferRecord.last_seen_at.desc())
+        .limit(1)
+    ).first()
+    latest_market = db.scalar(
+        select(MarketQuoteRecord).order_by(MarketQuoteRecord.quoted_at.desc(), MarketQuoteRecord.price_lkr.asc()).limit(1)
+    )
+
+    recommendations: list[str] = []
+    if confidence["grade"] == "low":
+        recommendations.append("Treat pricing as directional and verify critical decisions against live retail pages.")
+    elif confidence["grade"] == "medium":
+        recommendations.append("Use district and source compare flows before finalizing procurement decisions.")
+    else:
+        recommendations.append("Confidence is healthy; prioritize top-value monitoring and category watchlists.")
+
+    if freshness["scrape_latency_minutes"] is not None and freshness["scrape_latency_minutes"] > 180:
+        recommendations.append("Refresh ingestion soon to tighten stale intervals across discovery pages.")
+    if pipeline["latest_status"] not in {"completed", None}:
+        recommendations.append("Inspect latest pipeline run for failed sources before publishing insight snapshots.")
+    if coverage["market_quotes_count"] < 10:
+        recommendations.append("Expand market quote collection to strengthen district-level intelligence coverage.")
+
+    if len(recommendations) < 3:
+        recommendations.append("Keep basket and compare surfaces aligned with confidence notes for user trust continuity.")
+
+    urgency = (
+        "action-needed"
+        if confidence["grade"] == "low"
+        else "watch"
+        if confidence["grade"] == "medium"
+        else "routine"
+    )
+    headline = (
+        "High-confidence signals available."
+        if urgency == "routine"
+        else "Signals are usable with caution."
+        if urgency == "watch"
+        else "Freshness risk detected; validate before acting."
+    )
+
+    return {
+        "generated_at": _to_iso(datetime.now(timezone.utc)),
+        "trust": trust,
+        "brief": {
+            "urgency": urgency,
+            "headline": headline,
+            "highlights": [
+                {
+                    "label": "Scrape latency",
+                    "value": (
+                        f"{freshness['scrape_latency_minutes']} min"
+                        if freshness["scrape_latency_minutes"] is not None
+                        else "No recent scrape"
+                    ),
+                },
+                {
+                    "label": "Pipeline health",
+                    "value": f"{pipeline['healthy_sources']}/{pipeline['total_sources']} healthy sources",
+                },
+                {
+                    "label": "Coverage depth",
+                    "value": (
+                        f"{coverage['offers_count']} offers · {coverage['market_quotes_count']} market quotes"
+                    ),
+                },
+            ],
+            "recommendations": recommendations[:3],
+        },
+        "top_value_offer": _serialize_offer_summary(top_offer[0], top_offer[1]) if top_offer else None,
+        "latest_market_signal": (
+            {
+                "district": latest_market.district,
+                "market_name": latest_market.market_name,
+                "item_name": latest_market.item_name,
+                "price_lkr": float(latest_market.price_lkr),
+                "quoted_at": latest_market.quoted_at.isoformat() if latest_market.quoted_at else None,
+            }
+            if latest_market
+            else None
+        ),
     }
 
 

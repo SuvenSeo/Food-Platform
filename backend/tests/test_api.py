@@ -141,6 +141,35 @@ def test_stats_summary_and_offer_browse() -> None:
     assert offers.json()["items"][0]["price_band"] == "good-value"
 
 
+def test_platform_freshness_exposes_confidence_and_provenance() -> None:
+    seed_api_data()
+
+    response = client.get("/api/v1/platform/freshness")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["freshness"]["last_scrape_at"] is not None
+    assert payload["coverage"]["offers_count"] == 1
+    assert payload["coverage"]["market_quotes_count"] == 2
+    assert payload["pipeline"]["healthy_sources"] >= 1
+    assert payload["confidence"]["score"] >= 0
+    assert payload["confidence"]["grade"] in {"high", "medium", "low"}
+
+
+def test_intelligence_brief_exposes_trust_and_actions() -> None:
+    seed_api_data()
+
+    response = client.get("/api/v1/intelligence/brief")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["brief"]["urgency"] in {"routine", "watch", "action-needed"}
+    assert len(payload["brief"]["recommendations"]) == 3
+    assert payload["trust"]["confidence"]["grade"] in {"high", "medium", "low"}
+    assert payload["top_value_offer"]["display_name"] == "SPAR Local Coconut Oil"
+    assert payload["latest_market_signal"]["item_name"] == "Tomato"
+
+
 def test_trends_and_pipeline_status() -> None:
     seed_api_data()
 

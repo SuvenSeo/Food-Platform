@@ -151,3 +151,52 @@ export type WatchlistEntry = {
   href: string
   summary: string
 }
+
+export type PlatformFreshnessSummary = {
+  generated_at: string | null
+  freshness: {
+    last_scrape_at: string | null
+    last_offer_seen_at: string | null
+    last_market_quote_at: string | null
+    scrape_latency_minutes: number | null
+  }
+  coverage: {
+    offers_count: number
+    market_quotes_count: number
+    sources_count: number
+    categories_count: number
+  }
+  pipeline: {
+    healthy_sources: number
+    total_sources: number
+    latest_status: string | null
+    source_health_ratio: number | null
+  }
+  confidence: {
+    score: number
+    grade: 'high' | 'medium' | 'low'
+    note: string
+  }
+}
+
+export type IntelligenceBrief = {
+  generated_at: string | null
+  trust: PlatformFreshnessSummary
+  brief: {
+    urgency: 'routine' | 'watch' | 'action-needed'
+    headline: string
+    highlights: Array<{
+      label: string
+      value: string
+    }>
+    recommendations: string[]
+  }
+  top_value_offer: OfferItem | null
+  latest_market_signal: {
+    district: string
+    market_name: string
+    item_name: string
+    price_lkr: number
+    quoted_at: string | null
+  } | null
+}
