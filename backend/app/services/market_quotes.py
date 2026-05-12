@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 
@@ -8,6 +9,12 @@ from sqlalchemy import delete, func, select
 from app.db.session import SessionLocal
 from app.models.tables import MarketQuoteRecord
 
+logger = logging.getLogger(__name__)
+
+
+# ─────────────────────────────────────────────
+# Parsing helpers
+# ─────────────────────────────────────────────
 
 def _extract_items(payload: object) -> list[dict[str, object]]:
     if isinstance(payload, list):
@@ -50,7 +57,12 @@ def parse_market_quotes_payload(payload: object) -> list[dict[str, object]]:
     return [_normalize_quote_item(item, index=index) for index, item in enumerate(_extract_items(payload))]
 
 
+# ─────────────────────────────────────────────
+# Storage helpers
+# ─────────────────────────────────────────────
+
 def _replace_market_quotes(quotes: list[dict[str, object]]) -> dict[str, int]:
+    """Replace all market quotes in the database with the provided list."""
     records = [MarketQuoteRecord(**quote) for quote in quotes]
 
     with SessionLocal() as db:
@@ -61,6 +73,30 @@ def _replace_market_quotes(quotes: list[dict[str, object]]) -> dict[str, int]:
             "market_quotes_count": db.scalar(select(func.count(MarketQuoteRecord.id))) or 0,
         }
 
+
+def _upsert_source_quotes(source: str, quotes: list[dict[str, object]]) -> dict[str, int]:
+    """
+    Replace all market quotes from a specific source, keeping quotes from
+    other sources intact. This allows multiple scrapers to run independently.
+    """
+    records = [MarketQuoteRecord(**q) for q in quotes]
+
+    with SessionLocal() as db:
+        # Delete only this source's existing quotes
+        db.execute(
+            delete(MarketQuoteRecord).where(MarketQuoteRecord.source == source)
+        )
+        db.add_all(records)
+        db.commit()
+        return {
+            "market_quotes_count": db.scalar(select(func.count(MarketQuoteRecord.id))) or 0,
+            "source_quotes_added": len(records),
+        }
+
+
+# ─────────────────────────────────────────────
+# Public ingestion functions
+# ─────────────────────────────────────────────
 
 def ingest_market_quotes_from_file(path: Path) -> dict[str, int]:
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -78,3 +114,55 @@ def ingest_market_quotes_from_url(url: str, timeout_seconds: float, payload_form
     payload = response.json()
     quotes = parse_market_quotes_payload(payload)
     return _replace_market_quotes(quotes)
+
+
+def ingest_official_market_quotes(
+    sources: list[str] | None = None,
+    timeout: float = 30.0,
+) -> dict[str, object]:
+    """
+    Run one or more official data source scrapers and upsert their quotes.
+
+    sources: list of source names to run, or None / ["all"] to run all.
+    Supported sources: "wfp", "dcs", "cbsl"
+    """
+    from app.scrapers.cbsl import fetch_cbsl_market_quotes
+    from app.scrapers.dcs import fetch_dcs_market_quotes
+    from app.scrapers.wfp import fetch_wfp_market_quotes
+
+    available: dict[str, object] = {
+        "wfp": fetch_wfp_market_quotes,
+        "dcs": fetch_dcs_market_quotes,
+        "cbsl": fetch_cbsl_market_quotes,
+    }
+
+    run_all = sources is None or sources == ["all"] or "all" in sources
+    to_run = list(available.keys()) if run_all else [s for s in (sources or []) if s in available]
+
+    results: dict[str, object] = {}
+    total_added = 0
+
+    for source_name in to_run:
+        fetcher = available[source_name]
+        try:
+            raw_quotes = fetcher(timeout=timeout)  # type: ignore[operator]
+            if not raw_quotes:
+                results[source_name] = {"status": "ok", "count": 0, "note": "No data returned"}
+                continue
+
+            # Normalize quoted_at to datetime objects
+            normalized = parse_market_quotes_payload(raw_quotes)
+            upsert_result = _upsert_source_quotes(source_name, normalized)
+            total_added += upsert_result.get("source_quotes_added", 0)
+            results[source_name] = {"status": "ok", **upsert_result}
+            logger.info("Market quotes ingested from %s: %d rows", source_name, upsert_result.get("source_quotes_added", 0))
+
+        except Exception as exc:
+            logger.error("Market quote ingestion failed for source '%s': %s", source_name, exc)
+            results[source_name] = {"status": "error", "error": str(exc)}
+
+    return {
+        "sources_run": to_run,
+        "total_rows_added": total_added,
+        "results": results,
+    }
