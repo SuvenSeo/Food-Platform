@@ -1,19 +1,29 @@
 name: FoodLK — Unified Data Scraper
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Runs every 6 hours (00:10, 06:10, 12:10, 18:10 Sri Lanka Standard Time)
-# and can be triggered manually via GitHub Actions → "Run workflow".
+# Runs every 6 hours (00:10, 06:10, 12:10, 18:10 Sri Lanka Standard Time).
+# Can also be triggered manually via GitHub Actions → "Run workflow".
 #
 # Sources:
-#   Retail    → spar2u, glomark, keells, cargills
-#   Market    → wfp (WFP/HDX), cbsl (Central Bank), dcs (Census & Statistics)
+#   Retail  → spar2u, glomark, keells, cargills
+#   Market  → wfp (WFP/HDX history), cbsl (Central Bank PDF), dcs (DCS Excel)
 #
-# Manual run: leave "Source filter" blank to run all, or pick one source.
+# How it works:
+#   1. Wakes the Fly.io backend (it auto-stops when idle).
+#   2. Calls POST /api/v1/admin/trigger/sync or /market-sync via the admin API.
+#      The API queues the scraper as a background task and returns immediately,
+#      so Fly.io's 60-second proxy timeout is never hit.
+#   3. Waits for the scraper to finish, then calls GET /admin/status to confirm.
+#
+# Required GitHub Actions secrets:
+#   ADMIN_API_KEY  — must match the ADMIN_API_KEY set on Fly.io
+#
+# No DATABASE_URL secret needed — scrapers run inside Fly.io with its own DB.
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
   schedule:
-    # 00:10 SLT (UTC+5:30 = 18:40 UTC previous day)
+    # 00:10 SLT (UTC+5:30 → UTC 18:40 previous day)
     - cron: "40 18 * * *"
     # 06:10 SLT
     - cron: "40 0 * * *"
@@ -43,140 +53,115 @@ on:
         required: false
         default: "500"
 
+env:
+  BACKEND: "https://food-platform-backend.fly.dev"
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Retail sources — Spar2u, Glomark, Keells, Cargills
-# Each source runs as a separate parallel job.
 # ─────────────────────────────────────────────────────────────────────────────
 jobs:
   retail:
     name: "Retail — ${{ matrix.source }}"
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    # Run all on schedule or when no filter is set; run only matching source otherwise
+    timeout-minutes: 15
     if: ${{ !inputs.source || inputs.source == matrix.source }}
     strategy:
       fail-fast: false
       matrix:
         source: [spar2u, glomark, keells, cargills]
-    defaults:
-      run:
-        working-directory: backend
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      ADMIN_API_KEY: ${{ secrets.ADMIN_API_KEY }}
-      SCRAPER_USER_AGENT: >-
-        Mozilla/5.0 (compatible; FoodLKBot/1.0;
-        +https://food-platform-one.vercel.app)
-      SCRAPE_MAX_ITEMS_PER_SOURCE: ${{ inputs.max_items || '500' }}
-      ALLOW_SQLITE_FALLBACK: "false"
-      CORS_ORIGINS: "https://food-platform-one.vercel.app"
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-          cache-dependency-path: backend/requirements.txt
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Validate scraper modules compile
+      - name: Wake backend (Fly.io cold start can take ~30 s)
         run: |
-          python -m py_compile \
-            run_sync.py \
-            app/scrapers/spar2u.py \
-            app/scrapers/glomark.py \
-            app/scrapers/keells.py \
-            app/scrapers/cargills.py \
-            app/services/source_sync.py \
-            app/services/pipeline.py \
-            app/services/normalization.py
-          echo "All retail scraper modules compile OK"
+          echo "Waking up $BACKEND ..."
+          for i in 1 2 3 4 5 6; do
+            HTTP=$(curl -o /dev/null -sw "%{http_code}" "$BACKEND/health" 2>/dev/null || echo "000")
+            echo "  attempt $i → HTTP $HTTP"
+            [ "$HTTP" = "200" ] && { echo "Backend is up."; break; }
+            sleep 10
+          done
 
-      - name: Apply DB migrations
-        run: python -c "from app.db.migrate import run_upgrade; run_upgrade()"
-
-      - name: Scrape ${{ matrix.source }}
+      - name: Trigger ${{ matrix.source }} scrape
         run: |
-          python run_sync.py \
-            --sources "${{ matrix.source }}" \
-            --max-items "${{ inputs.max_items || '500' }}"
+          echo "POSTing to admin trigger/sync for ${{ matrix.source }} ..."
+          RESP=$(curl -sf \
+            -X POST "$BACKEND/api/v1/admin/trigger/sync?sources=${{ matrix.source }}&max_items=${{ inputs.max_items || '500' }}" \
+            -H "X-Admin-Key: ${{ secrets.ADMIN_API_KEY }}")
+          echo "Response: $RESP"
+          # Fail if we got no response at all
+          [ -n "$RESP" ] || { echo "ERROR: empty response from trigger endpoint"; exit 1; }
 
-      - name: Upload debug artifacts on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: retail-${{ matrix.source }}-fail-${{ github.run_id }}
-          path: |
-            backend/*.log
-            backend/*.json
-          retention-days: 7
+      - name: Wait for scrape to complete (~3 min for 500 items)
+        run: |
+          echo "Sleeping 180 s to let the scraper finish..."
+          sleep 180
+
+      - name: Verify — check admin status
+        run: |
+          echo "Fetching admin status..."
+          STATUS=$(curl -sf \
+            "$BACKEND/api/v1/admin/status" \
+            -H "X-Admin-Key: ${{ secrets.ADMIN_API_KEY }}")
+          echo "Admin status: $STATUS"
+          OFFERS=$(echo "$STATUS" | python3 -c \
+            "import sys,json; print(json.load(sys.stdin).get('retail_offers', 0))")
+          echo "Total retail offers in DB: $OFFERS"
+          if [ "$OFFERS" -gt "0" ]; then
+            echo "✅ Live data confirmed — $OFFERS retail offers in production DB."
+          else
+            echo "⚠️  Warning: DB shows 0 retail offers after scrape."
+          fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Official market data — WFP, CBSL, DCS
-# Each source runs as a separate parallel job.
-# Sources: WFP (20+ years history), CBSL (daily PDF), DCS (weekly Excel)
 # ─────────────────────────────────────────────────────────────────────────────
   market:
     name: "Market — ${{ matrix.source }}"
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 15
     if: ${{ !inputs.source || inputs.source == matrix.source }}
     strategy:
       fail-fast: false
       matrix:
         source: [wfp, cbsl, dcs]
-    defaults:
-      run:
-        working-directory: backend
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      ADMIN_API_KEY: ${{ secrets.ADMIN_API_KEY }}
-      ALLOW_SQLITE_FALLBACK: "false"
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-          cache-dependency-path: backend/requirements.txt
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Validate market scraper modules compile
+      - name: Wake backend (Fly.io cold start can take ~30 s)
         run: |
-          python -m py_compile \
-            run_official_market_sync.py \
-            app/scrapers/wfp.py \
-            app/scrapers/cbsl.py \
-            app/scrapers/dcs.py \
-            app/services/market_quotes.py
-          echo "All market scraper modules compile OK"
+          echo "Waking up $BACKEND ..."
+          for i in 1 2 3 4 5 6; do
+            HTTP=$(curl -o /dev/null -sw "%{http_code}" "$BACKEND/health" 2>/dev/null || echo "000")
+            echo "  attempt $i → HTTP $HTTP"
+            [ "$HTTP" = "200" ] && { echo "Backend is up."; break; }
+            sleep 10
+          done
 
-      - name: Apply DB migrations
-        run: python -c "from app.db.migrate import run_upgrade; run_upgrade()"
+      - name: Trigger ${{ matrix.source }} market scrape
+        run: |
+          echo "POSTing to admin trigger/market-sync for ${{ matrix.source }} ..."
+          RESP=$(curl -sf \
+            -X POST "$BACKEND/api/v1/admin/trigger/market-sync?sources=${{ matrix.source }}" \
+            -H "X-Admin-Key: ${{ secrets.ADMIN_API_KEY }}")
+          echo "Response: $RESP"
+          [ -n "$RESP" ] || { echo "ERROR: empty response from trigger endpoint"; exit 1; }
 
-      - name: Scrape ${{ matrix.source }}
-        run: python run_official_market_sync.py --sources "${{ matrix.source }}"
-        # continue-on-error so one source failure doesn't cancel the others
-        continue-on-error: true
+      - name: Wait for market scrape to complete (~2 min)
+        run: |
+          echo "Sleeping 120 s to let the market scraper finish..."
+          sleep 120
 
-      - name: Upload debug artifacts on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: market-${{ matrix.source }}-fail-${{ github.run_id }}
-          path: |
-            backend/*.log
-            backend/*.json
-          retention-days: 7
+      - name: Verify — check admin status
+        run: |
+          echo "Fetching admin status..."
+          STATUS=$(curl -sf \
+            "$BACKEND/api/v1/admin/status" \
+            -H "X-Admin-Key: ${{ secrets.ADMIN_API_KEY }}")
+          echo "Admin status: $STATUS"
+          QUOTES=$(echo "$STATUS" | python3 -c \
+            "import sys,json; print(json.load(sys.stdin).get('market_quotes', 0))")
+          echo "Total market quotes in DB: $QUOTES"
+          if [ "$QUOTES" -gt "0" ]; then
+            echo "✅ Live data confirmed — $QUOTES market quotes in production DB."
+          else
+            echo "⚠️  Warning: DB shows 0 market quotes after scrape."
+          fi

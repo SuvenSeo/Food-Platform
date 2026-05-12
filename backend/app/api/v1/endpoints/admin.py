@@ -1,16 +1,18 @@
-from fastapi import APIRouter, Depends, Header, HTTPException, BackgroundTasks
+import logging
+
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.db.session import get_db
+from app.db.session import SessionLocal, get_db
 from app.models.tables import FoodOfferRecord, MarketQuoteRecord, PriceAggregateRecord
-from app.services.pipeline import rebuild_normalized_views
 from app.services.market_quotes import ingest_official_market_quotes
 from app.services.source_sync import sync_sources
 
 router = APIRouter()
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 def require_admin(x_admin_key: str | None = Header(default=None)) -> None:
@@ -24,6 +26,40 @@ def require_admin(x_admin_key: str | None = Header(default=None)) -> None:
 
 
 # ─────────────────────────────────────────────
+# Background task helpers (own their own sessions)
+# ─────────────────────────────────────────────
+
+def _bg_retail_sync(sources: list[str], max_items: int) -> None:
+    """Run retail scrape in background — opens and closes its own DB session."""
+    db = SessionLocal()
+    try:
+        logger.info("BG retail sync starting: sources=%s max_items=%d", sources, max_items)
+        sync_sources(sources, max_items=max_items)
+        db.commit()
+        logger.info("BG retail sync complete: sources=%s", sources)
+    except Exception:
+        logger.exception("BG retail sync failed: sources=%s", sources)
+        db.rollback()
+    finally:
+        db.close()
+
+
+def _bg_market_sync(sources: list[str] | None) -> None:
+    """Run official market scrape in background — opens and closes its own DB session."""
+    db = SessionLocal()
+    try:
+        logger.info("BG market sync starting: sources=%s", sources)
+        ingest_official_market_quotes(sources=sources)
+        db.commit()
+        logger.info("BG market sync complete: sources=%s", sources)
+    except Exception:
+        logger.exception("BG market sync failed: sources=%s", sources)
+        db.rollback()
+    finally:
+        db.close()
+
+
+# ─────────────────────────────────────────────
 # Aggregate only (fast, no scraping)
 # ─────────────────────────────────────────────
 
@@ -33,6 +69,7 @@ def trigger_aggregate(
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
     """Re-run normalisation, clustering, and fair-price scoring from raw_offers."""
+    from app.services.pipeline import rebuild_normalized_views
     rebuild_normalized_views(db)
     db.commit()
     return {
@@ -43,63 +80,61 @@ def trigger_aggregate(
 
 
 # ─────────────────────────────────────────────
-# Full retail sync (scrape + aggregate)
+# Full retail sync — fires and returns immediately
 # ─────────────────────────────────────────────
 
 @router.post("/admin/trigger/sync")
 def trigger_sync(
+    background_tasks: BackgroundTasks,
     sources: list[str] | None = None,
     max_items: int = 500,
     _: None = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
     """
-    Run one or more retail scrapers, store raw offers, and rebuild normalised views.
+    Queue one or more retail scrapers as a background task and return immediately.
 
-    Body (optional JSON):
-      {
-        "sources": ["spar2u", "glomark", "keells", "cargills"],
-        "max_items": 500
-      }
+    The scrape runs inside the Fly.io process (with full database access).
+    Poll GET /admin/status to track progress.
 
-    Defaults to running ALL registered sources at 500 items each.
+    Query params (optional):
+      sources=spar2u&sources=glomark   — repeat for multiple
+      max_items=500
     """
-    all_sources = list(settings.scrape_max_items_per_source and ["spar2u", "glomark", "keells", "cargills"])
     requested = sources if sources else ["spar2u", "glomark", "keells", "cargills"]
-
-    result = sync_sources(requested, max_items=max_items)
-
+    background_tasks.add_task(_bg_retail_sync, requested, max_items)
     return {
-        "status": "ok",
-        **result,
-        "market_quotes_count": db.scalar(select(func.count(MarketQuoteRecord.id))) or 0,
+        "status": "queued",
+        "sources": requested,
+        "max_items": max_items,
+        "message": "Scrape queued. Poll GET /api/v1/admin/status to verify completion.",
+        "current_retail_offers": db.scalar(select(func.count(FoodOfferRecord.id))) or 0,
     }
 
 
 # ─────────────────────────────────────────────
-# Official market data sync (WFP, DCS, CBSL)
+# Official market data sync — fires and returns immediately
 # ─────────────────────────────────────────────
 
 @router.post("/admin/trigger/market-sync")
 def trigger_market_sync(
+    background_tasks: BackgroundTasks,
     sources: list[str] | None = None,
     _: None = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
     """
-    Pull latest market price data from official Sri Lankan government/IGO sources.
+    Queue official market scrapers (WFP, DCS, CBSL) as background tasks.
 
-    Body (optional JSON):
-      {"sources": ["wfp", "dcs", "cbsl"]}
-
-    Defaults to running all three official sources.
+    Query params (optional):
+      sources=wfp&sources=cbsl
     """
-    result = ingest_official_market_quotes(sources=sources)
-
+    background_tasks.add_task(_bg_market_sync, sources)
     return {
-        "status": "ok",
-        **result,
-        "total_market_quotes": db.scalar(select(func.count(MarketQuoteRecord.id))) or 0,
+        "status": "queued",
+        "sources": sources or ["wfp", "dcs", "cbsl"],
+        "message": "Market scrape queued. Poll GET /api/v1/admin/status to verify completion.",
+        "current_market_quotes": db.scalar(select(func.count(MarketQuoteRecord.id))) or 0,
     }
 
 
@@ -112,7 +147,7 @@ def admin_status(
     _: None = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
-    """Overview of all data counts — useful for verifying a sync worked."""
+    """Overview of all data counts — poll this after a trigger to verify updates."""
     return {
         "retail_offers": db.scalar(select(func.count(FoodOfferRecord.id))) or 0,
         "price_aggregates": db.scalar(select(func.count(PriceAggregateRecord.id))) or 0,

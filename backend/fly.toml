@@ -2,6 +2,15 @@
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
+# ─────────────────────────────────────────────────────────────────────────────
+# Required Fly.io secrets (set via `fly secrets set KEY=value`):
+#
+#   DATABASE_URL   — set to sqlite:////data/food_platform.db  (already in [env] below)
+#   ADMIN_API_KEY  — random secret for /api/v1/admin/* endpoints
+#
+# Also set this as a GitHub Actions secret:
+#   ADMIN_API_KEY  — must match the Fly.io secret above
+# ─────────────────────────────────────────────────────────────────────────────
 
 app = 'food-platform-backend'
 primary_region = 'sin'
@@ -11,6 +20,11 @@ primary_region = 'sin'
 
 [env]
   PORT = '8000'
+  # Store SQLite on the persistent /data volume so data survives machine restarts.
+  DATABASE_URL = 'sqlite:////data/food_platform.db'
+  ALLOW_SQLITE_FALLBACK = 'true'
+  # Production frontend origin — allows the Vercel app to call this API.
+  CORS_ORIGINS = 'https://food-platform-one.vercel.app,http://localhost:5173,http://127.0.0.1:5173'
 
 [[mounts]]
   source = 'food_data'
@@ -22,6 +36,14 @@ primary_region = 'sin'
   auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "15s"
+    interval = "30s"
+    method = "GET"
+    path = "/health"
+    protocol = "http"
+    timeout = "5s"
 
 [[vm]]
   memory = '512mb'

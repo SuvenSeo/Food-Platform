@@ -41,3 +41,9 @@ def root() -> dict[str, str]:
         "name": settings.app_name,
         "docs": "/docs",
     }
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    """Lightweight health check used by Fly.io and GitHub Actions warm-up."""
+    return {"status": "ok"}
