@@ -3,6 +3,8 @@ from functools import lru_cache
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+SQLITE_DEFAULT_URL = "sqlite:///./food_platform.db"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
@@ -12,7 +14,7 @@ class Settings(BaseSettings):
     api_prefix: str = Field(default="/api/v1", alias="API_PREFIX")
     admin_api_key: str = Field(default="change-me", alias="ADMIN_API_KEY")
     allow_sqlite_fallback: bool = Field(default=True, alias="ALLOW_SQLITE_FALLBACK")
-    database_url: str = Field(default="sqlite:///./food_platform.db", alias="DATABASE_URL")
+    database_url: str = Field(default="", alias="DATABASE_URL")
     cors_origins: str = Field(default="http://localhost:5173,http://127.0.0.1:5173", alias="CORS_ORIGINS")
     scraper_user_agent: str = Field(
         default="FoodPlatformBot/0.1 (+contact: admin@example.com)",
@@ -30,6 +32,28 @@ class Settings(BaseSettings):
     def is_development_like(self) -> bool:
         normalized = self.app_env.strip().lower()
         return normalized in {"dev", "development", "local", "test", "testing"}
+
+    @property
+    def is_production_like(self) -> bool:
+        normalized = self.app_env.strip().lower()
+        return normalized in {"prod", "production", "staging", "stage"}
+
+    @property
+    def resolved_database_url(self) -> str:
+        configured_url = self.database_url.strip()
+        if configured_url:
+            if configured_url.startswith("sqlite") and self.is_production_like:
+                raise ValueError("SQLite is not allowed in production-like environments.")
+            if configured_url.startswith("sqlite") and not self.allow_sqlite_fallback:
+                raise ValueError("SQLite is not allowed when ALLOW_SQLITE_FALLBACK is false.")
+            return configured_url
+
+        if self.allow_sqlite_fallback and self.is_development_like:
+            return SQLITE_DEFAULT_URL
+
+        raise ValueError(
+            "DATABASE_URL must be set for non-development environments or when SQLite fallback is disabled."
+        )
 
     @property
     def has_insecure_admin_key(self) -> bool:

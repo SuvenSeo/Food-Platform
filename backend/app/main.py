@@ -6,12 +6,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.db.migrate import run_upgrade
+from app.db.session import verify_database_connection
 
 settings = get_settings()
 
 
 @asynccontextmanager
 async def app_lifespan(_: FastAPI):
+    verify_database_connection()
     run_upgrade()
     yield
 
