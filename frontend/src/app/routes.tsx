@@ -21,56 +21,56 @@ const OfferDetailPage = lazy(() => import('../pages/offer-detail-page').then((mo
 
 const routeMetadata: Record<string, { title: string; description: string }> = {
   '/': {
-    title: 'FoodLens | Sri Lanka Food Price Intelligence',
+    title: 'FoodLK | Sri Lanka Food Price Intelligence',
     description: 'Track Sri Lankan grocery and wet-market pricing with richer comparisons, stronger signal design, and practical tools for everyday decisions.',
   },
   '/intelligence': {
-    title: 'Intelligence Desk | FoodLens',
+    title: 'Intelligence Desk | FoodLK',
     description: 'Track high-signal price rankings, trend snapshots, and source freshness across Sri Lanka.',
   },
   '/retail': {
-    title: 'Retail Discovery | FoodLens',
+    title: 'Retail Discovery | FoodLK',
     description: 'Browse normalised supermarket and grocery offers with source-aware filters and transparent pricing.',
   },
   '/markets': {
-    title: 'Market Quotes | FoodLens',
+    title: 'Market Quotes | FoodLK',
     description: 'Discover wet-market quotes by district to compare public market movement with retail shelves.',
   },
   '/categories': {
-    title: 'Category Intelligence | FoodLens',
+    title: 'Category Intelligence | FoodLK',
     description: 'Review category-level retail and market coverage to understand where price signals are strongest.',
   },
   '/compare': {
-    title: 'Compare Districts | FoodLens',
+    title: 'Compare Districts | FoodLK',
     description: 'Compare districts and sources to identify where household food costs diverge across Sri Lanka.',
   },
   '/basket': {
-    title: 'Basket Workspace | FoodLens',
+    title: 'Basket Workspace | FoodLK',
     description: 'Estimate household basket costs from live retail and market signals across preset categories.',
   },
   '/watchlists': {
-    title: 'Watchlists | FoodLens',
+    title: 'Watchlists | FoodLK',
     description: 'Save and resume basket presets, compare pairs, and offer views for recurring price discovery sessions.',
   },
   '/pipeline': {
-    title: 'Data Pipeline | FoodLens',
+    title: 'Data Pipeline | FoodLK',
     description: 'Monitor source health, ingest rates, and job status across all active retail and market data feeds.',
   },
   '/methods': {
-    title: 'Methods & Trust | FoodLens',
-    description: 'Understand how FoodLens normalises prices, scores confidence, and maintains source freshness.',
+    title: 'Methods & Trust | FoodLK',
+    description: 'Understand how FoodLK normalises prices, scores confidence, and maintains source freshness.',
   },
   '/developers': {
-    title: 'Developers | FoodLens',
-    description: 'Integrate FoodLens data into apps, widgets, and newsroom tools via public JSON endpoints.',
+    title: 'Developers | FoodLK',
+    description: 'Integrate FoodLK data into apps, widgets, and newsroom tools via public JSON endpoints.',
   },
   '/privacy': {
-    title: 'Privacy | FoodLens',
-    description: 'FoodLens privacy policy — what is stored locally, what is public, and operational telemetry limits.',
+    title: 'Privacy | FoodLK',
+    description: 'FoodLK privacy policy — what is stored locally, what is public, and operational telemetry limits.',
   },
   '/terms': {
-    title: 'Terms | FoodLens',
-    description: 'Terms of use for FoodLens — informational pricing data, attribution, and platform evolution.',
+    title: 'Terms | FoodLK',
+    description: 'Terms of use for FoodLK — informational pricing data, attribution, and platform evolution.',
   },
 }
 
@@ -90,7 +90,7 @@ function RouteMetadata() {
 
   useEffect(() => {
     const metadata = routeMetadata[location.pathname] ?? {
-      title: 'Food Platform | Sri Lanka Food Intelligence',
+      title: 'FoodLK | Sri Lanka Food Price Intelligence',
       description: 'Sri Lanka food platform with balanced discovery and intelligence tooling for trusted pricing signals.',
     }
     document.title = metadata.title

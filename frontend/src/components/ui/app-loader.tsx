@@ -52,7 +52,12 @@ export function AppLoader({ children }: AppLoaderProps) {
           setExiting(true)
           t2Ref.current = setTimeout(() => {
             if (!mountedRef.current) return
-            try { sessionStorage.setItem(STORAGE_KEY, '1') } catch {}
+            try {
+              sessionStorage.setItem(STORAGE_KEY, '1')
+            } catch {
+              // sessionStorage may be unavailable in privacy mode or jsdom;
+              // a missed write here just means we replay the splash next visit.
+            }
             setEntered(true)
           }, 500)
         }, 200)
@@ -80,7 +85,7 @@ export function AppLoader({ children }: AppLoaderProps) {
             transition={{ duration: 0.5, ease: 'easeOut' }}
             className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-black"
             role="status"
-            aria-label="Loading FoodLens platform"
+            aria-label="Loading FoodLK platform"
           >
             {/* Ambient glow */}
             <div

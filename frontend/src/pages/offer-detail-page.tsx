@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -29,6 +30,22 @@ export function OfferDetailPage() {
     queryFn: () => api.getOffers(`?category=${encodeURIComponent(offerQuery.data?.category || '')}`),
     enabled: Boolean(offerQuery.data?.category),
   })
+
+  // Deterministic illustrative history pinned to this offer so it stays stable
+  // across re-renders. Computed unconditionally to obey rules-of-hooks; values
+  // are simply unused when the offer query fails. Real per-offer history will
+  // replace this once /trends/market is wired in per cluster.
+  const offerSeedId = offerQuery.data?.id ?? 0
+  const offerSeedPrice = offerQuery.data?.price_lkr ?? 0
+  const mockHistory = useMemo(() => {
+    return Array.from({ length: 12 }, (_, i) => {
+      const noise = (Math.sin(offerSeedId * 9301 + i * 49297) + 1) * 0.025
+      return {
+        month: `M${i + 1}`,
+        price: offerSeedPrice * (0.9 + Math.sin(i * 0.5) * 0.1 + noise),
+      }
+    })
+  }, [offerSeedId, offerSeedPrice])
 
   if (offerQuery.isLoading) return <LoadingBlock message="Loading offer detail..." />
 
@@ -62,12 +79,6 @@ export function OfferDetailPage() {
   const delta = offer.delta_vs_median_pct
   const isCheap = delta !== null && delta < -5
   const isExpensive = delta !== null && delta > 5
-
-  // Synthetic price history for visual (real data would come from API)
-  const mockHistory = Array.from({ length: 12 }, (_, i) => ({
-    month: `M${i + 1}`,
-    price: offer.price_lkr * (0.9 + Math.sin(i * 0.5) * 0.1 + Math.random() * 0.05),
-  }))
 
   return (
     <section className="space-y-8">

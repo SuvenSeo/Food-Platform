@@ -646,33 +646,19 @@ def get_offer(offer_id: int, db: Session = Depends(get_db)) -> dict[str, object]
     return _serialize_offer_summary(offer, score)
 
 
-@router.get("/trends/{category}")
-def trends(category: str, db: Session = Depends(get_db)) -> dict[str, object]:
-    rows = db.scalars(
-        select(PriceAggregateRecord)
-        .where(PriceAggregateRecord.category == category.lower())
-        .order_by(PriceAggregateRecord.canonical_name.asc())
-    ).all()
-    return {
-        "items": [
-            {
-                "cluster_key": row.cluster_key,
-                "canonical_name": row.canonical_name,
-                "brand": row.brand,
-                "median_price_lkr": float(row.median_price_lkr),
-                "average_price_lkr": float(row.average_price_lkr),
-                "offers_count": row.offers_count,
-                "unit": row.unit,
-                "unit_amount": row.unit_amount,
-            }
-            for row in rows
-        ]
-    }
-
-
 @router.get("/pipeline/status")
-def pipeline_status(db: Session = Depends(get_db)) -> dict[str, object]:
-    rows = db.scalars(select(ScrapeRun).order_by(ScrapeRun.started_at.desc())).all()
+def pipeline_status(
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    rows = db.scalars(
+        select(ScrapeRun)
+        .order_by(ScrapeRun.started_at.desc())
+        .limit(limit)
+        .offset(offset)
+    ).all()
+    total = db.scalar(select(func.count(ScrapeRun.id))) or 0
     return {
         "items": [
             {
@@ -685,7 +671,8 @@ def pipeline_status(db: Session = Depends(get_db)) -> dict[str, object]:
                 "error_message": row.error_message,
             }
             for row in rows
-        ]
+        ],
+        "total": total,
     }
 
 
@@ -891,9 +878,6 @@ def get_market_price_trends(
     Uses all available market_quotes data (WFP historical + CBSL + DCS).
     Returns monthly or yearly average prices suitable for Recharts LineChart.
     """
-    from sqlalchemy.dialects import sqlite
-
-    # Build grouping expression based on granularity and DB dialect
     provider = get_database_provider_status()
     dialect = provider.get("dialect", "sqlite")
 
@@ -1013,4 +997,31 @@ def get_trends_summary(db: Session = Depends(get_db)) -> dict[str, object]:
         "total_market_data_points": total,
         "top_items": top_items,
         "sources": sources,
+    }
+
+
+# IMPORTANT: this catch-all must stay below the static /trends/* routes above.
+# FastAPI matches in declaration order; if it moves up, /trends/market and
+# /trends/summary get swallowed as category="market" / category="summary".
+@router.get("/trends/{category}")
+def trends(category: str, db: Session = Depends(get_db)) -> dict[str, object]:
+    rows = db.scalars(
+        select(PriceAggregateRecord)
+        .where(PriceAggregateRecord.category == category.lower())
+        .order_by(PriceAggregateRecord.canonical_name.asc())
+    ).all()
+    return {
+        "items": [
+            {
+                "cluster_key": row.cluster_key,
+                "canonical_name": row.canonical_name,
+                "brand": row.brand,
+                "median_price_lkr": float(row.median_price_lkr),
+                "average_price_lkr": float(row.average_price_lkr),
+                "offers_count": row.offers_count,
+                "unit": row.unit,
+                "unit_amount": row.unit_amount,
+            }
+            for row in rows
+        ]
     }

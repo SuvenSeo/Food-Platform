@@ -148,7 +148,13 @@ def _parse_cbsl_pdf(content: bytes, quoted_at: datetime) -> list[dict]:
                         continue
                     if re.match(r"^(Wholesale|Retail|Item|Unit|Pettah|Dambulla|Narah|Last|Today|08\.|09\.|10\.|11\.|12\.)", line):
                         continue
-                    if re.search(r"Price Report|Commodities|May 2026|April 2026", line):
+                    # Skip header / report-title rows. The month/year part is
+                    # generic (any "Month YYYY" run inside the line) so this
+                    # filter does NOT need updating each calendar month.
+                    if re.search(
+                        r"Price Report|Commodities|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\b",
+                        line,
+                    ):
                         continue
 
                     # Expect: "Item name Rs./kg [10 prices]"
