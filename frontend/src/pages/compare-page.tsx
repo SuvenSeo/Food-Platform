@@ -6,6 +6,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 
+import { Panel } from '../components/primitives/panel'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { SectionHeader } from '../components/ui/section-header'
 import { RevealSection } from '../components/ui/reveal-section'
@@ -81,7 +82,7 @@ export function ComparePage() {
         />
       )}
 
-      <div className="fp-panel space-y-6">
+      <Panel className="space-y-6">
         {/* District selector */}
         <div className="grid items-end gap-3 rounded-card border p-4 md:grid-cols-[1fr_auto_1fr]"
           style={{ borderColor: 'rgba(255,255,255,0.08)', backgroundColor: '#0a0a0a' }}>
@@ -265,7 +266,7 @@ export function ComparePage() {
             { label: 'Open markets', to: '/markets' },
           ]}
         />
-      </div>
+      </Panel>
     </section>
   )
 }

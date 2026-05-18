@@ -1,0 +1,20 @@
+{
+  "products": [
+    {
+      "id": 9001,
+      "title": "SPAR Red Rice 1kg",
+      "handle": "spar-red-rice-1kg",
+      "product_type": "Grocery",
+      "images": [{"src": "https://cdn.shopify.com/red-rice.jpg"}],
+      "variants": [
+        {
+          "id": 900101,
+          "title": "Default",
+          "sku": "RICE-1KG",
+          "available": true,
+          "price": "450.00"
+        }
+      ]
+    }
+  ]
+}

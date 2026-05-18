@@ -10,9 +10,14 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ['"DM Serif Display"', 'serif'],
-        ui: ['"Geist"', '"Inter"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['"DM Serif Display"', 'Georgia', 'serif'],
+        ui: ['"Instrument Sans"', '"Geist"', '"Inter"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         mono: ['"Geist Mono"', '"JetBrains Mono"', 'ui-monospace', 'monospace'],
+      },
+      boxShadow: {
+        soft: 'var(--shadow-soft)',
+        elevated: 'var(--shadow-elevated)',
+        glow: 'var(--shadow-glow)',
       },
       colors: {
         /* brand scale — orange */
@@ -64,6 +69,9 @@ export default {
           DEFAULT: 'var(--color-bg-card)',
           soft: 'var(--color-bg-secondary)',
           elevated: 'var(--color-bg-elevated)',
+        },
+        ink: {
+          faint: 'var(--color-text-faint)',
         },
       },
       borderRadius: {

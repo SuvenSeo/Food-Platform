@@ -111,6 +111,20 @@ class FairPriceScoreRecord(Base):
     calculated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
 
 
+class AlertSubscriptionRecord(Base):
+    __tablename__ = "alert_subscriptions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String(254), index=True)
+    scope: Mapped[str] = mapped_column(String(32), index=True)
+    scope_value: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    cadence: Mapped[str] = mapped_column(String(16), default="weekly")
+    active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+    unsubscribe_token: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True)
+
+
 class MarketQuoteRecord(Base):
     __tablename__ = "market_quotes"
 

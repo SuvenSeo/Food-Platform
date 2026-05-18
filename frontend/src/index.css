@@ -128,7 +128,7 @@ body {
   margin: 0;
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
-  font-family: 'Geist', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-family: 'Instrument Sans', 'Geist', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
   font-size: var(--text-body);
   line-height: 1.65;
   font-weight: 400;
@@ -271,11 +271,11 @@ a {
 @layer components {
   /* Panel & card */
   .fp-panel {
-    @apply rounded-shell border border-white/[0.08] bg-[#111111] p-6 shadow-[0_8px_48px_rgba(0,0,0,0.6)];
+    @apply rounded-shell border border-border bg-surface p-6 shadow-elevated;
   }
 
   .fp-card {
-    @apply rounded-card border border-white/[0.08] bg-[#111111] p-4;
+    @apply rounded-card border border-border bg-surface p-4;
     transition: border-color 160ms var(--ease-apple), transform 160ms var(--ease-spring);
   }
 
@@ -528,6 +528,19 @@ a {
 /* ─────────────────────────────────────────────
    16. REDUCED MOTION
 ───────────────────────────────────────────── */
+/* ─────────────────────────────────────────────
+   17. LIVE TICKER
+───────────────────────────────────────────── */
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-track {
+  animation: ticker-scroll 28s linear infinite;
+  width: max-content;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -541,4 +554,14 @@ a {
     opacity: 1;
     transform: none;
   }
+
+  .ticker-track {
+    animation: none;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+}
+
+.text-faint {
+  color: var(--color-text-faint);
 }

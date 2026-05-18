@@ -18,6 +18,7 @@ const PrivacyPage = lazy(() => import('../pages/privacy-page').then((module) => 
 const TermsPage = lazy(() => import('../pages/terms-page').then((module) => ({ default: module.TermsPage })))
 const PipelinePage = lazy(() => import('../pages/pipeline-page').then((module) => ({ default: module.PipelinePage })))
 const OfferDetailPage = lazy(() => import('../pages/offer-detail-page').then((module) => ({ default: module.OfferDetailPage })))
+const ChangesPage = lazy(() => import('../pages/changes-page').then((module) => ({ default: module.ChangesPage })))
 
 const routeMetadata: Record<string, { title: string; description: string }> = {
   '/': {
@@ -43,6 +44,10 @@ const routeMetadata: Record<string, { title: string; description: string }> = {
   '/compare': {
     title: 'Compare Districts | FoodLK',
     description: 'Compare districts and sources to identify where household food costs diverge across Sri Lanka.',
+  },
+  '/changes': {
+    title: 'Price Changes | FoodLK',
+    description: 'Recent retail and wet-market price revisions across Sri Lanka.',
   },
   '/basket': {
     title: 'Basket Workspace | FoodLK',
@@ -112,6 +117,7 @@ export function AppRoutes() {
           <Route path="/markets" element={<MarketsPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/compare" element={<ComparePage />} />
+          <Route path="/changes" element={<ChangesPage />} />
           <Route path="/basket" element={<BasketPage />} />
           <Route path="/watchlists" element={<WatchlistsPage />} />
           <Route path="/methods" element={<MethodsPage />} />

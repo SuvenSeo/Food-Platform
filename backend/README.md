@@ -8,7 +8,7 @@ The backend reads configuration from environment variables (or a local `.env` fi
   - Expected format for Supabase/Postgres:
     - `postgresql+psycopg://<user>:<password>@<host>:5432/<database>`
   - In `development`/`test`, this can be left empty only if `ALLOW_SQLITE_FALLBACK=true`.
-  - In `staging`/`production`, this must be set.
+  - In `staging`/`production`, this must be set (Fly secrets — not committed in `fly.toml`).
 - `ALLOW_SQLITE_FALLBACK`
   - Recommended `true` for `development` and `test`.
   - Recommended `false` for `staging` and `production`.
@@ -16,17 +16,43 @@ The backend reads configuration from environment variables (or a local `.env` fi
 - `APP_ENV`
   - Use `development`, `test`, `staging`, or `production`.
   - `staging` and `production` are treated as production-like environments.
+- `SPAR2U_ENABLED`, `GLOMARK_ENABLED`, `KEELLS_ENABLED`, `CARGILLS_ENABLED`
+  - Toggle retail scrapers (default `true`).
 - `MARKET_QUOTES_URL`
   - Remote JSON feed URL for market quotes.
-  - Supported payloads: JSON array, or object with an `items` array.
 - `MARKET_QUOTES_TIMEOUT_SECONDS`
   - HTTP timeout (seconds) for remote market quote fetches.
 - `MARKET_QUOTES_FORMAT`
-  - Payload format for market quote ingestion.
-  - Current supported value: `json`.
+  - Payload format for market quote ingestion (`json`).
 - `MARKET_QUOTES_SEED_FALLBACK_ENABLED`
   - When `true`, `run_market_sync.py` can fallback to `data/market_quotes_seed.json` if remote fetch fails.
-  - Recommended `true` for local dev and `false` for production automation.
+- `RESEND_API_KEY`
+  - When set, `POST /api/v1/alerts/subscribe` sends a confirmation email via Resend. When unset, subscriptions are stored and the API returns **202** preview mode.
+- `ALERT_FROM_EMAIL`
+  - Sender for alert emails (default `alerts@foodlk.lk`).
+- `SITE_URL`
+  - Public site base URL for links in alert emails (default Vercel production URL).
+
+## Public API (Phase 6)
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/v1/changes` | Recent retail + market price movements |
+| `GET /api/v1/embed/summary` | Embeddable HTML badge (`kind=basket\|category`) |
+| `POST /api/v1/alerts/subscribe` | Price watch signup (`EmailStr` body) |
+| `GET /api/v1/basket/estimate?preset=` | Presets: `essentials`, `protein`, `smart-saver`, `festive` |
+
+Related docs: [`docs/DATA_SOURCES.md`](../docs/DATA_SOURCES.md), [`docs/redesign-phased-roadmap.md`](../docs/redesign-phased-roadmap.md), root [`scripts/smoke-api.sh`](../scripts/smoke-api.sh).
+
+## Canonical retail sources
+
+`app/core/sources.py` defines:
+
+```python
+DEFAULT_RETAIL_SOURCES = ("spar2u", "glomark", "keells", "cargills")
+```
+
+Used by `run_sync.py`, admin triggers, and `.github/workflows/unified-scraper.yml`.
 
 ## Runtime Safety Rules
 
@@ -36,19 +62,23 @@ The backend reads configuration from environment variables (or a local `.env` fi
   - `ALLOW_SQLITE_FALLBACK=false` and the configured URL is SQLite.
 - A DB connection probe (`SELECT 1`) runs during app startup before migrations.
 
-## Supabase Setup and Migration Flow
+## Supabase production path
 
-1. Set `APP_ENV=staging` or `APP_ENV=production`.
-2. Set `ALLOW_SQLITE_FALLBACK=false`.
-3. Export `DATABASE_URL` in your shell/session (do not commit secrets).
-4. Run migrations:
+1. Create a Supabase Postgres project and copy the connection string.
+2. Set Fly secrets (do not put credentials in `fly.toml`):
+   - `fly secrets set DATABASE_URL="postgresql+psycopg://..." --app food-platform-backend`
+   - `fly secrets set ALLOW_SQLITE_FALLBACK=false ADMIN_API_KEY="<strong-key>" --app food-platform-backend`
+3. Run Alembic against Supabase:
    - `python -c "from app.db.migrate import run_upgrade; run_upgrade()"`
-5. Start API:
-   - `uvicorn app.main:app --reload`
+4. One-time SQLite → Postgres migration (if you have existing Fly volume data):
+   - `export SQLITE_DATABASE_URL="sqlite:////data/food_platform.db"`
+   - `export DATABASE_URL="postgresql+psycopg://..."`
+   - `python scripts/migrate_sqlite_to_postgres.py`
+5. Verify: `GET /api/v1/ops/database/provider` → `supabase-postgres`.
+
+**Scaling:** Do not run more than one Fly machine without Postgres connection pooling.
 
 ## Local Development (SQLite fallback)
-
-For fast local iteration:
 
 - `APP_ENV=development`
 - `ALLOW_SQLITE_FALLBACK=true`
@@ -56,68 +86,46 @@ For fast local iteration:
 
 The app will fallback to `sqlite:///./food_platform.db`.
 
-## Market Quote Sync
+## Retail sync (CLI)
 
-- Run default behavior:
-  - `python run_market_sync.py`
-- Override remote source:
-  - `python run_market_sync.py --url "https://example.com/market-quotes.json"`
+```bash
+cd backend
+pip install -r requirements.txt
+playwright install chromium   # required for keells + cargills
+python run_sync.py            # all DEFAULT_RETAIL_SOURCES
+python run_sync.py --sources spar2u,glomark --max-items 100
+```
 
-Behavior:
+Keells and Cargills use Playwright headless Chromium (`app/scrapers/browser.py`).
 
-- Remote fetch/parse failures do not partially overwrite data.
-- If fallback is disabled, remote failures fail the sync command.
-- If fallback is enabled, failed remote fetches fallback to local seed quotes.
+## Market quote sync
+
+- `python run_market_sync.py`
+- `python run_official_market_sync.py --sources wfp dcs cbsl`
+
+## Maintenance
+
+Prune `scrape_runs` older than 90 days:
+
+```python
+from app.db.session import SessionLocal
+from app.services.maintenance import prune_scrape_runs_older_than
+
+with SessionLocal() as db:
+    removed = prune_scrape_runs_older_than(db, days=90)
+    db.commit()
+```
+
+## GitHub Actions (unified scraper)
+
+Workflow `.github/workflows/unified-scraper.yml` runs retail scrapers **in CI** against `DATABASE_URL` (no Fly background sleep). Required secret:
+
+- `DATABASE_URL` — Supabase Postgres URL
+
+Optional: `ADMIN_API_KEY` for manual Fly admin triggers only.
 
 ## DB Provider Runtime Indicator
 
-Use this endpoint to confirm provider class without exposing credentials:
-
 - `GET /api/v1/ops/database/provider`
 
-It returns a safe indicator such as `sqlite`, `supabase-postgres`, or `postgres-compatible` using runtime engine metadata.
-
-## GitHub Actions Setup (Daily Automation)
-
-Workflow `.github/workflows/daily-scrape.yml` runs:
-
-- Retail source sync (`spar2u`, `glomark`) on schedule
-- Market quote sync on schedule
-
-Required GitHub secrets:
-
-- `DATABASE_URL`
-- `ADMIN_API_KEY`
-- `MARKET_QUOTES_URL`
-
-Optional GitHub vars:
-
-- `SCRAPE_MAX_ITEMS_PER_SOURCE` (default `250`)
-- `MARKET_QUOTES_TIMEOUT_SECONDS` (default `20` in workflow)
-- `MARKET_QUOTES_FORMAT` (default `json`)
-
-### Operator Commands (Manual Secret Rotation)
-
-Fly.io:
-
-- Set or rotate DB URL:
-  - `flyctl secrets set DATABASE_URL="postgresql+psycopg://<user>:<password>@<host>:5432/<db>" --app <fly-app-name>`
-- Set or rotate admin key:
-  - `flyctl secrets set ADMIN_API_KEY="<strong-random-key>" --app <fly-app-name>`
-- Verify non-secret runtime DB provider after deploy:
-  - `curl -s https://<fly-app-host>/api/v1/ops/database/provider`
-
-GitHub Actions secrets:
-
-- Set or rotate `DATABASE_URL`:
-  - `gh secret set DATABASE_URL --repo <owner>/<repo> --body "postgresql+psycopg://<user>:<password>@<host>:5432/<db>"`
-- Set or rotate `ADMIN_API_KEY`:
-  - `gh secret set ADMIN_API_KEY --repo <owner>/<repo> --body "<strong-random-key>"`
-- Set or rotate `MARKET_QUOTES_URL`:
-  - `gh secret set MARKET_QUOTES_URL --repo <owner>/<repo> --body "https://<provider>/market-quotes.json"`
-
-GitHub Actions vars:
-
-- `gh variable set MARKET_QUOTES_TIMEOUT_SECONDS --repo <owner>/<repo> --body "20"`
-- `gh variable set MARKET_QUOTES_FORMAT --repo <owner>/<repo> --body "json"`
-- `gh variable set SCRAPE_MAX_ITEMS_PER_SOURCE --repo <owner>/<repo> --body "250"`
+Returns `sqlite`, `supabase-postgres`, or `postgres-compatible` without exposing credentials.

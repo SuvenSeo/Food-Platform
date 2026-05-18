@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 import { AppShell } from '../components/layout/app-shell'
+import { LocaleProvider } from '../i18n/locale-provider'
 
 function renderShell() {
   const queryClient = new QueryClient({
@@ -11,6 +12,7 @@ function renderShell() {
 
   return render(
     <QueryClientProvider client={queryClient}>
+      <LocaleProvider>
       <MemoryRouter initialEntries={['/']}>
         <Routes>
           <Route
@@ -23,6 +25,7 @@ function renderShell() {
           />
         </Routes>
       </MemoryRouter>
+      </LocaleProvider>
     </QueryClientProvider>,
   )
 }

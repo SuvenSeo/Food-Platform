@@ -18,11 +18,30 @@ SOURCE_FETCHERS = {
     "cargills": fetch_cargills_catalog,
 }
 
+_SOURCE_ENABLED = {
+    "spar2u": lambda: settings.spar2u_enabled,
+    "glomark": lambda: settings.glomark_enabled,
+    "keells": lambda: settings.keells_enabled,
+    "cargills": lambda: settings.cargills_enabled,
+}
+
+
+def enabled_retail_sources() -> list[str]:
+    return [source for source, is_enabled in _SOURCE_ENABLED.items() if is_enabled()]
+
 
 def sync_sources(sources: list[str], max_items: int | None = None) -> dict[str, object]:
-    requested_sources = [source for source in sources if source in SOURCE_FETCHERS]
+    enabled = set(enabled_retail_sources())
+    requested_sources = [source for source in sources if source in SOURCE_FETCHERS and source in enabled]
+    skipped = [source for source in sources if source in SOURCE_FETCHERS and source not in enabled]
+
     if not requested_sources:
-        return {"sources": [], "offers_count": 0, "aggregates_count": 0}
+        return {
+            "sources": [],
+            "skipped_disabled": skipped,
+            "offers_count": 0,
+            "aggregates_count": 0,
+        }
 
     with SessionLocal() as db:
         for source in requested_sources:
@@ -45,6 +64,7 @@ def sync_sources(sources: list[str], max_items: int | None = None) -> dict[str, 
 
         return {
             "sources": requested_sources,
+            "skipped_disabled": skipped,
             "offers_count": db.scalar(select(func.count(FoodOfferRecord.id))) or 0,
             "aggregates_count": db.scalar(select(func.count(PriceAggregateRecord.id))) or 0,
         }

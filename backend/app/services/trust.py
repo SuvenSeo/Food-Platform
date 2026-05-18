@@ -90,6 +90,57 @@ def _dataset_reliability(
     }
 
 
+def _compute_source_pipeline_health(db: Session) -> dict[str, object]:
+    """Per-source latest-run quality: healthy only when the last run stored items."""
+    sources = db.scalars(select(distinct(ScrapeRun.source))).all()
+    per_source: list[dict[str, object]] = []
+    healthy_count = 0
+    degraded_count = 0
+
+    for source in sources:
+        recent_runs = db.scalars(
+            select(ScrapeRun)
+            .where(ScrapeRun.source == source, ScrapeRun.finished_at.is_not(None))
+            .order_by(ScrapeRun.finished_at.desc())
+            .limit(3)
+        ).all()
+        latest = recent_runs[0] if recent_runs else None
+
+        if not latest:
+            health = "unknown"
+        elif latest.status != "completed":
+            health = "failed"
+        elif latest.items_seen > 0 or latest.items_stored > 0:
+            health = "healthy"
+            healthy_count += 1
+        elif len(recent_runs) >= 3 and all(run.items_seen == 0 for run in recent_runs):
+            health = "degraded"
+            degraded_count += 1
+        else:
+            health = "empty"
+
+        per_source.append(
+            {
+                "source": source,
+                "health": health,
+                "latest_status": latest.status if latest else None,
+                "latest_items_seen": latest.items_seen if latest else 0,
+                "latest_finished_at": _to_iso(latest.finished_at) if latest else None,
+            }
+        )
+
+    total_sources = len(sources)
+    source_health_ratio = healthy_count / total_sources if total_sources > 0 else 0.0
+
+    return {
+        "healthy_sources": healthy_count,
+        "degraded_sources": degraded_count,
+        "total_sources": total_sources,
+        "source_health_ratio": round(source_health_ratio, 2) if total_sources else None,
+        "sources": per_source,
+    }
+
+
 def compute_platform_trust_snapshot(db: Session) -> dict[str, object]:
     offers_count = db.scalar(select(func.count(FoodOfferRecord.id))) or 0
     market_quotes_count = db.scalar(select(func.count(MarketQuoteRecord.id))) or 0
@@ -102,12 +153,11 @@ def compute_platform_trust_snapshot(db: Session) -> dict[str, object]:
     latest_aggregate_at = db.scalar(select(func.max(PriceAggregateRecord.calculated_at)))
     latest_pipeline_status = db.scalar(select(ScrapeRun.status).order_by(ScrapeRun.finished_at.desc()).limit(1))
 
-    total_pipeline_sources = db.scalar(select(func.count(distinct(ScrapeRun.source)))) or 0
-    healthy_pipeline_sources = (
-        db.scalar(select(func.count(distinct(ScrapeRun.source))).where(ScrapeRun.status == "completed")) or 0
-    )
+    pipeline_health = _compute_source_pipeline_health(db)
+    healthy_pipeline_sources = int(pipeline_health["healthy_sources"])
+    total_pipeline_sources = int(pipeline_health["total_sources"])
+    source_health_ratio = pipeline_health["source_health_ratio"] or 0.0
 
-    source_health_ratio = healthy_pipeline_sources / total_pipeline_sources if total_pipeline_sources > 0 else 0.0
     scrape_latency_minutes = _minutes_since(latest_scrape_at)
     confidence_score = 100
     if scrape_latency_minutes is None:
@@ -180,9 +230,11 @@ def compute_platform_trust_snapshot(db: Session) -> dict[str, object]:
         },
         "pipeline": {
             "healthy_sources": healthy_pipeline_sources,
+            "degraded_sources": int(pipeline_health["degraded_sources"]),
             "total_sources": total_pipeline_sources,
             "latest_status": latest_pipeline_status,
-            "source_health_ratio": round(source_health_ratio, 2) if total_pipeline_sources else None,
+            "source_health_ratio": pipeline_health["source_health_ratio"],
+            "sources": pipeline_health["sources"],
         },
         "confidence": {
             "score": confidence_score,
@@ -226,6 +278,7 @@ def build_reliability_summary(snapshot: dict[str, object]) -> dict[str, object]:
         "pipeline": {
             "latest_status": pipeline.get("latest_status"),
             "healthy_sources": pipeline.get("healthy_sources"),
+            "degraded_sources": pipeline.get("degraded_sources"),
             "total_sources": pipeline.get("total_sources"),
             "source_health_ratio": pipeline.get("source_health_ratio"),
         },

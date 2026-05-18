@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Bookmark, Trash2, Search, ArrowUpRight } from 'lucide-react'
 
+import { Panel } from '../components/primitives/panel'
 import { SectionHeader } from '../components/ui/section-header'
 import { RevealSection } from '../components/ui/reveal-section'
 import { Badge } from '../components/ui/badge'
@@ -38,7 +39,7 @@ export function WatchlistsPage() {
       />
 
       {entries.length === 0 ? (
-        <div className="fp-panel flex flex-col items-center justify-center py-16 text-center">
+        <Panel className="flex flex-col items-center justify-center py-16 text-center">
           <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border"
             style={{ borderColor: 'rgba(249,115,22,0.2)', background: 'rgba(249,115,22,0.07)' }}>
             <Bookmark className="h-7 w-7 text-orange-400" />
@@ -56,9 +57,9 @@ export function WatchlistsPage() {
             <Link to="/basket" className="fp-button-primary">Open basket</Link>
             <Link to="/compare" className="fp-button-secondary">Try compare</Link>
           </div>
-        </div>
+        </Panel>
       ) : (
-        <div className="fp-panel space-y-6">
+        <Panel className="space-y-6">
           {/* Toolbar */}
           <div className="fp-toolbar md:grid-cols-[1.3fr_1fr_auto] lg:grid-cols-[1.3fr_1fr_auto]">
             <label className="space-y-2">
@@ -135,7 +136,7 @@ export function WatchlistsPage() {
               { label: 'Browse retail offers', to: '/retail' },
             ]}
           />
-        </div>
+        </Panel>
       )}
     </section>
   )

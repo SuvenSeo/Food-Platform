@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.models.tables import FairPriceScoreRecord, FoodOfferRecord, PriceAggregateRecord, RawOfferRecord, ScrapeRun
@@ -65,17 +65,53 @@ def store_raw_offers(db: Session, source: str, raw_offers: list[RawOffer], run: 
     return records
 
 
+def _latest_raw_offer_rows(db: Session) -> list[RawOfferRecord]:
+    """One snapshot per (source, source_item_id) — most recent scrape wins."""
+    latest = (
+        select(
+            RawOfferRecord.source,
+            RawOfferRecord.source_item_id,
+            func.max(RawOfferRecord.scraped_at).label("max_scraped_at"),
+        )
+        .group_by(RawOfferRecord.source, RawOfferRecord.source_item_id)
+        .subquery()
+    )
+    return list(
+        db.scalars(
+            select(RawOfferRecord)
+            .join(
+                latest,
+                (RawOfferRecord.source == latest.c.source)
+                & (RawOfferRecord.source_item_id == latest.c.source_item_id)
+                & (RawOfferRecord.scraped_at == latest.c.max_scraped_at),
+            )
+            .order_by(RawOfferRecord.source.asc(), RawOfferRecord.source_item_id.asc())
+        ).all()
+    )
+
+
 def rebuild_normalized_views(db: Session) -> None:
+    """Upsert food offers from latest raw snapshots; rebuild derived aggregates and scores."""
     db.execute(delete(FairPriceScoreRecord))
     db.execute(delete(PriceAggregateRecord))
-    db.execute(delete(FoodOfferRecord))
     db.flush()
 
-    raw_records = db.scalars(select(RawOfferRecord).order_by(RawOfferRecord.scraped_at.desc())).all()
+    raw_records = _latest_raw_offer_rows(db)
+    existing_by_key = {
+        (row.source, row.source_item_id): row
+        for row in db.scalars(select(FoodOfferRecord)).all()
+    }
+
     normalized_rows: list[FoodOfferRecord] = []
     normalized_domain = []
+    seen_keys: set[tuple[str, str]] = set()
 
     for raw_record in raw_records:
+        key = (raw_record.source, raw_record.source_item_id)
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+
         normalized = normalize_offer(
             RawOffer(
                 source=raw_record.source,
@@ -93,8 +129,30 @@ def rebuild_normalized_views(db: Session) -> None:
             )
         )
         normalized_domain.append(normalized)
-        normalized_rows.append(
-            FoodOfferRecord(
+
+        existing = existing_by_key.get(key)
+        if existing:
+            existing.raw_offer_id = raw_record.id
+            existing.source_group_id = normalized.source_group_id
+            existing.category = normalized.category
+            existing.brand = normalized.brand
+            existing.canonical_name = normalized.canonical_name
+            existing.display_name = normalized.display_name
+            existing.unit = normalized.unit
+            existing.unit_amount = normalized.unit_amount
+            existing.pack_descriptor = normalized.pack_descriptor
+            existing.price_lkr = normalized.price_lkr
+            existing.price_per_unit_lkr = normalized.price_per_unit_lkr
+            existing.currency = normalized.currency
+            existing.available = normalized.available
+            existing.sku = normalized.sku
+            existing.url = normalized.url
+            existing.image_url = normalized.image_url
+            existing.cluster_key = normalized.cluster_key
+            existing.last_seen_at = raw_record.scraped_at
+            normalized_rows.append(existing)
+        else:
+            row = FoodOfferRecord(
                 raw_offer_id=raw_record.id,
                 source=normalized.source,
                 source_item_id=normalized.source_item_id,
@@ -117,9 +175,13 @@ def rebuild_normalized_views(db: Session) -> None:
                 first_seen_at=raw_record.scraped_at,
                 last_seen_at=raw_record.scraped_at,
             )
-        )
+            db.add(row)
+            normalized_rows.append(row)
 
-    db.add_all(normalized_rows)
+    stale_keys = set(existing_by_key) - seen_keys
+    for key in stale_keys:
+        db.delete(existing_by_key[key])
+
     db.flush()
 
     aggregates = aggregate_offer_clusters(normalized_domain)

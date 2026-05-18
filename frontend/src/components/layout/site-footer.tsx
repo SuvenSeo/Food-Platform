@@ -6,6 +6,7 @@ const footerLinks = [
   { label: 'Retail', to: '/retail' },
   { label: 'Markets', to: '/markets' },
   { label: 'Intelligence', to: '/intelligence' },
+  { label: 'Changes', to: '/changes' },
   { label: 'Compare', to: '/compare' },
   { label: 'Basket', to: '/basket' },
   { label: 'Methods', to: '/methods' },
@@ -31,10 +32,7 @@ const itemVariants: Variants = {
 
 export function SiteFooter() {
   return (
-    <footer
-      className="relative mt-16 border-t"
-      style={{ borderColor: 'rgba(255,255,255,0.07)', backgroundColor: '#0a0a0a' }}
-    >
+    <footer className="relative mt-16 border-t border-border bg-surface-soft">
       <div className="mx-auto max-w-[1200px] px-4 sm:px-6 py-16">
         <motion.div
           variants={containerVariants}
@@ -62,7 +60,7 @@ export function SiteFooter() {
               </span>
             </div>
 
-            <p className="mt-5 max-w-sm text-sm leading-7 text-[#737373]">
+            <p className="mt-5 max-w-sm text-sm leading-7 text-muted-foreground">
               Sri Lanka's food price intelligence platform — retail offers, wet market signals,
               historical price trends, and basket tracking from official government and market sources.
             </p>
@@ -72,7 +70,7 @@ export function SiteFooter() {
                 <span className="live-dot-orange" />
                 Live data
               </span>
-              <span className="text-xs text-[#404040]">Sri Lanka · Updated daily</span>
+              <span className="text-xs text-faint">Sri Lanka · Updated daily</span>
             </div>
           </motion.div>
 
@@ -84,7 +82,7 @@ export function SiteFooter() {
                 <li key={link.to}>
                   <Link
                     to={link.to}
-                    className="text-sm text-[#737373] transition-colors hover:text-[#f5f5f5]"
+                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                   >
                     {link.label}
                   </Link>
@@ -100,13 +98,12 @@ export function SiteFooter() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
-          className="mt-12 flex flex-col items-start justify-between gap-4 border-t pt-8 sm:flex-row sm:items-center"
-          style={{ borderColor: 'rgba(255,255,255,0.06)' }}
+          className="mt-12 flex flex-col items-start justify-between gap-4 border-t border-border/60 pt-8 sm:flex-row sm:items-center"
         >
-          <p className="text-xs text-[#404040]">
+          <p className="text-xs text-faint">
             © {new Date().getFullYear()} FoodLK · Ardeno Studio. All rights reserved.
           </p>
-          <p className="text-xs text-[#404040]">
+          <p className="text-xs text-faint">
             Sri Lanka's open food price intelligence platform
           </p>
         </motion.div>

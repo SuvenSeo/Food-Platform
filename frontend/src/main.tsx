@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom'
 
 import './index.css'
 import App from './App.tsx'
+import { LocaleProvider } from './i18n/locale-provider.tsx'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,7 +24,9 @@ createRoot(rootEl).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <App />
+        <LocaleProvider>
+          <App />
+        </LocaleProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,

@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
 
+import { Panel } from '../components/primitives/panel'
+import { SourcePill } from '../components/primitives/source-pill'
 import { OfferCard } from '../components/ui/offer-card'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { SectionHeader } from '../components/ui/section-header'
@@ -60,8 +62,19 @@ export function RetailPage() {
         />
       )}
 
-      <div className="fp-panel space-y-6">
-        {/* Toolbar */}
+      <Panel className="space-y-6">
+        <div className="flex flex-wrap gap-2">
+          <SourcePill source="all" active={sourceFilter === 'all'} onClick={() => setSourceFilter('all')} count={offers.length} />
+          {sources.map((s) => (
+            <SourcePill
+              key={s}
+              source={s}
+              active={sourceFilter === s}
+              onClick={() => setSourceFilter(s)}
+              count={offers.filter((o) => o.source === s).length}
+            />
+          ))}
+        </div>
         <div className="fp-toolbar">
           <label className="space-y-2 md:col-span-2">
             <span className="eyebrow-label">Search offers</span>
@@ -137,7 +150,7 @@ export function RetailPage() {
             { label: 'Review watchlists', to: '/watchlists' },
           ]}
         />
-      </div>
+      </Panel>
     </section>
   )
 }

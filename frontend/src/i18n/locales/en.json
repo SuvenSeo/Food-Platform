@@ -1,0 +1,20 @@
+{
+  "nav.home": "Home",
+  "nav.retail": "Retail",
+  "nav.markets": "Markets",
+  "nav.intelligence": "Intelligence",
+  "nav.basket": "Basket",
+  "nav.changes": "Changes",
+  "hero.eyebrow": "Sri Lanka food intelligence",
+  "hero.title": "Prices you can trust across retail and wet markets",
+  "hero.subtitle": "Compare grocery shelves, district market quotes, and household baskets in one workspace.",
+  "alerts.title": "Price watch alerts",
+  "alerts.subtitle": "Get notified when baskets, categories, or districts move beyond your threshold.",
+  "alerts.email": "Email address",
+  "alerts.scope": "Watch scope",
+  "alerts.submit": "Subscribe",
+  "alerts.success": "Subscription saved. Confirmation is in preview mode until email delivery is configured.",
+  "locale.en": "English",
+  "locale.si": "සිංහල",
+  "locale.ta": "தமிழ்"
+}

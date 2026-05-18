@@ -5,11 +5,12 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Required Fly.io secrets (set via `fly secrets set KEY=value`):
 #
-#   DATABASE_URL   — set to sqlite:////data/food_platform.db  (already in [env] below)
-#   ADMIN_API_KEY  — random secret for /api/v1/admin/* endpoints
+#   DATABASE_URL          — postgresql+psycopg://... (Supabase Postgres; NOT in [env])
+#   ADMIN_API_KEY         — random secret for /api/v1/admin/* endpoints
+#   ALLOW_SQLITE_FALLBACK — set to "false" in production
 #
-# Also set this as a GitHub Actions secret:
-#   ADMIN_API_KEY  — must match the Fly.io secret above
+# Do NOT scale to more than one machine without Postgres + connection pooling.
+# SQLite volume mounts below are legacy; remove [[mounts]] after Supabase cutover.
 # ─────────────────────────────────────────────────────────────────────────────
 
 app = 'food-platform-backend'
@@ -20,9 +21,7 @@ primary_region = 'sin'
 
 [env]
   PORT = '8000'
-  # Store SQLite on the persistent /data volume so data survives machine restarts.
-  DATABASE_URL = 'sqlite:////data/food_platform.db'
-  ALLOW_SQLITE_FALLBACK = 'true'
+  ALLOW_SQLITE_FALLBACK = 'false'
   # Production frontend origin — allows the Vercel app to call this API.
   CORS_ORIGINS = 'https://food-platform-one.vercel.app,http://localhost:5173,http://127.0.0.1:5173'
 
@@ -35,7 +34,8 @@ primary_region = 'sin'
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
-  min_machines_running = 0
+  # Keep one machine warm during migration; scrapes run in GitHub Actions against Supabase.
+  min_machines_running = 1
 
   [[http_service.checks]]
     grace_period = "15s"

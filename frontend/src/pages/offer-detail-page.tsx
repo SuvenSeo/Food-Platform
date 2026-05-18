@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -12,9 +11,10 @@ import { SectionHeader } from '../components/ui/section-header'
 import { RevealSection } from '../components/ui/reveal-section'
 import { OfferCard } from '../components/ui/offer-card'
 import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
+import { useMarketTrend } from '../hooks/use-market-trend'
 import { useWatchlists } from '../hooks/use-watchlists'
 import { ApiError, api } from '../lib/api'
-import { formatCurrency } from '../lib/format'
+import { formatCurrency, mapTrendSeriesToChart } from '../lib/format'
 
 export function OfferDetailPage() {
   const { offerId } = useParams()
@@ -31,21 +31,11 @@ export function OfferDetailPage() {
     enabled: Boolean(offerQuery.data?.category),
   })
 
-  // Deterministic illustrative history pinned to this offer so it stays stable
-  // across re-renders. Computed unconditionally to obey rules-of-hooks; values
-  // are simply unused when the offer query fails. Real per-offer history will
-  // replace this once /trends/market is wired in per cluster.
-  const offerSeedId = offerQuery.data?.id ?? 0
-  const offerSeedPrice = offerQuery.data?.price_lkr ?? 0
-  const mockHistory = useMemo(() => {
-    return Array.from({ length: 12 }, (_, i) => {
-      const noise = (Math.sin(offerSeedId * 9301 + i * 49297) + 1) * 0.025
-      return {
-        month: `M${i + 1}`,
-        price: offerSeedPrice * (0.9 + Math.sin(i * 0.5) * 0.1 + noise),
-      }
-    })
-  }, [offerSeedId, offerSeedPrice])
+  const trendItemName = offerQuery.data?.canonical_name || offerQuery.data?.display_name
+  const marketTrendQuery = useMarketTrend(trendItemName, {
+    enabled: Boolean(trendItemName),
+  })
+  const marketTrendChartData = mapTrendSeriesToChart(marketTrendQuery.data?.series ?? [])
 
   if (offerQuery.isLoading) return <LoadingBlock message="Loading offer detail..." />
 
@@ -170,39 +160,60 @@ export function OfferDetailPage() {
         </div>
       </motion.div>
 
-      {/* Price history chart */}
+      {/* Market quote history for this cluster */}
       <RevealSection>
         <div className="fp-panel space-y-4">
-          <p className="eyebrow-label">Price history</p>
-          <div className="h-56 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mockHistory} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="offerGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                <XAxis dataKey="month" tick={{ fill: '#737373', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#737373', fontSize: 10 }} axisLine={false} tickLine={false} width={60} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#161616', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, color: '#f5f5f5', fontSize: 12 }}
-                  formatter={(v) => [`Rs ${Number(v).toLocaleString()}`, 'Price']}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="price"
-                  stroke="#f97316"
-                  strokeWidth={2}
-                  fill="url(#offerGrad)"
-                  dot={false}
-                  activeDot={{ r: 4, fill: '#f97316' }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="text-xs text-[#404040]">Illustrative price trend — live history available when price time-series is indexed.</p>
+          <p className="eyebrow-label">Market price history</p>
+          <p className="text-sm text-[#737373]">
+            Official wet-market quotes matched to {offer.canonical_name}.
+          </p>
+          {marketTrendQuery.isLoading ? (
+            <LoadingBlock message="Loading market trend..." />
+          ) : marketTrendChartData.length > 1 ? (
+            <motion.div
+              className="h-56 w-full"
+              role="img"
+              aria-label={`Market price trend for ${offer.canonical_name}`}
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={marketTrendChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="offerGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f97316" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                  <XAxis dataKey="period" tick={{ fill: '#737373', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#737373', fontSize: 10 }} axisLine={false} tickLine={false} width={60} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#161616', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, color: '#f5f5f5', fontSize: 12 }}
+                    formatter={(v) => [`Rs ${Number(v).toLocaleString()}`, 'Avg price']}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="price"
+                    stroke="#f97316"
+                    strokeWidth={2}
+                    fill="url(#offerGrad)"
+                    dot={false}
+                    activeDot={{ r: 4, fill: '#f97316' }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+              <p className="mt-2 text-xs text-[#737373]">
+                {marketTrendQuery.data?.total_data_points ?? 0} indexed market quotes
+              </p>
+            </motion.div>
+          ) : (
+            <EmptyState
+              title="No market history for this item yet"
+              description="We could not find enough official market quotes to plot a series for this cluster."
+              hint="Spot retail price above is still live; check markets for related commodities."
+              actionLabel="Open markets"
+              actionTo="/markets"
+            />
+          )}
         </div>
       </RevealSection>
 

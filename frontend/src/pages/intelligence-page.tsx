@@ -12,7 +12,9 @@ import { Badge } from '../components/ui/badge'
 import { EmptyState, ErrorState } from '../components/ui/workflow-helpers'
 import { useIntelligenceBrief } from '../hooks/use-intelligence-brief'
 import { useIntelligenceSummary } from '../hooks/use-intelligence-summary'
-import { formatCompactDate, formatCurrency } from '../lib/format'
+import { useMarketTrend } from '../hooks/use-market-trend'
+import { useTrendsSummary } from '../hooks/use-trends-summary'
+import { formatCompactDate, formatCurrency, mapTrendSeriesToChart } from '../lib/format'
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 16 },
@@ -26,7 +28,9 @@ const fadeUp: Variants = {
 export function IntelligencePage() {
   const intelligenceQuery = useIntelligenceSummary()
   const briefQuery = useIntelligenceBrief()
-  const isLoading = intelligenceQuery.isLoading || briefQuery.isLoading
+  const trendsSummaryQuery = useTrendsSummary()
+  const isLoading =
+    intelligenceQuery.isLoading || briefQuery.isLoading || trendsSummaryQuery.isLoading
 
   const data = intelligenceQuery.data
   const brief = briefQuery.data
@@ -37,18 +41,20 @@ export function IntelligencePage() {
   const topValueOffers = data?.rankings?.top_value ?? []
   const trendSnapshot = data?.rankings?.trend_snapshot ?? []
   const sourceItems = data?.sources ?? []
-  const hasDataGap = intelligenceQuery.isError || briefQuery.isError || !data || !briefContent
+  const trendsSummary = trendsSummaryQuery.data
+  const topMarketItem = trendsSummary?.top_items?.[0]?.item_name
+  const marketTrendQuery = useMarketTrend(topMarketItem, { enabled: Boolean(topMarketItem) })
+  const marketTrendChartData = mapTrendSeriesToChart(marketTrendQuery.data?.series ?? [])
+  const hasDataGap =
+    intelligenceQuery.isError ||
+    briefQuery.isError ||
+    trendsSummaryQuery.isError ||
+    !data ||
+    !briefContent
 
   const urgencyVariant =
     urgency === 'action-needed' ? 'red' : urgency === 'watch' ? 'amber' : 'green'
   const urgencyLabel = urgency.replace('-', ' ')
-
-  const trendChartData = trendSnapshot.map((item, i) => ({
-    name: item.canonical_name.slice(0, 12),
-    price: item.median_price_lkr,
-    offers: item.offers_count,
-    idx: i,
-  }))
 
   return (
     <section className="space-y-10">
@@ -238,19 +244,33 @@ export function IntelligencePage() {
         </div>
       </RevealSection>
 
-      {/* ── Trend snapshot chart ── */}
+      {/* ── Market trend chart + retail snapshot ── */}
       <RevealSection delay={160}>
-        <div className="fp-panel space-y-6">
+        <motion.div className="fp-panel space-y-6">
           <SectionHeader
             eyebrow="Trends"
-            title="Trend snapshot"
-            description="A compact cluster view of median prices across top-ranked categories."
+            title="Official market price trend"
+            description={
+              topMarketItem
+                ? `Monthly average from market quotes for ${topMarketItem}.`
+                : 'Historical market quote coverage across indexed commodities.'
+            }
           />
 
-          {trendChartData.length > 1 ? (
-            <div className="h-64 w-full">
+          {trendsSummaryQuery.isLoading || marketTrendQuery.isLoading ? (
+            <SectionSkeleton cards={1} />
+          ) : marketTrendChartData.length > 1 ? (
+            <motion.div
+              className="h-64 w-full"
+              role="img"
+              aria-label={
+                topMarketItem
+                  ? `Price trend chart for ${topMarketItem}`
+                  : 'Market price trend chart'
+              }
+            >
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trendChartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <AreaChart data={marketTrendChartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="priceGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#f97316" stopOpacity={0.25} />
@@ -258,12 +278,12 @@ export function IntelligencePage() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                  <XAxis dataKey="name" tick={{ fill: '#737373', fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <XAxis dataKey="period" tick={{ fill: '#737373', fontSize: 11 }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill: '#737373', fontSize: 11 }} axisLine={false} tickLine={false} width={60} />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#161616', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, color: '#f5f5f5', fontSize: 12 }}
                     labelStyle={{ color: '#a3a3a3' }}
-                    formatter={(v) => [`Rs ${Number(v).toLocaleString()}`, 'Median price']}
+                    formatter={(v) => [`Rs ${Number(v).toLocaleString()}`, 'Avg price']}
                   />
                   <Area
                     type="monotone"
@@ -276,8 +296,22 @@ export function IntelligencePage() {
                   />
                 </AreaChart>
               </ResponsiveContainer>
-            </div>
-          ) : null}
+              {trendsSummary && (
+                <p className="mt-3 text-xs text-[#737373]">
+                  {trendsSummary.total_market_data_points.toLocaleString()} indexed market quotes
+                  {topMarketItem ? ` · showing ${topMarketItem}` : ''}
+                </p>
+              )}
+            </motion.div>
+          ) : (
+            <EmptyState
+              title="No market trend series yet"
+              description="Market history is empty for the top-covered commodity. Retail cluster snapshots below may still be available."
+              hint="Try markets discovery or check back after the next official quote sync."
+              actionLabel="Open markets"
+              actionTo="/markets"
+            />
+          )}
 
           <div className="grid gap-4 lg:grid-cols-2">
             {isLoading ? (
@@ -306,7 +340,7 @@ export function IntelligencePage() {
               />
             )}
           </div>
-        </div>
+        </motion.div>
       </RevealSection>
     </section>
   )

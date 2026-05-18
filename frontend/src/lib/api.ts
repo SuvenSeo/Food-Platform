@@ -66,4 +66,49 @@ export const api = {
     return fetchJson<PriceTrendResponse>(`/trends/market?${params.toString()}`)
   },
   getTrendsSummary: () => fetchJson<TrendsSummaryResponse>('/trends/summary'),
+  getPriceChanges: (limit = 50) => fetchJson<PriceChangesResponse>(`/changes?limit=${limit}`),
+}
+
+export type PriceChangeItem = {
+  kind: 'retail_offer' | 'market_quote'
+  source: string
+  label: string
+  category?: string
+  price_lkr: number
+  observed_at: string | null
+  direction: string
+  delta_vs_median_pct?: number
+  delta_lkr?: number
+  delta_pct?: number | null
+  district?: string
+}
+
+export type PriceChangesResponse = {
+  items: PriceChangeItem[]
+  counts: { retail: number; market: number; total: number }
+}
+
+export type AlertSubscribeResult = {
+  ok: boolean
+  preview_mode: boolean
+  email_sent: boolean
+  message: string
+}
+
+export async function subscribeAlert(body: {
+  email: string
+  scope: string
+  scope_value?: string | null
+  cadence?: string
+}): Promise<AlertSubscribeResult> {
+  const response = await fetch(`${API_BASE}/alerts/subscribe`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const payload = (await response.json()) as AlertSubscribeResult & { detail?: string }
+  if (!response.ok) {
+    throw new ApiError(response.status, payload.detail || 'Subscription failed')
+  }
+  return payload
 }

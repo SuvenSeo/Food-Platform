@@ -1,6 +1,7 @@
 import argparse
 import json
 
+from app.core.sources import default_retail_sources_csv
 from app.services.source_sync import sync_sources
 
 
@@ -8,8 +9,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Sync retail food sources into the normalized database views.")
     parser.add_argument(
         "--sources",
-        default="spar2u,glomark",
-        help="Comma-separated source names. Supported: spar2u, glomark",
+        default=default_retail_sources_csv(),
+        help=f"Comma-separated source names. Supported: {default_retail_sources_csv()}",
     )
     parser.add_argument(
         "--max-items",

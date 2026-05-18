@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Bookmark, Search } from 'lucide-react'
 
+import { Panel } from '../components/primitives/panel'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { SectionHeader } from '../components/ui/section-header'
 import { RevealSection } from '../components/ui/reveal-section'
@@ -65,8 +66,7 @@ export function BasketPage() {
         />
       )}
 
-      <div className="fp-panel space-y-6"
-        style={{ borderColor: 'rgba(249,115,22,0.12)', background: 'linear-gradient(135deg, rgba(249,115,22,0.04) 0%, transparent 60%)' }}>
+      <Panel variant="accent" className="space-y-6">
         {/* Preset selector */}
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="space-y-2">
@@ -216,7 +216,7 @@ export function BasketPage() {
             { label: 'Review watchlists', to: '/watchlists' },
           ]}
         />
-      </div>
+      </Panel>
     </section>
   )
 }

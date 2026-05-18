@@ -1,27 +1,23 @@
 """
 Cargills Food City scraper — cargillsceylon.com
 
-Cargills is one of Sri Lanka's largest retail chains. Their online store
-is HTML-based. We parse category listing pages to extract product names,
-prices, and images.
-
-Category pages follow the pattern:
-  https://www.cargillsceylon.com/category/<slug>
-
-If the site structure changes or the request fails, the scraper logs the
-failure and the pipeline records a failed run.
+Uses headless Chromium (Playwright) for JS-rendered category listings.
 """
 
+from __future__ import annotations
+
+import logging
 import re
 
 from bs4 import BeautifulSoup
-import httpx
 
 from app.schemas.domain import RawOffer
+from app.scrapers.browser import fetch_rendered_html
+
+logger = logging.getLogger(__name__)
 
 CARGILLS_BASE_URL = "https://www.cargillsceylon.com"
 
-# Best-effort category listing; the scraper skips 404s gracefully
 CARGILLS_CATEGORY_PAGES = [
     ("Rice & Grains", f"{CARGILLS_BASE_URL}/product-category/staples-rice-flour/"),
     ("Cooking Oil", f"{CARGILLS_BASE_URL}/product-category/cooking-oil/"),
@@ -33,18 +29,18 @@ CARGILLS_CATEGORY_PAGES = [
     ("Personal Care", f"{CARGILLS_BASE_URL}/product-category/personal-care/"),
 ]
 
+PRODUCT_CARD_SELECTOR = ".product, .product-item, li.product, [data-product-id]"
+
 
 def _clean_price(text: str) -> float | None:
-    """Extract first Rs/LKR price from text."""
-    m = re.search(r"(?:Rs\.?|LKR)\s*([\d,]+(?:\.\d+)?)", text, re.IGNORECASE)
-    if m:
-        return float(m.group(1).replace(",", ""))
-    # Fallback: standalone number that looks like a price
-    m2 = re.search(r"\b(\d{2,6}(?:\.\d{1,2})?)\b", text)
-    if m2:
-        val = float(m2.group(1))
-        if 10 <= val <= 100000:
-            return val
+    match = re.search(r"(?:Rs\.?|LKR)\s*([\d,]+(?:\.\d+)?)", text, re.IGNORECASE)
+    if match:
+        return float(match.group(1).replace(",", ""))
+    match = re.search(r"\b(\d{2,6}(?:\.\d{1,2})?)\b", text)
+    if match:
+        value = float(match.group(1))
+        if 10 <= value <= 100_000:
+            return value
     return None
 
 
@@ -52,48 +48,40 @@ def parse_cargills_category(html: str, category: str) -> list[RawOffer]:
     soup = BeautifulSoup(html, "lxml")
     offers: list[RawOffer] = []
 
-    # WooCommerce / typical product grid: .product, .woocommerce-loop-product
-    product_els = soup.select(".product, .product-item, li.product")
+    product_els = soup.select(PRODUCT_CARD_SELECTOR)
     if not product_els:
-        # Fallback: look for articles or divs with data-product-id
         product_els = soup.find_all(attrs={"data-product-id": True})
 
-    for el in product_els:
-        # Title
-        title_tag = el.select_one(".woocommerce-loop-product__title, .product-title, h2, h3")
+    for element in product_els:
+        title_tag = element.select_one(".woocommerce-loop-product__title, .product-title, h2, h3")
         if not title_tag:
             continue
         title = title_tag.get_text(strip=True)
         if not title:
             continue
 
-        # Price
-        price_tag = el.select_one(".price, .woocommerce-Price-amount, .product-price")
-        price_text = price_tag.get_text(strip=True) if price_tag else el.get_text(" ", strip=True)
+        price_tag = element.select_one(".price, .woocommerce-Price-amount, .product-price")
+        price_text = price_tag.get_text(strip=True) if price_tag else element.get_text(" ", strip=True)
         price = _clean_price(price_text)
         if not price:
             continue
 
-        # URL
-        link_tag = el.select_one("a[href]")
+        link_tag = element.select_one("a[href]")
         if not link_tag:
             continue
-        href = link_tag.get("href", "")
+        href = str(link_tag.get("href", ""))
         if not href:
             continue
         if not href.startswith("http"):
             href = f"{CARGILLS_BASE_URL}{href}"
 
-        # Item ID from URL slug
         slug_match = re.search(r"/([^/?#]+)/?$", href)
         item_id = slug_match.group(1) if slug_match else href[-32:]
 
-        # Image
-        img_tag = el.select_one("img")
         image_url: str | None = None
+        img_tag = element.select_one("img")
         if img_tag:
-            src = (img_tag.get("data-src") or img_tag.get("data-lazy-src")
-                   or img_tag.get("src") or "")
+            src = img_tag.get("data-src") or img_tag.get("data-lazy-src") or img_tag.get("src") or ""
             if src and not src.endswith("placeholder"):
                 if src.startswith("//"):
                     src = f"https:{src}"
@@ -123,23 +111,22 @@ def parse_cargills_category(html: str, category: str) -> list[RawOffer]:
 
 def fetch_cargills_catalog(max_items: int, user_agent: str) -> list[RawOffer]:
     offers: list[RawOffer] = []
+    seen_ids: set[str] = set()
+    ua = user_agent or "Mozilla/5.0 (compatible; FoodPlatformBot/1.0)"
 
-    with httpx.Client(
-        headers={"User-Agent": user_agent, "Accept": "text/html,application/xhtml+xml"},
-        follow_redirects=True,
-        timeout=30.0,
-    ) as client:
-        for category, url in CARGILLS_CATEGORY_PAGES:
-            if len(offers) >= max_items:
-                break
-            try:
-                response = client.get(url)
-                if response.status_code == 404:
-                    continue
-                response.raise_for_status()
-                page_offers = parse_cargills_category(response.text, category=category)
-                offers.extend(page_offers)
-            except httpx.HTTPStatusError:
-                continue
+    for category, url in CARGILLS_CATEGORY_PAGES:
+        if len(offers) >= max_items:
+            break
+        try:
+            html = fetch_rendered_html(url, user_agent=ua, wait_selector=PRODUCT_CARD_SELECTOR)
+            page_offers = parse_cargills_category(html, category=category)
+            for offer in page_offers:
+                if offer.source_item_id not in seen_ids:
+                    seen_ids.add(offer.source_item_id)
+                    offers.append(offer)
+            logger.info("Cargills: %s → %d offers (total %d)", url, len(page_offers), len(offers))
+        except Exception as exc:
+            logger.warning("Cargills: failed for %s: %s", url, exc)
+            continue
 
     return offers[:max_items]

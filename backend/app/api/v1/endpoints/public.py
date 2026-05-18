@@ -1,10 +1,11 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
+from app.core.basket_presets import BASKET_PRESETS
 from app.db.session import get_database_provider_status, get_db
 from app.models.tables import FairPriceScoreRecord, FoodOfferRecord, MarketQuoteRecord, PriceAggregateRecord, ScrapeRun
 from app.services.trust import build_reliability_summary, compute_platform_trust_snapshot
@@ -15,48 +16,15 @@ RETENTION_ALLOWED_CADENCE = {"daily", "weekly"}
 RETENTION_ALLOWED_CHANNELS = {"email", "web"}
 RETENTION_ALLOWED_COMPARE_MODES = {"district", "source", "category"}
 
-BASKET_PRESETS: dict[str, dict[str, object]] = {
-    "essentials": {
-        "id": "essentials",
-        "label": "Essentials Basket",
-        "items": [
-            {"kind": "offer", "canonical_name": "local coconut oil", "label": "Local coconut oil"},
-            {"kind": "market_quote", "item_name": "Tomato", "label": "Tomato"},
-        ],
-    },
-    "smart-saver": {
-        "id": "smart-saver",
-        "label": "Smart Saver",
-        "items": [
-            {"kind": "offer", "canonical_name": "local coconut oil", "label": "Local coconut oil"},
-        ],
-    },
-    "market-fresh": {
-        "id": "market-fresh",
-        "label": "Market Fresh",
-        "items": [
-            {"kind": "market_quote", "item_name": "Tomato", "label": "Tomato"},
-        ],
-    },
-}
-
 
 class RetentionSubscriptionPreviewRequest(BaseModel):
-    email: str = Field(min_length=5, max_length=254)
+    email: EmailStr
     cadence: str = "weekly"
     channels: list[str] = Field(default_factory=lambda: ["email"])
     districts: list[str] = Field(default_factory=list)
     categories: list[str] = Field(default_factory=list)
     compare_mode: str = "district"
     top_n: int = Field(default=5, ge=1, le=20)
-
-    @field_validator("email")
-    @classmethod
-    def _validate_email(cls, value: str) -> str:
-        normalized = value.strip().lower()
-        if "@" not in normalized or "." not in normalized.split("@")[-1]:
-            raise ValueError("email must be a valid address")
-        return normalized
 
     @field_validator("cadence")
     @classmethod
@@ -730,6 +698,7 @@ def hub_manifest() -> dict[str, object]:
             "categories": "/categories",
             "compare": "/compare",
             "basket": "/basket",
+            "changes": "/changes",
             "watchlists": "/watchlists",
             "methods": "/methods",
             "pipeline": "/pipeline",
@@ -742,6 +711,9 @@ def hub_manifest() -> dict[str, object]:
             "district_compare": "/api/v1/compare/districts?left={left}&right={right}",
             "source_compare": "/api/v1/compare/sources?left={left}&right={right}",
             "basket_estimate": "/api/v1/basket/estimate?preset={preset}",
+            "price_changes": "/api/v1/changes",
+            "embed_summary": "/api/v1/embed/summary?kind=basket&preset=essentials",
+            "alerts_subscribe": "/api/v1/alerts/subscribe",
             "retention_schema": "/api/v1/retention/subscriptions/schema",
             "retention_preview": "/api/v1/retention/subscriptions/preview",
         },

@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.sources import DEFAULT_RETAIL_SOURCES
 from app.db.session import get_db
 from app.models.tables import FoodOfferRecord, MarketQuoteRecord, PriceAggregateRecord
 from app.services.market_quotes import ingest_official_market_quotes
@@ -91,7 +92,7 @@ def trigger_sync(
       sources=spar2u&sources=glomark   — repeat for multiple
       max_items=500
     """
-    requested = sources if sources else ["spar2u", "glomark", "keells", "cargills"]
+    requested = sources if sources else list(DEFAULT_RETAIL_SOURCES)
     background_tasks.add_task(_bg_retail_sync, requested, max_items)
     return {
         "status": "queued",
@@ -142,6 +143,6 @@ def admin_status(
         "retail_offers": db.scalar(select(func.count(FoodOfferRecord.id))) or 0,
         "price_aggregates": db.scalar(select(func.count(PriceAggregateRecord.id))) or 0,
         "market_quotes": db.scalar(select(func.count(MarketQuoteRecord.id))) or 0,
-        "retail_sources": ["spar2u", "glomark", "keells", "cargills"],
+        "retail_sources": list(DEFAULT_RETAIL_SOURCES),
         "market_sources": ["wfp", "dcs", "cbsl"],
     }
