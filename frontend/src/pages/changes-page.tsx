@@ -1,18 +1,46 @@
 import { useQuery } from '@tanstack/react-query'
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react'
 
+import { Badge } from '../components/ui/badge'
 import { SectionHeader } from '../components/ui/section-header'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
-import { Badge } from '../components/ui/badge'
-import { EmptyState, ErrorState } from '../components/ui/workflow-helpers'
+import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
 import { useLocale } from '../hooks/use-locale'
-import { api } from '../lib/api'
+import { api, type PriceChangeItem } from '../lib/api'
 import { formatCompactDate, formatCurrency } from '../lib/format'
 
-function DirectionIcon({ direction }: { direction: string }) {
-  if (direction === 'up') return <ArrowUpRight className="h-4 w-4 text-red-400" aria-hidden="true" />
-  if (direction === 'down') return <ArrowDownRight className="h-4 w-4 text-emerald-400" aria-hidden="true" />
-  return <Minus className="h-4 w-4 text-muted" aria-hidden="true" />
+function movementLabel(item: PriceChangeItem) {
+  if (item.delta_vs_median_pct != null) {
+    return `${item.delta_vs_median_pct > 0 ? '+' : ''}${item.delta_vs_median_pct.toFixed(1)}% vs median`
+  }
+  if (item.delta_lkr != null) {
+    return `${item.delta_lkr > 0 ? '+' : ''}Rs ${formatCurrency(item.delta_lkr)}`
+  }
+  if (item.delta_pct != null) {
+    return `${item.delta_pct > 0 ? '+' : ''}${item.delta_pct.toFixed(1)}%`
+  }
+  return item.direction
+}
+
+function DirectionStamp({ item }: { item: PriceChangeItem }) {
+  const direction = item.direction.toLowerCase()
+  const isUp = direction === 'up'
+  const isDown = direction === 'down'
+  const Icon = isUp ? ArrowUpRight : isDown ? ArrowDownRight : Minus
+
+  return (
+    <div
+      className={[
+        'flex h-14 w-14 shrink-0 items-center justify-center border-2 bg-[color:var(--color-bg-card)]',
+        isUp ? 'border-[color:var(--chili-500)] text-[color:var(--chili-600)]' : '',
+        isDown ? 'border-[color:var(--curry-leaf)] text-[color:var(--curry-leaf)]' : '',
+        !isUp && !isDown ? 'border-[color:var(--color-border-strong)] text-[color:var(--color-text-muted)]' : '',
+      ].join(' ')}
+      aria-label={`Price movement ${direction}`}
+    >
+      <Icon className="h-6 w-6" aria-hidden="true" />
+    </div>
+  )
 }
 
 export function ChangesPage() {
@@ -23,13 +51,16 @@ export function ChangesPage() {
   })
 
   const items = changesQuery.data?.items ?? []
+  const upCount = items.filter((item) => item.direction.toLowerCase() === 'up').length
+  const downCount = items.filter((item) => item.direction.toLowerCase() === 'down').length
+  const unchangedCount = Math.max(items.length - upCount - downCount, 0)
 
   return (
     <section className="space-y-8">
       <SectionHeader
         eyebrow="Revision feed"
         title={t('nav.changes')}
-        description="Recent retail offer shifts and wet-market quote revisions from normalized data."
+        description="A flip-board of today’s movers: every row reads like a price-tape receipt with source, timestamp, and direction."
       />
 
       {changesQuery.isError && (
@@ -50,37 +81,70 @@ export function ChangesPage() {
       )}
 
       {!changesQuery.isLoading && items.length > 0 && (
-        <ul className="space-y-3">
-          {items.map((item, index) => (
-            <li
-              key={`${item.kind}-${item.label}-${item.observed_at ?? index}`}
-              className="fp-panel flex flex-wrap items-center justify-between gap-3 rounded-shell border px-4 py-3"
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <DirectionIcon direction={item.direction} />
-                <div className="min-w-0">
-                  <p className="truncate font-medium text-white">{item.label}</p>
-                  <p className="text-xs text-muted">
-                    {item.kind === 'retail_offer' ? `Retail · ${item.source}` : `Market · ${item.district ?? item.source}`}
-                    {item.observed_at ? ` · ${formatCompactDate(item.observed_at)}` : ''}
-                  </p>
-                </div>
+        <>
+          <div className="grid gap-[1px] bg-[color:var(--color-border)] md:grid-cols-3">
+            {[
+              { label: 'Up today', value: upCount, tone: 'text-[color:var(--chili-600)]' },
+              { label: 'Down today', value: downCount, tone: 'text-[color:var(--curry-leaf)]' },
+              { label: 'Flat / new', value: unchangedCount, tone: 'text-[color:var(--color-text-primary)]' },
+            ].map((stat) => (
+              <div key={stat.label} className="bg-[color:var(--color-bg-card)] p-5">
+                <p className="text-kicker">{stat.label}</p>
+                <p className={`num mt-2 text-4xl font-bold ${stat.tone}`}>{stat.value}</p>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold tabular-nums text-white">
-                  {formatCurrency(item.price_lkr)}
-                </span>
-                <Badge variant={item.direction === 'down' ? 'green' : item.direction === 'up' ? 'amber' : 'neutral'}>
-                  {item.delta_vs_median_pct != null
-                    ? `${item.delta_vs_median_pct > 0 ? '+' : ''}${item.delta_vs_median_pct.toFixed(1)}% vs median`
-                    : item.delta_lkr != null
-                      ? `${item.delta_lkr > 0 ? '+' : ''}${formatCurrency(item.delta_lkr)}`
-                      : item.direction}
-                </Badge>
-              </div>
-            </li>
-          ))}
-        </ul>
+            ))}
+          </div>
+
+          <ol className="grid gap-3">
+            {items.map((item, index) => {
+              const direction = item.direction.toLowerCase()
+              return (
+                <li
+                  key={`${item.kind}-${item.label}-${item.observed_at ?? index}`}
+                  className="group grid gap-4 border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4 shadow-paper transition hover:-translate-y-0.5 hover:border-[color:var(--color-border-strong)] md:grid-cols-[auto_1fr_auto]"
+                >
+                  <DirectionStamp item={item} />
+
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[color:var(--color-text-muted)]">
+                        {String(index + 1).padStart(2, '0')} · {item.kind === 'retail_offer' ? 'Retail' : 'Market'}
+                      </span>
+                      <Badge variant={direction === 'down' ? 'green' : direction === 'up' ? 'red' : 'neutral'}>
+                        {movementLabel(item)}
+                      </Badge>
+                    </div>
+                    <h3 className="mt-2 truncate font-display text-xl font-semibold text-[color:var(--color-text-primary)]">
+                      {item.label}
+                    </h3>
+                    <p className="mt-1 text-sm text-[color:var(--color-text-secondary)]">
+                      {item.kind === 'retail_offer' ? item.source : `${item.district ?? item.source} · ${item.source}`}
+                      {item.observed_at ? ` · ${formatCompactDate(item.observed_at)}` : ''}
+                    </p>
+                  </div>
+
+                  <div className="border-t border-dotted border-[color:var(--color-border-hover)] pt-3 md:block md:border-l md:border-t-0 md:pl-5 md:pt-0 md:text-right">
+                    <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[color:var(--color-text-muted)]">
+                      Board price
+                    </p>
+                    <p className="num mt-1 text-2xl font-bold text-[color:var(--color-text-primary)]">
+                      රු {formatCurrency(item.price_lkr)}
+                    </p>
+                  </div>
+                </li>
+              )
+            })}
+          </ol>
+
+          <NextActionLinks
+            title="Turn the page"
+            links={[
+              { label: 'Compare districts', to: '/compare' },
+              { label: 'Build a basket', to: '/basket' },
+              { label: 'Inspect pipeline', to: '/pipeline' },
+            ]}
+          />
+        </>
       )}
     </section>
   )

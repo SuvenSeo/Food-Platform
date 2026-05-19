@@ -1,70 +1,62 @@
-import { motion } from 'framer-motion'
 import { Info, Link2, RefreshCw } from 'lucide-react'
 
 import { SectionHeader } from '../components/ui/section-header'
-import { RevealSection } from '../components/ui/reveal-section'
 
 const sections = [
   {
     icon: Info,
     title: 'Informational use',
-    body: 'Prices, comparisons, and basket estimates are informational signals built from normalised public data. They are not guarantees of availability or final transaction prices.',
+    body: 'Prices, comparisons, basket estimates, and movement labels are informational signals built from normalised public data. They are not guarantees of availability or final transaction prices.',
   },
   {
     icon: Link2,
     title: 'Attribution and source links',
-    body: 'Source names and outbound links remain part of the product so users can inspect original retailer or market context alongside the normalised view.',
+    body: 'Source names and outbound links remain part of the product so users can inspect the original retailer or market context alongside the normalised view.',
   },
   {
     icon: RefreshCw,
     title: 'Platform evolution',
-    body: 'Features, coverage, and federation surfaces may change as the food platform matures and connects into broader life-platform workflows.',
+    body: 'Features, coverage, endpoints, and federation surfaces may change as the food platform matures and connects into broader life-platform workflows.',
   },
 ]
 
 export function TermsPage() {
   return (
-    <section className="space-y-12">
+    <section className="space-y-8">
       <SectionHeader
-        eyebrow="Terms"
+        eyebrow="Legal column"
         title="Terms"
-        description="A simple public terms surface clarifies how these signals should be used while the platform continues to expand."
+        description="A compact public terms column for pricing signals, attribution, and platform limitations."
       />
 
-      <RevealSection>
-        <div className="grid gap-4 lg:grid-cols-3">
-          {sections.map(({ icon: Icon, title, body }, i) => (
-            <motion.article
-              key={title}
-              className="premium-card p-6"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20">
-                <Icon className="h-5 w-5 text-orange-400" />
+      <article className="grid gap-8 border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-6 shadow-paper lg:grid-cols-[0.72fr_1.28fr] lg:p-8">
+        <aside className="border-b border-[color:var(--color-text-primary)] pb-6 lg:border-b-0 lg:border-r lg:pr-8">
+          <p className="text-kicker">Limitations</p>
+          <h2 className="mt-4 font-display text-3xl font-semibold leading-none text-[color:var(--color-text-primary)]">
+            Verify final price and availability at the source.
+          </h2>
+          <p className="mt-5 text-sm leading-7 text-[color:var(--color-text-secondary)]">
+            The platform is a research and discovery tool. Pricing data may be delayed, incomplete, or temporarily unavailable while source feeds update.
+          </p>
+          <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-muted)]">
+            Last updated: 19 May 2026
+          </p>
+        </aside>
+
+        <div className="space-y-6">
+          {sections.map(({ icon: Icon, title, body }) => (
+            <section key={title} className="grid gap-4 border-b border-dotted border-[color:var(--color-border-hover)] pb-6 last:border-b-0 last:pb-0 sm:grid-cols-[48px_1fr]">
+              <div className="flex h-12 w-12 items-center justify-center border border-[color:var(--color-border-hover)] bg-[color:var(--color-bg-secondary)]">
+                <Icon className="h-5 w-5 text-[color:var(--chili-500)]" aria-hidden="true" />
               </div>
-              <h3 className="text-base font-semibold text-foreground">{title}</h3>
-              <p className="mt-3 text-sm leading-7 text-muted-foreground">{body}</p>
-            </motion.article>
+              <div>
+                <h3 className="font-display text-xl font-semibold text-[color:var(--color-text-primary)]">{title}</h3>
+                <p className="mt-2 text-sm leading-7 text-[color:var(--color-text-secondary)]">{body}</p>
+              </div>
+            </section>
           ))}
         </div>
-      </RevealSection>
-
-      <RevealSection delay={80}>
-        <div className="fp-panel max-w-2xl space-y-4">
-          <p className="eyebrow-accent">Limitations</p>
-          <p className="text-sm leading-7 text-secondary-foreground">
-            The platform is a research and discovery tool. Pricing data may be delayed or incomplete. Always verify prices and availability directly with the source retailer before making purchasing decisions.
-          </p>
-          <p className="text-sm leading-7 text-secondary-foreground">
-            Data collected is limited to publicly available retail listings and government/public market quotations. The platform does not scrape or store private pricing information.
-          </p>
-          <p className="text-xs text-ink-faint">
-            Last updated: {new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}
-          </p>
-        </div>
-      </RevealSection>
+      </article>
     </section>
   )
 }

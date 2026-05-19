@@ -22,7 +22,7 @@ export function SectionHeader({
   return (
     <header className={cn('space-y-4', className)}>
       <div className="flex items-end justify-between gap-6">
-        <div className="max-w-3xl">
+        <div className="min-w-0 max-w-3xl">
           <span className="text-kicker">§ {eyebrow}</span>
           <h2
             className={cn(
@@ -39,7 +39,7 @@ export function SectionHeader({
           </h2>
           {description && (
             <p
-              className="mt-4 max-w-[64ch] font-display text-[16px] italic leading-[1.5] text-[color:var(--color-text-secondary)]"
+              className="mt-4 max-w-[min(64ch,calc(100vw-3rem))] break-words font-display text-[16px] italic leading-[1.5] text-[color:var(--color-text-secondary)]"
               style={{ fontVariationSettings: "'opsz' 36, 'wght' 400" }}
             >
               {description}

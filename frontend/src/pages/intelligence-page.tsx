@@ -60,7 +60,7 @@ export function IntelligencePage() {
       {intelligenceQuery.isError && briefQuery.isError && (
         <ErrorState
           title="Intelligence wires went dark"
-          message="Both summary and brief feeds failed to load."
+          message="Some intelligence modules are temporarily unavailable."
           helper="Try retry, or continue from discovery while upstream reconnects."
           onRetry={() => { void intelligenceQuery.refetch(); void briefQuery.refetch() }}
           links={[{ label: 'Open retail', to: '/retail' }, { label: 'Open markets', to: '/markets' }]}
@@ -92,7 +92,11 @@ export function IntelligencePage() {
 
         {/* Highlights */}
         <div className="mt-7 grid gap-[1px] bg-[color:var(--color-border)] sm:grid-cols-3">
-          {(highlights.length ? highlights : [{ label: '—', value: '—' }, { label: '—', value: '—' }, { label: '—', value: '—' }]).map((h, i) => (
+          {(highlights.length ? highlights : [
+            { label: 'Highlights unavailable right now', value: '—' },
+            { label: '—', value: '—' },
+            { label: '—', value: '—' },
+          ]).map((h, i) => (
             <div key={`${h.label}-${i}`} className="bg-[color:var(--color-bg-card)] p-5">
               <p className="text-kicker">{h.label}</p>
               <p
@@ -122,9 +126,9 @@ export function IntelligencePage() {
         {/* Recs + spotlight */}
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <div>
-            <span className="text-kicker">§ Recommended</span>
+            <span className="text-kicker">§ Recommended actions</span>
             <ul className="mt-3 space-y-2.5">
-              {(recommendations.length ? recommendations : ['Awaiting next ingest.']).map((rec) => (
+              {(recommendations.length ? recommendations : ['No recommendations available right now.']).map((rec) => (
                 <li key={rec} className="flex items-baseline gap-3 border-b border-dotted border-[color:var(--color-border-hover)] pb-2 font-display text-[14px] leading-[1.45] text-[color:var(--color-text-secondary)]"
                   style={{ fontVariationSettings: "'opsz' 36" }}>
                   <span className="font-mono text-[10px] font-bold text-[color:var(--chili-500)]">▸</span>
@@ -183,7 +187,7 @@ export function IntelligencePage() {
             </div>
           ) : (
             <EmptyState
-              title="Top-value offers unavailable"
+              title="Top-value offers are unavailable right now"
               description="Discovery cards are temporarily empty for this module."
               hint="Continue from retail while this feed repopulates."
               actionLabel="Open retail"
@@ -253,7 +257,7 @@ export function IntelligencePage() {
           </div>
         ) : (
           <EmptyState
-            title="No trend series yet"
+            title="No market trend series yet"
             description="History is empty for the top-covered commodity."
             actionLabel="Open markets"
             actionTo="/markets"

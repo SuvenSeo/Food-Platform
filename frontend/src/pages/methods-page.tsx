@@ -44,7 +44,7 @@ export function MethodsPage() {
       <SectionHeader
         eyebrow="Trust"
         title="Methods"
-        description="A finished public intelligence product should explain collection, freshness, methodology, and limits with the same clarity it uses for rankings."
+        description="A long-form column explaining collection, freshness, methodology, and limits with the same clarity the product uses for rankings."
       />
 
       {/* Method cards */}

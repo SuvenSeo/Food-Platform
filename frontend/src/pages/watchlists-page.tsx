@@ -33,9 +33,9 @@ export function WatchlistsPage() {
   return (
     <section className="space-y-8">
       <SectionHeader
-        eyebrow="Watchlists"
-        title="Saved views"
-        description="Keep your recurring basket, compare, and offer workflows in one place so analysis sessions can resume instantly."
+        eyebrow="Clippings book"
+        title="Watchlists"
+        description="Keep clipped baskets, comparison receipts, and offer profiles in one place so analysis sessions can resume instantly."
       />
 
       {entries.length === 0 ? (

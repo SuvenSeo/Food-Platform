@@ -119,7 +119,7 @@ export function OfferDetailPage() {
         <div className="pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full blur-3xl"
           style={{ background: 'rgba(249,115,22,0.10)' }} />
         <div className="relative">
-          <p className="eyebrow-accent">{offer.source}</p>
+          <p className="eyebrow-accent">Single-stall profile · {offer.source}</p>
           <h1
             className="mt-3 text-balance text-foreground"
             style={{ fontFamily: '"DM Serif Display", serif', fontSize: 'clamp(1.75rem, 4vw, 2.75rem)', letterSpacing: '-0.035em' }}

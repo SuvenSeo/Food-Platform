@@ -32,8 +32,8 @@ export function PipelinePage() {
   return (
     <section className="space-y-8">
       <SectionHeader
-        eyebrow="Operations"
-        title="Data pipeline"
+        eyebrow="Source-health newsroom"
+        title="Pipeline"
         description="Operational transparency — source health, ingest rates, and job status across all active feeds."
       />
 

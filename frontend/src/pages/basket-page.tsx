@@ -1,12 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
-import { Bookmark, Search } from 'lucide-react'
+import { Bookmark, CheckCircle2, CircleDashed, Search } from 'lucide-react'
 
-import { SectionSkeleton } from '../components/ui/section-skeleton'
-import { SectionHeader } from '../components/ui/section-header'
-import { RevealSection } from '../components/ui/reveal-section'
 import { Badge } from '../components/ui/badge'
+import { RevealSection } from '../components/ui/reveal-section'
+import { SectionHeader } from '../components/ui/section-header'
+import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
 import { useWatchlists } from '../hooks/use-watchlists'
 import { api } from '../lib/api'
@@ -16,7 +15,7 @@ export function BasketPage() {
   const [preset, setPreset] = useState('essentials')
   const [search, setSearch] = useState('')
   const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'available' | 'missing'>('all')
-  const [sortBy, setSortBy] = useState<'price-low' | 'price-high' | 'name'>('price-low')
+  const [sortBy, setSortBy] = useState<'ledger' | 'price-low' | 'price-high' | 'name'>('ledger')
 
   const basketQuery = useQuery({
     queryKey: ['basket-estimate', preset],
@@ -36,20 +35,28 @@ export function BasketPage() {
       })
       .filter((item) => `${item.label} ${item.source || ''}`.toLowerCase().includes(needle))
       .sort((a, b) => {
+        if (sortBy === 'ledger') return 0
         if (sortBy === 'name') return a.label.localeCompare(b.label)
-        const ap = a.price_lkr ?? Infinity
-        const bp = b.price_lkr ?? Infinity
-        if (sortBy === 'price-high') return bp - ap
-        return ap - bp
+        const aPrice = a.price_lkr ?? Infinity
+        const bPrice = b.price_lkr ?? Infinity
+        return sortBy === 'price-high' ? bPrice - aPrice : aPrice - bPrice
       })
   }, [availabilityFilter, data?.items, search, sortBy])
+
+  const runningRows = useMemo(() => {
+    return visibleItems.reduce<Array<(typeof visibleItems)[number] & { runningTotal: number }>>((rows, item) => {
+      const previousTotal = rows.at(-1)?.runningTotal ?? 0
+      const runningTotal = previousTotal + (item.price_lkr ?? 0)
+      return [...rows, { ...item, runningTotal }]
+    }, [])
+  }, [visibleItems])
 
   return (
     <section className="space-y-8">
       <SectionHeader
-        eyebrow="Discovery tools"
-        title="Basket workspace"
-        description="Execution surface for household estimates with continuity from discovery and trust hints for each line item."
+        eyebrow="Basket ledger"
+        title="Shopping-list ledger"
+        description="A workshop page for building household basket estimates with availability, source notes, and a running total on every line."
       />
 
       {basketQuery.isError && (
@@ -65,183 +72,166 @@ export function BasketPage() {
         />
       )}
 
-      <div className="space-y-6">
-        {/* Preset selector */}
-        <div className="premium-surface rounded-2xl p-6 flex flex-wrap items-center justify-between gap-6">
-          <div className="space-y-3">
-            <p className="eyebrow-label">Basket preset</p>
-            <div className="flex flex-wrap gap-2">
+      <div className="grid gap-6 lg:grid-cols-[0.72fr_1.28fr]">
+        <aside className="min-w-0 space-y-4">
+          <div className="border-2 border-[color:var(--color-text-primary)] bg-[color:var(--paper-50)] p-5 shadow-stamp">
+            <p className="text-kicker">Basket preset</p>
+            <div className="mt-4 grid gap-2">
               {presetOptions.map((item) => (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => setPreset(item.id)}
-                  className={`rounded-pill px-4 py-2 text-sm font-medium transition-all ${
+                  className={[
+                    'border px-4 py-3 text-left font-mono text-[11px] font-bold uppercase tracking-[0.18em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--chili-500)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--paper-50)]',
                     preset === item.id
-                      ? 'bg-orange-500/15 text-orange-400 ring-1 ring-orange-500/30 shadow-[0_0_12px_rgba(249,115,22,0.15)]'
-                      : 'bg-white/5 border border-white/10 text-muted-foreground hover:text-foreground hover:bg-white/10'
-                  }`}
+                      ? 'border-[color:var(--color-text-primary)] bg-[color:var(--color-text-primary)] text-[color:var(--paper-50)]'
+                      : 'border-[color:var(--color-border-hover)] bg-[color:var(--color-bg-card)] text-[color:var(--color-text-secondary)] hover:border-[color:var(--color-text-primary)] hover:text-[color:var(--color-text-primary)]',
+                  ].join(' ')}
                 >
                   {item.label}
                 </button>
               ))}
             </div>
-          </div>
-          {data && (
-            <button
-              type="button"
-              onClick={() => saveEntry({
-                id: `basket-${data.preset.id}`,
-                title: data.preset.label ?? 'Basket preset',
-                kind: 'basket',
-                href: `/basket?preset=${data.preset.id}`,
-                summary: `${data.summary.available_items} items · Rs ${formatCurrency(data.summary.total_lkr ?? 0)}`,
-              })}
-              className="inline-flex items-center gap-2 rounded-pill bg-white/5 px-5 py-2.5 text-sm font-medium text-foreground ring-1 ring-white/10 transition-all hover:bg-white/10 hover:ring-white/20"
-            >
-              <Bookmark className="h-4 w-4 text-orange-400" />
-              Save to watchlists
-            </button>
-          )}
-        </div>
 
-        {/* Summary KPIs - Stats Bento */}
-        {!basketQuery.isLoading && data && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="premium-surface rounded-2xl p-6 relative overflow-hidden group transition-all duration-300 hover:ring-1 hover:ring-orange-500/30 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
-              <p className="eyebrow-label text-orange-400/80">Estimated total</p>
-              <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-muted-foreground text-sm font-medium">Rs</span>
-                <p className="num text-4xl font-semibold tracking-tight text-foreground">
-                  {formatCurrency(data.summary.total_lkr ?? 0)}
-                </p>
-              </div>
-            </div>
-            <div className="premium-surface rounded-2xl p-6 relative overflow-hidden group transition-all duration-300 hover:ring-1 hover:ring-white/20">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <p className="eyebrow-label">Available Items</p>
-              <div className="mt-3 flex items-baseline gap-2">
-                <p className="num text-4xl font-medium tracking-tight text-foreground">{data.summary.available_items}</p>
-                <span className="text-muted-foreground text-sm font-medium">/ {data.items.length}</span>
-              </div>
-            </div>
-            <div className="premium-surface rounded-2xl p-6 relative overflow-hidden group transition-all duration-300 hover:ring-1 hover:ring-white/20">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <p className="eyebrow-label">Missing Quotes</p>
-              <p className="num mt-3 text-4xl font-medium tracking-tight text-muted-foreground">{data.summary.missing_items}</p>
-            </div>
+            {data && (
+              <button
+                type="button"
+                onClick={() => saveEntry({
+                  id: `basket-${data.preset.id}`,
+                  title: data.preset.label ?? 'Basket preset',
+                  kind: 'basket',
+                  href: `/basket?preset=${data.preset.id}`,
+                  summary: `${data.summary.available_items} items · Rs ${formatCurrency(data.summary.total_lkr ?? 0)}`,
+                })}
+                className="fp-button-primary mt-5 w-full"
+              >
+                <Bookmark className="h-4 w-4" />
+                Clip this basket
+              </button>
+            )}
           </div>
-        )}
 
-        {/* Filters */}
-        <div className="premium-surface rounded-2xl p-2 flex flex-col md:flex-row gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-transparent border-0 ring-0 focus:ring-0 pl-11 pr-4 py-3 text-sm placeholder:text-muted-foreground"
-              placeholder="Search basket items (e.g. oil, tomato, rice...)"
-            />
-          </div>
-          <div className="h-px md:w-px md:h-auto bg-white/10 mx-2" />
-          <div className="flex gap-2 p-1 relative items-center">
-             <select
-              value={availabilityFilter}
-              onChange={(e) => setAvailabilityFilter(e.target.value as typeof availabilityFilter)}
-              className="bg-transparent border-0 text-sm font-medium text-foreground focus:ring-0 cursor-pointer appearance-none px-4 py-2 hover:bg-white/5 rounded-lg transition-colors"
-            >
-              <option value="all" className="bg-background">All instances</option>
-              <option value="available" className="bg-background">Available only</option>
-              <option value="missing" className="bg-background">Missing only</option>
-            </select>
-            
-            <div className="h-4 w-px bg-white/10" />
-            
-            <select 
-              value={sortBy} 
-              onChange={(e) => setSortBy(e.target.value as typeof sortBy)} 
-              className="bg-transparent border-0 text-sm font-medium text-foreground focus:ring-0 cursor-pointer appearance-none px-4 py-2 hover:bg-white/5 rounded-lg transition-colors"
-            >
-              <option value="price-low" className="bg-background">Lowest price</option>
-              <option value="price-high" className="bg-background">Highest price</option>
-              <option value="name" className="bg-background">Alphabetical</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Items */}
-        <RevealSection>
-          {basketQuery.isLoading ? (
-            <SectionSkeleton cards={4} />
-          ) : !visibleItems.length ? (
-            <EmptyState
-              title="No basket items match this filter"
-              description="Try broader filters, switch presets, or continue with adjacent discovery workflows."
-              hint="Next action: continue in markets or compare."
-              actionLabel="Open markets"
-              actionTo="/markets"
-              secondaryActionLabel="Open compare"
-              secondaryActionTo="/compare"
-            />
-          ) : (
-            <motion.div 
-              className="grid gap-3"
-              variants={{
-                hidden: { opacity: 0 },
-                show: {
-                  opacity: 1,
-                  transition: {
-                    staggerChildren: 0.04
-                  }
-                }
-              }}
-              initial="hidden"
-              animate="show"
-            >
-              {visibleItems.map((item) => (
-                <motion.article
-                  key={item.label}
-                  className="premium-surface rounded-xl p-4 flex items-center justify-between gap-4 transition-all duration-200 hover:ring-1 hover:ring-white/20 hover:bg-white/[0.04]"
-                  variants={{
-                    hidden: { opacity: 0, y: 15, scale: 0.98 },
-                    show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 350, damping: 25 } }
-                  }}
-                >
-                  <div className="min-w-0">
-                    <h4 className="text-[15px] font-medium text-foreground truncate">{item.label}</h4>
-                    <div className="flex items-center gap-2 mt-1">
-                       <span className="w-1.5 h-1.5 rounded-full bg-orange-500/50" />
-                       <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{item.source || 'Source unavailable'}</p>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-4">
-                    {item.price_lkr === null ? (
-                      <Badge variant="neutral" className="bg-white/5">N/A</Badge>
-                    ) : (
-                      <div className="text-right">
-                        <p className="num text-lg font-medium tracking-tight text-foreground">
-                          <span className="text-xs font-normal text-muted-foreground mr-1">Rs</span>
-                          {formatCurrency(item.price_lkr)}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </motion.article>
+          {!basketQuery.isLoading && data && (
+            <div className="grid gap-[1px] bg-[color:var(--color-border)]">
+              {[
+                { label: 'Running total', value: `රු ${formatCurrency(data.summary.total_lkr ?? 0)}` },
+                { label: 'Quoted lines', value: `${data.summary.available_items}/${data.items.length}` },
+                { label: 'Missing lines', value: data.summary.missing_items.toLocaleString() },
+              ].map((item) => (
+                <div key={item.label} className="bg-[color:var(--color-bg-card)] p-4">
+                  <p className="text-kicker">{item.label}</p>
+                  <p className="num mt-2 text-2xl font-bold text-[color:var(--color-text-primary)]">{item.value}</p>
+                </div>
               ))}
-            </motion.div>
+            </div>
           )}
-        </RevealSection>
+        </aside>
 
-        <NextActionLinks
-          title="Next actions"
-          links={[
-            { label: 'Compare districts', to: '/compare' },
-            { label: 'Retail offers', to: '/retail' },
-            { label: 'Review watchlists', to: '/watchlists' },
-          ]}
-        />
+        <div className="min-w-0 space-y-4">
+          <div className="fp-toolbar md:grid-cols-[1.4fr_0.8fr_0.8fr] lg:grid-cols-[1.4fr_0.8fr_0.8fr]">
+            <label className="space-y-2">
+              <span className="eyebrow-label">Search shopping list</span>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--color-text-muted)]" />
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  className="fp-input pl-10"
+                  placeholder="Oil, tomato, rice..."
+                />
+              </div>
+            </label>
+            <label className="space-y-2">
+              <span className="eyebrow-label">Availability</span>
+              <select
+                value={availabilityFilter}
+                onChange={(event) => setAvailabilityFilter(event.target.value as typeof availabilityFilter)}
+                className="fp-select"
+              >
+                <option value="all">All lines</option>
+                <option value="available">Quoted only</option>
+                <option value="missing">Missing only</option>
+              </select>
+            </label>
+            <label className="space-y-2">
+              <span className="eyebrow-label">Sort</span>
+              <select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)} className="fp-select">
+                <option value="ledger">Ledger order</option>
+                <option value="price-low">Lowest price</option>
+                <option value="price-high">Highest price</option>
+                <option value="name">Alphabetical</option>
+              </select>
+            </label>
+          </div>
+
+          <RevealSection>
+            {basketQuery.isLoading ? (
+              <SectionSkeleton cards={4} />
+            ) : !runningRows.length ? (
+              <EmptyState
+                title="No basket items match this filter"
+                description="Try broader filters, switch presets, or continue with adjacent discovery workflows."
+                hint="Next action: continue in markets or compare."
+                actionLabel="Open markets"
+                actionTo="/markets"
+                secondaryActionLabel="Open compare"
+                secondaryActionTo="/compare"
+              />
+            ) : (
+              <div className="overflow-hidden border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)]">
+                <div className="hidden grid-cols-[48px_1fr_0.8fr_0.7fr_0.75fr] border-b border-[color:var(--color-text-primary)] bg-[color:var(--color-bg-secondary)] px-4 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[color:var(--color-text-muted)] md:grid">
+                  <span>No.</span>
+                  <span>Item</span>
+                  <span>Source</span>
+                  <span className="text-right">Line price</span>
+                  <span className="text-right">Running total</span>
+                </div>
+                {runningRows.map((item, index) => (
+                  <article
+                    key={`${item.label}-${index}`}
+                    className="grid gap-3 border-b border-dotted border-[color:var(--color-border-hover)] px-4 py-4 last:border-b-0 md:grid-cols-[48px_1fr_0.8fr_0.7fr_0.75fr] md:items-center"
+                  >
+                    <div className="flex items-center gap-2">
+                      {item.price_lkr == null ? (
+                        <CircleDashed className="h-4 w-4 text-[color:var(--color-text-muted)]" aria-hidden="true" />
+                      ) : (
+                        <CheckCircle2 className="h-4 w-4 text-[color:var(--curry-leaf)]" aria-hidden="true" />
+                      )}
+                      <span className="num font-mono text-xs text-[color:var(--color-text-muted)]">{String(index + 1).padStart(2, '0')}</span>
+                    </div>
+                    <div>
+                      <h3 className="font-display text-lg font-semibold text-[color:var(--color-text-primary)]">{item.label}</h3>
+                      <p className="md:hidden text-xs text-[color:var(--color-text-muted)]">{item.source || 'Source pending'}</p>
+                    </div>
+                    <p className="hidden truncate font-mono text-[11px] uppercase tracking-[0.16em] text-[color:var(--color-text-secondary)] md:block">
+                      {item.source || 'Pending'}
+                    </p>
+                    <div className="md:text-right">
+                      {item.price_lkr == null ? (
+                        <Badge variant="neutral">Missing</Badge>
+                      ) : (
+                        <p className="num font-bold text-[color:var(--color-text-primary)]">රු {formatCurrency(item.price_lkr)}</p>
+                      )}
+                    </div>
+                    <p className="num border-t border-[color:var(--color-border)] pt-2 text-right text-lg font-bold text-[color:var(--chili-600)] md:border-t-0 md:pt-0">
+                      රු {formatCurrency(item.runningTotal)}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            )}
+          </RevealSection>
+
+          <NextActionLinks
+            title="Next actions"
+            links={[
+              { label: 'Compare districts', to: '/compare' },
+              { label: 'Retail offers', to: '/retail' },
+              { label: 'Review watchlists', to: '/watchlists' },
+            ]}
+          />
+        </div>
       </div>
     </section>
   )

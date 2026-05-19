@@ -110,6 +110,7 @@ function Dateline({ freshness }: { freshness: PlatformFreshnessSummary | undefin
   const day = now.toLocaleDateString('en-LK', { weekday: 'short' }).toUpperCase()
   const date = now.toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()
   const time = now.toLocaleTimeString('en-LK', { hour: '2-digit', minute: '2-digit', hour12: false })
+  const editionNumber = Math.floor((now.getTime() / 86400000) % 9999)
 
   const offers = freshness?.coverage.offers_count
   const sources = freshness?.pipeline
@@ -125,7 +126,7 @@ function Dateline({ freshness }: { freshness: PlatformFreshnessSummary | undefin
       <span className="dateline-sep">COLOMBO</span>
       <span className="inline-flex items-center gap-1.5">
         <span className={cn('inline-block h-1.5 w-1.5 rounded-full animate-pulse-dot', gradeDot)} aria-hidden="true" />
-        EDITION No.<span className="num text-[color:var(--color-text-primary)]">{Math.floor((Date.now() / 86400000) % 9999)}</span>
+        EDITION No.<span className="num text-[color:var(--color-text-primary)]">{editionNumber}</span>
       </span>
       {sources && (
         <span className="dateline-sep">
@@ -229,6 +230,7 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
 
 function MandiyaMasthead() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [editionNumber] = useState(() => Math.floor((Date.now() / 86400000) % 9999))
   const command = useCommandSearch()
   const freshnessQuery = usePlatformFreshness()
 
@@ -253,7 +255,7 @@ function MandiyaMasthead() {
 
           <div className="hidden flex-1 items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--paper-400)] md:flex">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-[color:var(--turmeric)] animate-pulse-dot" aria-hidden="true" />
-            <span>Vol.&nbsp;01 · No.&nbsp;{Math.floor((Date.now() / 86400000) % 9999)}</span>
+            <span>Vol.&nbsp;01 · No.&nbsp;{editionNumber}</span>
           </div>
 
           <button
@@ -329,7 +331,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <ScrollProgressBar />
         <MandiyaMasthead />
 
-        <main id="main-content" className="mx-auto max-w-[1320px] px-4 pb-28 pt-8 sm:px-6 sm:pb-24 lg:pt-12">
+        <main id="main-content" className="layout-main min-w-0 overflow-hidden pb-28 pt-8 sm:pb-24 lg:pt-12">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}

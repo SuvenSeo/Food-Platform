@@ -11,6 +11,7 @@ interface AppLoaderProps {
 export function AppLoader({ children }: AppLoaderProps) {
   const [entered, setEntered] = useState(() => {
     try {
+      if (new URLSearchParams(window.location.search).get('noLoader') === '1') return true
       return sessionStorage.getItem(STORAGE_KEY) === '1'
     } catch {
       return true

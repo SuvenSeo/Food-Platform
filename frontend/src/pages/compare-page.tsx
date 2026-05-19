@@ -1,33 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
-import { ArrowLeftRight, Bookmark, Search } from 'lucide-react'
+import { ArrowLeftRight, Bookmark, ReceiptText, Search } from 'lucide-react'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
 
-import { SectionSkeleton } from '../components/ui/section-skeleton'
-import { SectionHeader } from '../components/ui/section-header'
 import { Badge } from '../components/ui/badge'
+import { SectionHeader } from '../components/ui/section-header'
+import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
 import { useWatchlists } from '../hooks/use-watchlists'
 import { api } from '../lib/api'
 import { formatCurrency } from '../lib/format'
-
-const springTransition = { type: 'spring' as const, stiffness: 300, damping: 30 }
-
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 }
-  }
-}
-
-const staggerItem = {
-  hidden: { opacity: 0, y: 15 },
-  visible: { opacity: 1, y: 0, transition: springTransition }
-}
 
 export function ComparePage() {
   const marketsQuery = useQuery({
@@ -48,7 +32,7 @@ export function ComparePage() {
 
   const districts = useMemo(
     () => Array.from(new Set((marketsQuery.data?.items ?? []).map((item) => item.district))).sort(),
-    [marketsQuery.data?.items]
+    [marketsQuery.data?.items],
   )
   const districtOptions = districts.length > 0 ? districts : [leftDistrict, rightDistrict]
   const data = compareQuery.data
@@ -67,19 +51,24 @@ export function ComparePage() {
   }, [data?.items, search, sortBy])
 
   const chartData = visibleItems.slice(0, 8).map((item) => ({
-    name: item.item_name.slice(0, 10),
+    name: item.item_name.length > 11 ? `${item.item_name.slice(0, 10)}…` : item.item_name,
     left: item.left_price_lkr,
     right: item.right_price_lkr,
   }))
 
   const isLoading = compareQuery.isLoading || marketsQuery.isLoading
+  const leftWins = visibleItems.filter((item) => item.cheaper_side === data?.left).length
+  const rightWins = visibleItems.filter((item) => item.cheaper_side === data?.right).length
+  const averageDelta = visibleItems.length
+    ? visibleItems.reduce((sum, item) => sum + Math.abs(item.delta_lkr), 0) / visibleItems.length
+    : 0
 
   return (
     <section className="space-y-8">
       <SectionHeader
-        eyebrow="Discovery"
-        title="Compare stores, districts, and food clusters"
-        description="Comparison workspace between discovery and intelligence: district deltas with continuity into watchlists and basket plans."
+        eyebrow="District receipt"
+        title="Compare district-vs-district"
+        description="A side-by-side receipt for public market quotes: choose two districts, scan the deltas, then clip the comparison into watchlists."
       />
 
       {(marketsQuery.isError || compareQuery.isError) && (
@@ -95,184 +84,178 @@ export function ComparePage() {
         />
       )}
 
-      <motion.div 
-        className="space-y-6"
-        variants={staggerContainer}
-        initial="hidden"
-        animate="visible"
-      >
-        {/* District selector */}
-        <motion.div variants={staggerItem} className="premium-surface grid items-end gap-3 rounded-card p-4 md:grid-cols-[1fr_auto_1fr]">
-          <label className="space-y-2">
-            <span className="eyebrow-label tracking-tight">Left district</span>
-            <select
-              aria-label="Left district"
-              value={leftDistrict}
-              onChange={(e) => setLeftDistrict(e.target.value)}
-              className="fp-select"
-            >
-              {districtOptions.map((d) => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </label>
+      <div className="grid gap-6 lg:grid-cols-[0.72fr_1.28fr]">
+        <aside className="min-w-0 space-y-4">
+          <div className="border-2 border-[color:var(--color-text-primary)] bg-[color:var(--paper-50)] p-5 shadow-stamp">
+            <div className="flex items-center gap-2">
+              <ReceiptText className="h-5 w-5 text-[color:var(--chili-500)]" aria-hidden="true" />
+              <p className="text-kicker">Compare receipt</p>
+            </div>
 
-          <button
-            type="button"
-            onClick={() => { setLeftDistrict(rightDistrict); setRightDistrict(leftDistrict) }}
-            className="mb-0.5 inline-flex items-center justify-center gap-2 rounded-pill border border-white/10 px-4 py-2.5 text-sm text-secondary-foreground transition hover:text-foreground hover:border-white/20 hover:bg-white/5"
-          >
-            <ArrowLeftRight className="h-4 w-4" />
-            <span className="hidden sm:inline">Swap</span>
-          </button>
+            <div className="mt-5 grid gap-4">
+              <label className="space-y-2">
+                <span className="eyebrow-label">Left district</span>
+                <select
+                  aria-label="Left district"
+                  value={leftDistrict}
+                  onChange={(event) => setLeftDistrict(event.target.value)}
+                  className="fp-select"
+                >
+                  {districtOptions.map((district) => <option key={district} value={district}>{district}</option>)}
+                </select>
+              </label>
 
-          <label className="space-y-2">
-            <span className="eyebrow-label tracking-tight">Right district</span>
-            <select
-              aria-label="Right district"
-              value={rightDistrict}
-              onChange={(e) => setRightDistrict(e.target.value)}
-              className="fp-select"
-            >
-              {districtOptions.map((d) => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </label>
-        </motion.div>
+              <button
+                type="button"
+                onClick={() => { setLeftDistrict(rightDistrict); setRightDistrict(leftDistrict) }}
+                className="fp-button-secondary w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--chili-500)]"
+              >
+                <ArrowLeftRight className="h-4 w-4" />
+                Swap districts
+              </button>
 
-        {/* Headline + save */}
-        {data && (
-          <motion.div variants={staggerItem} className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="text-foreground font-display tracking-tight" style={{ fontSize: 'clamp(1.5rem, 3vw, 2.25rem)' }}>
-              {data.left} <span className="text-muted-foreground">vs</span> {data.right}
-            </h3>
-            <button
-              type="button"
-              onClick={() => saveEntry({
-                id: `compare-${data.left}-${data.right}`,
-                title: `${data.left} vs ${data.right}`,
-                kind: 'compare',
-                href: '/compare',
-                summary: `${data.items.length ?? 0} shared produce items`,
-              })}
-              className="inline-flex items-center gap-2 rounded-pill bg-orange-500/10 px-4 py-2 text-sm font-semibold text-orange-400 ring-1 ring-orange-500/20 transition hover:bg-orange-500/20 hover:text-orange-300 tracking-tight"
-            >
-              <Bookmark className="h-4 w-4" />
-              Save view
-            </button>
-          </motion.div>
-        )}
+              <label className="space-y-2">
+                <span className="eyebrow-label">Right district</span>
+                <select
+                  aria-label="Right district"
+                  value={rightDistrict}
+                  onChange={(event) => setRightDistrict(event.target.value)}
+                  className="fp-select"
+                >
+                  {districtOptions.map((district) => <option key={district} value={district}>{district}</option>)}
+                </select>
+              </label>
+            </div>
 
-        {/* Bar chart */}
-        {!isLoading && chartData.length > 1 && (
-          <motion.div variants={staggerItem}>
-            <div className="premium-surface rounded-card p-4">
-              <p className="eyebrow-label tracking-tight mb-4">Price comparison — top 8 items</p>
-              <div className="h-52 w-full">
+            {data && (
+              <button
+                type="button"
+                onClick={() => saveEntry({
+                  id: `compare-${data.left}-${data.right}`,
+                  title: `${data.left} vs ${data.right}`,
+                  kind: 'compare',
+                  href: '/compare',
+                  summary: `${data.items.length ?? 0} shared produce items`,
+                })}
+                className="fp-button-primary mt-5 w-full"
+              >
+                <Bookmark className="h-4 w-4" />
+                Clip receipt
+              </button>
+            )}
+          </div>
+
+          {data && (
+            <div className="grid gap-[1px] bg-[color:var(--color-border)]">
+              {[
+                { label: `${data.left} cheaper`, value: leftWins },
+                { label: `${data.right} cheaper`, value: rightWins },
+                { label: 'Average gap', value: `රු ${formatCurrency(averageDelta)}` },
+              ].map((item) => (
+                <div key={item.label} className="bg-[color:var(--color-bg-card)] p-4">
+                  <p className="text-kicker">{item.label}</p>
+                  <p className="num mt-2 text-2xl font-bold text-[color:var(--color-text-primary)]">{item.value}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </aside>
+
+        <div className="min-w-0 space-y-4">
+          {!isLoading && chartData.length > 1 && (
+            <div className="border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4 shadow-paper">
+              <p className="text-kicker">Top receipt lines</p>
+              <div className="mt-4 h-56 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.4} />
-                    <XAxis dataKey="name" tick={{ fill: 'var(--muted-foreground)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: 'var(--muted-foreground)', fontSize: 10 }} axisLine={false} tickLine={false} width={55} />
+                  <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                    <XAxis dataKey="name" tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} width={55} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--foreground)', fontSize: 12 }}
-                      formatter={(v) => [`Rs ${Number(v).toLocaleString()}`]}
+                      contentStyle={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderRadius: 0, color: 'var(--color-text-primary)', fontSize: 12 }}
+                      formatter={(value) => [`Rs ${Number(value).toLocaleString()}`]}
                     />
-                    <Bar dataKey="left" fill="#f97316" radius={[4, 4, 0, 0]} opacity={0.85} name={leftDistrict} />
-                    <Bar dataKey="right" fill="#737373" radius={[4, 4, 0, 0]} opacity={0.65} name={rightDistrict} />
+                    <Bar dataKey="left" fill="var(--chili-500)" name={leftDistrict} />
+                    <Bar dataKey="right" fill="var(--ink-400)" name={rightDistrict} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-              <div className="mt-3 flex gap-5 text-xs text-muted-foreground tracking-tight">
-                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-orange-500" />{leftDistrict}</span>
-                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-neutral-500" />{rightDistrict}</span>
-              </div>
             </div>
-          </motion.div>
-        )}
-
-        {/* Filters */}
-        <motion.div variants={staggerItem} className="fp-toolbar md:grid-cols-[1.4fr_1fr] lg:grid-cols-[1.4fr_1fr]">
-          <label className="space-y-2">
-            <span className="eyebrow-label tracking-tight">Search compared items</span>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="fp-input pl-10"
-                placeholder="Tomato, onion, leafy greens..."
-              />
-            </div>
-          </label>
-          <label className="space-y-2">
-            <span className="eyebrow-label tracking-tight">Sort</span>
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="fp-select">
-              <option value="delta-high">Largest delta first</option>
-              <option value="delta-low">Smallest delta first</option>
-              <option value="item">Item name A-Z</option>
-            </select>
-          </label>
-        </motion.div>
-
-        {/* Results */}
-        <motion.div variants={staggerItem} className="space-y-3">
-          {isLoading ? <SectionSkeleton cards={4} /> : null}
-          {!isLoading && !visibleItems.length && (
-            <EmptyState
-              title="No overlapping produce items found"
-              description="Try a different district pair or continue through adjacent discovery flows."
-              hint="Next action: continue in markets or categories."
-              actionLabel="Open categories"
-              actionTo="/categories"
-              secondaryActionLabel="Open markets"
-              secondaryActionTo="/markets"
-            />
           )}
-          {visibleItems.map((item) => {
-            const isLeft = item.cheaper_side === data?.left
-            return (
-              <motion.article
-                key={item.item_name}
-                className="fp-soft-card premium-surface border-transparent"
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "0px 0px -40px 0px" }}
-                variants={staggerItem}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
+
+          <div className="fp-toolbar md:grid-cols-[1.4fr_1fr] lg:grid-cols-[1.4fr_1fr]">
+            <label className="space-y-2">
+              <span className="eyebrow-label">Search compared items</span>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--color-text-muted)]" />
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  className="fp-input pl-10"
+                  placeholder="Tomato, onion, leafy greens..."
+                />
+              </div>
+            </label>
+            <label className="space-y-2">
+              <span className="eyebrow-label">Sort</span>
+              <select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)} className="fp-select">
+                <option value="delta-high">Largest delta first</option>
+                <option value="delta-low">Smallest delta first</option>
+                <option value="item">Item name A-Z</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="space-y-3">
+            {isLoading ? <SectionSkeleton cards={4} /> : null}
+            {!isLoading && !visibleItems.length && (
+              <EmptyState
+                title="No overlapping produce items found"
+                description="Try a different district pair or continue through adjacent discovery flows."
+                hint="Next action: continue in markets or categories."
+                actionLabel="Open categories"
+                actionTo="/categories"
+                secondaryActionLabel="Open markets"
+                secondaryActionTo="/markets"
+              />
+            )}
+            {visibleItems.map((item, index) => {
+              const cheaperDistrict = item.cheaper_side === 'equal' ? 'Equal' : item.cheaper_side
+              return (
+                <article
+                  key={item.item_name}
+                  className="grid gap-3 border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4 shadow-paper md:grid-cols-[56px_1fr_auto]"
+                >
+                  <p className="num font-mono text-xs font-bold text-[color:var(--color-text-muted)]">
+                    {String(index + 1).padStart(2, '0')}
+                  </p>
                   <div>
-                    <h4 className="text-base font-semibold text-foreground tracking-tight">{item.item_name}</h4>
-                    <p className="text-sm capitalize text-muted-foreground">{item.category}</p>
+                    <h3 className="font-display text-xl font-semibold text-[color:var(--color-text-primary)]">{item.item_name}</h3>
+                    <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--color-text-muted)]">{item.category}</p>
+                    <div className="mt-4 grid gap-[1px] bg-[color:var(--color-border)] sm:grid-cols-2">
+                      <div className="bg-[color:var(--color-bg-secondary)] p-3">
+                        <p className="eyebrow-label">{data?.left}</p>
+                        <p className="num mt-1 text-lg font-bold text-[color:var(--color-text-primary)]">රු {formatCurrency(item.left_price_lkr)}</p>
+                      </div>
+                      <div className="bg-[color:var(--color-bg-secondary)] p-3">
+                        <p className="eyebrow-label">{data?.right}</p>
+                        <p className="num mt-1 text-lg font-bold text-[color:var(--color-text-primary)]">රු {formatCurrency(item.right_price_lkr)}</p>
+                      </div>
+                    </div>
                   </div>
-                  <Badge variant="green">
-                    {item.cheaper_side} cheaper by Rs {formatCurrency(Math.abs(item.delta_lkr))}
-                  </Badge>
-                </div>
-
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                  <div
-                    className={`rounded-md p-3 border ${isLeft ? 'border-orange-500/20 bg-orange-500/5' : 'border-white/5 bg-white/5'}`}
-                  >
-                    <p className="text-xs font-semibold text-secondary-foreground tracking-tight">{data?.left}</p>
-                    <p className="num mt-1.5 text-lg font-semibold text-foreground tracking-tight">
-                      Rs {formatCurrency(item.left_price_lkr)}
+                  <div className="md:text-right">
+                    <Badge variant={cheaperDistrict === data?.left || cheaperDistrict === data?.right ? 'green' : 'neutral'}>
+                      {cheaperDistrict} cheaper
+                    </Badge>
+                    <p className="num mt-2 text-lg font-bold text-[color:var(--chili-600)]">
+                      රු {formatCurrency(Math.abs(item.delta_lkr))}
                     </p>
-                    {isLeft && <Badge variant="green" className="mt-2">Cheaper</Badge>}
                   </div>
-                  <div
-                    className={`rounded-md p-3 border ${!isLeft ? 'border-orange-500/20 bg-orange-500/5' : 'border-white/5 bg-white/5'}`}
-                  >
-                    <p className="text-xs font-semibold text-secondary-foreground tracking-tight">{data?.right}</p>
-                    <p className="num mt-1.5 text-lg font-semibold text-foreground tracking-tight">
-                      Rs {formatCurrency(item.right_price_lkr)}
-                    </p>
-                    {!isLeft && <Badge variant="green" className="mt-2">Cheaper</Badge>}
-                  </div>
-                </div>
-              </motion.article>
-            )
-          })}
-        </motion.div>
+                </article>
+              )
+            })}
+          </div>
 
-        <motion.div variants={staggerItem}>
           <NextActionLinks
             title="Next actions"
             links={[
@@ -281,8 +264,8 @@ export function ComparePage() {
               { label: 'Open markets', to: '/markets' },
             ]}
           />
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
     </section>
   )
 }

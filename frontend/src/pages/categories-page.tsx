@@ -42,9 +42,9 @@ export function CategoriesPage() {
   return (
     <section className="space-y-8">
       <SectionHeader
-        eyebrow="Categories"
-        title="Category intelligence"
-        description="Rank category depth across retail and wet-market sources to pick the best path for deeper analysis."
+        eyebrow="Section index"
+        title="Categories"
+        description="A newspaper-style section index for category depth across retail and wet-market sources."
       />
 
       <div className="fp-panel space-y-6">

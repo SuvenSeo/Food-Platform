@@ -1,6 +1,31 @@
 import '@testing-library/jest-dom/vitest'
 import { afterEach, beforeEach, vi } from 'vitest'
 
+function createStorageShim() {
+  const store = new Map<string, string>()
+  return {
+    getItem: vi.fn((key: string) => store.get(key) ?? null),
+    setItem: vi.fn((key: string, value: string) => { store.set(key, String(value)) }),
+    removeItem: vi.fn((key: string) => { store.delete(key) }),
+    clear: vi.fn(() => { store.clear() }),
+    key: vi.fn((index: number) => Array.from(store.keys())[index] ?? null),
+    get length() {
+      return store.size
+    },
+  }
+}
+
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'localStorage', {
+    value: createStorageShim(),
+    configurable: true,
+  })
+  Object.defineProperty(window, 'sessionStorage', {
+    value: createStorageShim(),
+    configurable: true,
+  })
+}
+
 // jsdom does not implement IntersectionObserver, but several UI primitives
 // (RevealSection, StatsBento, AppLoader's image lazy-load) depend on it.
 // Provide a no-op shim that immediately reports "intersecting" so observers

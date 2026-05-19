@@ -5,14 +5,14 @@ export const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-orange-500/15 text-orange-400 ring-orange-500/25',
-        orange: 'bg-orange-500/15 text-orange-400 ring-orange-500/25',
-        green: 'bg-emerald-500/15 text-emerald-400 ring-emerald-500/25',
-        amber: 'bg-amber-500/15 text-amber-400 ring-amber-500/25',
-        red: 'bg-red-500/15 text-red-400 ring-red-500/25',
-        neutral: 'bg-white/[0.08] text-secondary-foreground ring-white/[0.10]',
-        outline: 'border border-white/[0.12] bg-transparent text-secondary-foreground ring-0',
-        teal: 'bg-teal-500/15 text-teal-400 ring-teal-500/25',
+        default: 'bg-[color:var(--color-accent-dim)] text-[color:var(--chili-600)] ring-[color:var(--color-accent-glow)]',
+        orange: 'bg-[color:var(--color-accent-dim)] text-[color:var(--chili-600)] ring-[color:var(--color-accent-glow)]',
+        green: 'bg-[rgba(44,74,34,0.14)] text-[color:var(--curry-leaf)] ring-[rgba(44,74,34,0.28)]',
+        amber: 'bg-[rgba(232,163,23,0.18)] text-[color:var(--turmeric-deep)] ring-[rgba(232,163,23,0.34)]',
+        red: 'bg-[rgba(200,50,30,0.14)] text-[color:var(--chili-600)] ring-[rgba(200,50,30,0.32)]',
+        neutral: 'bg-[rgba(14,14,12,0.06)] text-[color:var(--color-text-secondary)] ring-[color:var(--color-border)]',
+        outline: 'border border-[color:var(--color-border-hover)] bg-transparent text-[color:var(--color-text-secondary)] ring-0',
+        teal: 'bg-[rgba(44,74,34,0.12)] text-[color:var(--curry-leaf)] ring-[rgba(44,74,34,0.25)]',
       },
     },
     defaultVariants: { variant: 'default' },
