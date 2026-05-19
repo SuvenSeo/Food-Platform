@@ -7,13 +7,15 @@ Scope: Food Platform frontend, backend, scraper pipeline, local data path, and r
 
 The Food Platform has the right product direction for a food price intelligence hub: it already has public API surfaces, retail offers, market quotes, category views, compare tools, basket workflows, methods/pipeline pages, and a trust/freshness layer.
 
-The critical gap was data reliability. The main source set is now live end to end locally: Spar2U, Glomark, Keells, Cargills, WFP, CBSL, DCS, and DOA all fetch and write data through the platform sync paths. The platform can now power pages from scraped retail offers plus official market quotes, with scheduled GitHub Actions configured to run the repaired source set.
+The critical gap was data reliability. The main source set is now live end to end locally: Spar2U, Glomark, Keells, Cargills, WFP, CBSL, DCS, DOA, and HARTI all return nonzero rows in live smoke checks, and the official market sources write tracked scrape runs through the platform sync paths. The platform can now power pages from scraped retail offers plus official market quotes, with scheduled GitHub Actions configured to run the repaired source set.
 
 There is also a real normalization bug visible in live data: `Chinese Cabbage Per 100g(s)` is normalized as brand `Chinese`, canonical `cabbage per (s)`, and unit price `72`, when it should be treated as a produce item with comparable price per kg, likely `720 LKR/kg`.
 
 Update from the same audit pass: the normalization bug above has been fixed and covered by regression tests. The live Glomark cabbage row now normalizes as canonical `chinese cabbage`, no brand, unit `kg`, unit amount `0.1`, and unit price `720 LKR/kg`.
 
-Final implementation update: Keells now uses the current public guest data-collection API, Cargills uses the current JSON dynamic/category endpoints with a browser-context fallback for category product data, DCS resolves current weekly report wrappers to PDFs and parses table rows, DOA/SHEP is wired as a new official vegetable-price source, and WFP uses browser-like request headers to avoid HDX connection resets.
+Final implementation update: Keells now uses the current public guest data-collection API, Cargills uses the current JSON dynamic/category endpoints with a browser-context fallback for category product data, DCS resolves current weekly report wrappers to PDFs and parses table rows, DOA/SHEP is wired as an official vegetable-price source, HARTI is wired as an official daily food commodities bulletin source, and WFP uses browser-like request headers to avoid HDX connection resets.
+
+Additional UI/verification update: routed pages now expose real page-level `h1` headings, nested section headers can opt down to `h2`, and paper-mode trust surfaces now keep readable ink colors when rendered on night-theme routes.
 
 ## Verification Summary
 
@@ -23,16 +25,19 @@ Backend environment:
 | --- | --- |
 | Backend requirements installed into `.venv` | Fixed during audit |
 | `pip check` | Passed |
-| `pytest -q` | 54 passed |
+| `pytest` | 65 passed |
 | Local API `/health` | `{"status":"ok"}` |
 
 Frontend environment from the prior verification pass:
 
 | Check | Result |
 | --- | --- |
+| `npm run lint` | Passed |
 | `npm run build` | Passed |
-| `npm run test` | Passed, 6 tests |
+| `npm run test` | Passed, 12 tests |
 | Dev server | Running on `http://127.0.0.1:5173` during verification |
+| Browser route audit | 24 route/viewport checks passed: no console errors, no horizontal overflow, one `h1` per route |
+| Live scraper smoke | Spar2U, Glomark, WFP, CBSL, DCS, DOA, HARTI, Keells, and Cargills returned rows |
 
 Local data after running known-working sources:
 
@@ -40,9 +45,9 @@ Local data after running known-working sources:
 | --- | ---: |
 | `food_offers` | 213 |
 | `price_aggregates` | 156 |
-| `market_quotes` | 59,329 |
+| `market_quotes` | 59,554 |
 | Retail sources with normalized offers | 4 |
-| Market sources with quotes | 4 |
+| Market sources with quotes | 5 |
 
 Retail source distribution:
 
@@ -61,6 +66,7 @@ Market source distribution:
 | CBSL | Working | Latest PDF parsed; official sync inserted 35 rows, latest report dated 2026-05-18 |
 | DCS | Working | Weekly wrapper/PDF parser inserted 114 Colombo District retail rows |
 | DOA/SHEP | Working | Official InfoHub JSON scraper inserted 30,696 vegetable wholesale/retail rows |
+| HARTI | Working | Latest daily food commodities bulletin parsed 225 multi-market vegetable and fruit quote rows |
 
 ## Food Platform Findings
 
@@ -72,7 +78,7 @@ Current flow:
 2. `app.services.source_sync.sync_sources` calls per-source fetchers.
 3. Raw offers are stored in `raw_offers`.
 4. `rebuild_normalized_views` rebuilds `food_offers`, `price_aggregates`, and `fair_price_scores`.
-5. Official market sync stores WFP/CBSL/DCS/DOA rows in `market_quotes`.
+5. Official market sync stores WFP/CBSL/DCS/DOA/HARTI rows in `market_quotes`.
 
 Strengths:
 
@@ -85,7 +91,7 @@ Gaps:
 
 - A zero-item completed scrape can look operationally successful unless the pipeline health is inspected.
 - Source sync has no strong per-source timeout guard like the Vehicle Platform.
-- `test_scrapers_live.py` now tests Cargills as well as Spar2U, Glomark, Keells, WFP, CBSL, DCS, and DOA.
+- `test_scrapers_live.py` now tests Cargills as well as Spar2U, Glomark, Keells, WFP, CBSL, DCS, DOA, and HARTI.
 - Playwright package install is not enough; Chromium/headless shell installation must be part of setup and deployment.
 - The confidence score now penalizes stale/missing datasets and degraded pipeline sources more strongly.
 
@@ -94,7 +100,7 @@ Implemented during this pass:
 - `sync_sources` now returns per-source `source_results`.
 - A configured retail source returning zero offers is recorded as a failed source result.
 - The live scraper test script now includes Cargills.
-- Keells, Cargills, DCS, DOA, and WFP scraper repairs are implemented and verified with live runs.
+- Keells, Cargills, DCS, DOA, HARTI, and WFP scraper repairs/additions are implemented and verified with live runs.
 
 ### Normalization
 

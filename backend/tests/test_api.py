@@ -153,7 +153,7 @@ def test_platform_freshness_exposes_confidence_and_provenance() -> None:
     assert payload["coverage"]["market_quotes_count"] == 2
     assert payload["pipeline"]["healthy_sources"] >= 1
     assert payload["pipeline"]["total_sources"] >= 8
-    assert {source["source"] for source in payload["pipeline"]["sources"]} >= {"spar2u", "glomark", "keells", "cargills", "wfp", "cbsl", "dcs", "doa"}
+    assert {source["source"] for source in payload["pipeline"]["sources"]} >= {"spar2u", "glomark", "keells", "cargills", "wfp", "cbsl", "dcs", "doa", "harti"}
     assert payload["pipeline"]["blocking_warnings"]
     assert payload["confidence"]["score"] >= 0
     assert payload["confidence"]["grade"] in {"high", "medium", "low"}

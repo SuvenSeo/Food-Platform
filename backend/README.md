@@ -101,7 +101,7 @@ Keells and Cargills use Playwright headless Chromium (`app/scrapers/browser.py`)
 ## Market quote sync
 
 - `python run_market_sync.py`
-- `python run_official_market_sync.py --sources wfp dcs cbsl`
+- `python run_official_market_sync.py --sources wfp dcs cbsl doa harti`
 
 ## Maintenance
 

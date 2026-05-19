@@ -279,6 +279,7 @@ export function OfferDetailPage() {
             eyebrow="Related"
             title="Similar offers"
             description="Nearby retail alternatives help this page feel like a workflow, not a dead end."
+            level="h2"
           />
           {relatedOffers.length > 0 ? (
             <div className="grid gap-4 lg:grid-cols-3">

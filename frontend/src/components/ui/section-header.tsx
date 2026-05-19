@@ -8,6 +8,7 @@ type SectionHeaderProps = {
   action?: ReactNode
   className?: string
   titleClassName?: string
+  level?: 'h1' | 'h2' | 'h3'
 }
 
 /** Newspaper section opener — kicker, Fraunces title, italic deck, double rule. */
@@ -18,13 +19,16 @@ export function SectionHeader({
   action,
   className,
   titleClassName,
+  level = 'h1',
 }: SectionHeaderProps) {
+  const HeadingTag = level
+
   return (
     <header className={cn('space-y-4', className)}>
       <div className="flex items-end justify-between gap-6">
         <div className="min-w-0 max-w-3xl">
           <span className="text-kicker">§ {eyebrow}</span>
-          <h2
+          <HeadingTag
             className={cn(
               'mt-3 font-display leading-[0.95] text-[color:var(--color-text-primary)]',
               titleClassName,
@@ -36,7 +40,7 @@ export function SectionHeader({
             }}
           >
             {title}
-          </h2>
+          </HeadingTag>
           {description && (
             <p
               className="mt-4 max-w-[min(64ch,calc(100vw-3rem))] break-words font-display text-[16px] italic leading-[1.5] text-[color:var(--color-text-secondary)]"

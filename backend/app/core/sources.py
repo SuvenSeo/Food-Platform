@@ -20,7 +20,7 @@ class SourceProfile:
 
 
 DEFAULT_RETAIL_SOURCES: tuple[str, ...] = ("spar2u", "glomark", "keells", "cargills")
-DEFAULT_MARKET_SOURCES: tuple[str, ...] = ("wfp", "cbsl", "dcs", "doa")
+DEFAULT_MARKET_SOURCES: tuple[str, ...] = ("wfp", "cbsl", "dcs", "doa", "harti")
 
 SOURCE_PROFILES: dict[str, SourceProfile] = {
     "spar2u": SourceProfile("spar2u", "Spar2U", "retail", True, 360, 1200, 1, 720),
@@ -31,6 +31,7 @@ SOURCE_PROFILES: dict[str, SourceProfile] = {
     "cbsl": SourceProfile("cbsl", "Central Bank Daily Price Report", "market", True, 360, 60, 1, 1440),
     "dcs": SourceProfile("dcs", "Department of Census and Statistics", "market", True, 360, 60, 1, 10080),
     "doa": SourceProfile("doa", "Department of Agriculture", "market", True, 360, 60, 1, 1440),
+    "harti": SourceProfile("harti", "HARTI Daily Food Commodities Bulletin", "market", True, 360, 60, 10, 1440),
 }
 
 

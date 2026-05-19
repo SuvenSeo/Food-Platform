@@ -97,6 +97,21 @@ def test_doa():
         print(f"  FAILED: {exc}")
         return False
 
+def test_harti():
+    print("=== HARTI Daily Food Commodities Bulletin ===")
+    try:
+        from app.scrapers.harti import fetch_harti_market_quotes
+        quotes = fetch_harti_market_quotes(timeout=30.0)
+        print(f"  OK — {len(quotes)} market quotes")
+        for q in quotes[:3]:
+            print(f"  {q['item_name'][:30]:30s} | {q['market_name'][:25]:25s} | Rs {q['price_lkr']}/{q['unit']} | {q['quoted_at'][:10]}")
+        if not quotes:
+            print("  (0 quotes — HARTI bulletin structure may have changed)")
+        return len(quotes) > 0
+    except Exception as exc:
+        print(f"  FAILED: {exc}")
+        return False
+
 def test_keells():
     print("=== Keells (guest API scrape) ===")
     try:
@@ -138,6 +153,8 @@ if __name__ == "__main__":
     results.append(test_dcs())
     print()
     results.append(test_doa())
+    print()
+    results.append(test_harti())
     print()
     results.append(test_keells())
     print()

@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.sources import DEFAULT_RETAIL_SOURCES
+from app.core.sources import DEFAULT_MARKET_SOURCES, DEFAULT_RETAIL_SOURCES
 from app.db.session import get_db
 from app.models.tables import FoodOfferRecord, MarketQuoteRecord, PriceAggregateRecord
 from app.services.market_quotes import ingest_official_market_quotes
@@ -115,7 +115,7 @@ def trigger_market_sync(
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
     """
-    Queue official market scrapers (WFP, DCS, CBSL) as background tasks.
+    Queue official market scrapers (WFP, DCS, CBSL, DOA, HARTI) as background tasks.
 
     Query params (optional):
       sources=wfp&sources=cbsl
@@ -123,7 +123,7 @@ def trigger_market_sync(
     background_tasks.add_task(_bg_market_sync, sources)
     return {
         "status": "queued",
-        "sources": sources or ["wfp", "dcs", "cbsl"],
+        "sources": sources or list(DEFAULT_MARKET_SOURCES),
         "message": "Market scrape queued. Poll GET /api/v1/admin/status to verify completion.",
         "current_market_quotes": db.scalar(select(func.count(MarketQuoteRecord.id))) or 0,
     }
@@ -144,5 +144,5 @@ def admin_status(
         "price_aggregates": db.scalar(select(func.count(PriceAggregateRecord.id))) or 0,
         "market_quotes": db.scalar(select(func.count(MarketQuoteRecord.id))) or 0,
         "retail_sources": list(DEFAULT_RETAIL_SOURCES),
-        "market_sources": ["wfp", "dcs", "cbsl"],
+        "market_sources": list(DEFAULT_MARKET_SOURCES),
     }

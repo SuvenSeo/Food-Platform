@@ -45,17 +45,17 @@ export function TrustCommandRail({ freshness, loading = false }: TrustCommandRai
               {loading ? 'Calibrating' : gradeLabel(confidence?.grade)}
             </p>
           </div>
-          <p className="mt-1 text-xs leading-5 text-[color:var(--color-text-muted)]">
+          <p className="mt-1 text-xs leading-5 text-[color:var(--ink-500)]">
             {confidence?.note ?? 'Checking scraper freshness and coverage.'}
           </p>
         </div>
 
         <div className="trust-command-cell bg-[color:var(--paper-50)]">
           <span className="text-kicker">§ Source board</span>
-          <p className="num mt-2 text-2xl font-bold leading-none text-[color:var(--color-text-primary)]">
+          <p className="num mt-2 text-2xl font-bold leading-none text-[color:var(--ink-900)]">
             {healthy}/{total || '—'}
           </p>
-          <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[color:var(--color-text-muted)]">
+          <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[color:var(--ink-500)]">
             sources live · refreshed {formatCompactDate(lastScrape)}
           </p>
         </div>
@@ -64,7 +64,7 @@ export function TrustCommandRail({ freshness, loading = false }: TrustCommandRai
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <span className="text-kicker">§ Next action</span>
-              <p className="mt-2 text-sm leading-6 text-[color:var(--color-text-secondary)]">
+              <p className="mt-2 text-sm leading-6 text-[color:var(--ink-700)]">
                 {warnings.length
                   ? `${warnings.length} expected feeds need attention before publishing analysis.`
                   : 'All expected feeds are within the current trust window.'}

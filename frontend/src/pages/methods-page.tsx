@@ -75,6 +75,7 @@ export function MethodsPage() {
             eyebrow="Source freshness"
             title="Source freshness"
             description="Live operational visibility sits in the public product, not only in internal tools."
+            level="h2"
           />
           <div className="grid gap-3 lg:grid-cols-2">
             {pipeline.map((item) => (
@@ -105,6 +106,7 @@ export function MethodsPage() {
               eyebrow="Coverage"
               title="Current public coverage"
               description="A compact disclosure of how much live data the platform currently presents."
+              level="h2"
             />
             <div className="hairline-grid rounded-lg overflow-hidden grid-cols-3">
               {[
@@ -137,6 +139,7 @@ export function MethodsPage() {
               eyebrow="Public product"
               title="Public product surfaces"
               description="Trust, legal, and developer surfaces make the platform easier to reuse and easier to trust."
+              level="h2"
             />
             <div className="mt-6 flex flex-wrap gap-3">
               <Link to="/developers" className="fp-button-primary">Developers</Link>

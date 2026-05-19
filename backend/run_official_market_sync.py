@@ -2,7 +2,7 @@
 Runner for official government / IGO market price sources.
 
 Usage:
-  python run_official_market_sync.py --sources wfp dcs cbsl doa
+  python run_official_market_sync.py --sources wfp dcs cbsl doa harti
   python run_official_market_sync.py --sources wfp
   python run_official_market_sync.py               # runs all official sources
 """
@@ -23,7 +23,7 @@ def parse_args():
         "--sources",
         nargs="*",
         default=["all"],
-        help="Sources to run: wfp, dcs, cbsl, doa, or 'all' (default).",
+        help="Sources to run: wfp, dcs, cbsl, doa, harti, or 'all' (default).",
     )
     parser.add_argument(
         "--timeout",

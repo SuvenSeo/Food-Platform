@@ -36,6 +36,7 @@ See also: [`backend/README.md`](../backend/README.md) for sync commands and Dock
 - **CBSL** — Central Bank daily price reports for selected commodities
 - **DOA / SHEP** — Department of Agriculture InfoHub daily vegetable prices for Manning and Dambulla wholesale/retail series
 - **DCS** — Department of Census and Statistics weekly prices
+- **HARTI** — daily food commodities bulletin with multi-market vegetable and fruit tables
 
 Synced via `run_official_market_sync.py` / `run_market_sync.py`. Remote override: `MARKET_QUOTES_URL`.
 
@@ -47,6 +48,7 @@ Synced via `run_official_market_sync.py` / `run_market_sync.py`. Remote override
 | `cbsl` | Active | Latest daily PDF parser; good for selected commodities. |
 | `doa` | Active | WordPress JSON endpoint behind the public SHEP charts; vegetable-focused. |
 | `dcs` | Active | Weekly DCS wrapper/PDF discovery with table extraction for Colombo District open-market retail prices. |
+| `harti` | Active | Daily English HARTI food commodities bulletin PDF; strong multi-market vegetable and fruit coverage. |
 
 ## Candidate sources to evaluate next
 

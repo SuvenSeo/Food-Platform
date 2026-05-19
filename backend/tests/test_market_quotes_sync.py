@@ -9,6 +9,7 @@ from app.models.tables import MarketQuoteRecord
 from app.services import market_quotes
 from app.scrapers.dcs import _parse_dcs_table_rows
 from app.scrapers.doa import parse_doa_item_rows
+from app.scrapers.harti import _parse_harti_price_tables, _parse_price_range
 
 
 def _reset_market_quotes() -> None:
@@ -185,5 +186,65 @@ def test_parse_dcs_table_rows_uses_current_week_average_price() -> None:
             "source": "dcs",
             "quoted_at": "2026-05-14T00:00:00+00:00",
             "notes": "DCS weekly open market retail price survey, Colombo District.",
+        },
+    ]
+
+
+def test_parse_harti_price_range_averages_ranges_and_rejects_blanks() -> None:
+    assert _parse_price_range("550 - 650") == 600.0
+    assert _parse_price_range("350") == 350.0
+    assert _parse_price_range("-") is None
+
+
+def test_parse_harti_price_tables_emits_market_quotes() -> None:
+    tables = [
+        [
+            ["", "2026.05.18", "2026.05.18"],
+            ["Variety", "Peliyagoda Market", "Kandy Market"],
+            ["Up Country Vegetable", "", ""],
+            ["Beans", "550 - 650", "500 - 550"],
+            ["Banana", "", ""],
+            ["Anamalu (Rs/Fruits)", "20 - 29", "-"],
+        ]
+    ]
+
+    quotes = _parse_harti_price_tables(
+        tables,
+        pdf_url="https://www.harti.gov.lk/assets/pdf/food_price/daily/eng/2026/May/Vegetable%20Pricenew%20ex1(2026.05.18).pdf",
+    )
+
+    assert quotes == [
+        {
+            "district": "Colombo",
+            "market_name": "Peliyagoda Market (HARTI)",
+            "item_name": "Beans",
+            "category": "vegetables",
+            "unit": "kg",
+            "price_lkr": 600.0,
+            "source": "harti",
+            "quoted_at": "2026-05-18T00:00:00+00:00",
+            "notes": "HARTI daily food commodities bulletin range: 550 - 650.",
+        },
+        {
+            "district": "Kandy",
+            "market_name": "Kandy Market (HARTI)",
+            "item_name": "Beans",
+            "category": "vegetables",
+            "unit": "kg",
+            "price_lkr": 525.0,
+            "source": "harti",
+            "quoted_at": "2026-05-18T00:00:00+00:00",
+            "notes": "HARTI daily food commodities bulletin range: 500 - 550.",
+        },
+        {
+            "district": "Colombo",
+            "market_name": "Peliyagoda Market (HARTI)",
+            "item_name": "Anamalu",
+            "category": "fruits",
+            "unit": "piece",
+            "price_lkr": 24.5,
+            "source": "harti",
+            "quoted_at": "2026-05-18T00:00:00+00:00",
+            "notes": "HARTI daily food commodities bulletin range: 20 - 29.",
         },
     ]

@@ -89,7 +89,7 @@ function NavPill({ to, label, end }: NavItem) {
       end={end}
       className={({ isActive }) =>
         cn(
-          'relative inline-flex shrink-0 items-baseline gap-1.5 px-0.5 py-1 font-display text-[15px] tracking-normal transition-colors duration-200',
+          'relative inline-flex min-h-8 shrink-0 items-center gap-1.5 px-0.5 py-1.5 font-display text-[15px] tracking-normal transition-colors duration-200',
           isActive
             ? "text-[color:var(--chili-500)] before:content-['§'] before:mr-1 before:font-serif before:italic"
             : 'text-[color:var(--color-text-secondary)] hover:text-[color:var(--color-text-primary)]',
@@ -240,7 +240,7 @@ function MandiyaMasthead() {
       {/* — Black masthead bar — */}
       <div className="sticky top-0 z-50 border-b border-[color:var(--color-border)] bg-[color:var(--ink-900)] text-[color:var(--paper-100)]">
         <div className="mx-auto flex max-w-[1320px] items-center gap-4 px-4 py-2.5 sm:px-6">
-          <NavLink to="/" className="flex shrink-0 items-center gap-2.5" aria-label="FoodLK home">
+          <NavLink to="/" className="flex min-h-8 shrink-0 items-center gap-2.5" aria-label="FoodLK home">
             <FoodLKIcon className="h-6 w-6 text-[color:var(--turmeric)]" />
             <div className="flex items-baseline gap-1.5">
               <span className="font-display text-[19px] font-bold tracking-normal leading-none">
