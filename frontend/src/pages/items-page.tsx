@@ -8,6 +8,30 @@ import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { EmptyState, ErrorState } from '../components/ui/workflow-helpers'
 import { api } from '../lib/api'
 import { formatCompactDate, formatCurrency } from '../lib/format'
+import type { ItemSummary } from '../types'
+
+function ItemThumb({ item }: { item: ItemSummary }) {
+  const [errored, setErrored] = useState(false)
+  if (item.image_url && !errored) {
+    return (
+      <img
+        src={item.image_url}
+        alt={item.display_name || item.canonical_name}
+        className="h-full w-full object-contain p-2 transition group-hover:scale-[1.04]"
+        loading="lazy"
+        decoding="async"
+        onError={() => setErrored(true)}
+      />
+    )
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-1 text-[color:var(--ink-400)]">
+      <ImageOff className="h-5 w-5" aria-hidden="true" />
+      <span className="font-mono text-[9px] uppercase tracking-[0.2em]">{item.kind}</span>
+    </div>
+  )
+}
 
 export function ItemsPage() {
   const [search, setSearch] = useState('')
@@ -74,20 +98,7 @@ export function ItemsPage() {
               className="group grid grid-cols-[96px_1fr] bg-[color:var(--color-bg-card)] text-[color:var(--color-text-primary)] transition hover:bg-[color:var(--color-bg-card-hover)]"
             >
               <div className="flex aspect-square items-center justify-center border-r border-[color:var(--color-border)] bg-[color:var(--paper-200)]">
-                {item.image_url ? (
-                  <img
-                    src={item.image_url}
-                    alt={item.display_name || item.canonical_name}
-                    className="h-full w-full object-contain p-2 transition group-hover:scale-[1.04]"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                ) : (
-                  <div className="flex flex-col items-center gap-1 text-[color:var(--ink-400)]">
-                    <ImageOff className="h-5 w-5" aria-hidden="true" />
-                    <span className="font-mono text-[9px] uppercase tracking-[0.2em]">{item.kind}</span>
-                  </div>
-                )}
+                <ItemThumb item={item} />
               </div>
               <div className="min-w-0 p-4">
                 <p className="text-kicker">{item.kind === 'retail' ? `${item.source_count ?? 0} retail sources` : `${item.market_quotes_count ?? 0} market quotes`}</p>
