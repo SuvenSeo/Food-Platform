@@ -10,6 +10,9 @@ name: FoodLK — Unified Data Scraper
 # Required GitHub Actions secrets:
 #   DATABASE_URL   — postgresql+psycopg://... (Supabase)
 #   ADMIN_API_KEY  — optional; retained for manual Fly admin triggers
+#
+# If DATABASE_URL uses db.<project>.supabase.co, CI rewrites it to the IPv4
+# transaction pooler URL before running sync commands.
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
@@ -95,10 +98,15 @@ jobs:
           pip install -r requirements.txt
           playwright install chromium chromium-headless-shell --with-deps
 
-      - name: Run ${{ matrix.source }} scrape
+      - name: Resolve database URL for GitHub runner
         working-directory: backend
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python scripts/resolve_github_database_url.py >> "$GITHUB_ENV"
+
+      - name: Run ${{ matrix.source }} scrape
+        working-directory: backend
+        env:
           ALLOW_SQLITE_FALLBACK: "false"
           APP_ENV: production
         run: |
@@ -107,7 +115,6 @@ jobs:
       - name: Verify scrape run
         working-directory: backend
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           ALLOW_SQLITE_FALLBACK: "false"
         run: |
           python scripts/verify_last_scrape.py --source ${{ matrix.source }} --max-wait-seconds 30
@@ -134,10 +141,15 @@ jobs:
         working-directory: backend
         run: pip install -r requirements.txt
 
-      - name: Run ${{ matrix.source }} official market sync
+      - name: Resolve database URL for GitHub runner
         working-directory: backend
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python scripts/resolve_github_database_url.py >> "$GITHUB_ENV"
+
+      - name: Run ${{ matrix.source }} official market sync
+        working-directory: backend
+        env:
           ALLOW_SQLITE_FALLBACK: "false"
           APP_ENV: production
         run: python run_official_market_sync.py --sources ${{ matrix.source }}
@@ -145,7 +157,6 @@ jobs:
       - name: Verify ${{ matrix.source }} market rows
         working-directory: backend
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           ALLOW_SQLITE_FALLBACK: "false"
           APP_ENV: production
         run: python scripts/verify_market_source.py --source ${{ matrix.source }} --min-rows 1
