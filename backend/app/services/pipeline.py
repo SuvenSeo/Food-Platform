@@ -95,17 +95,23 @@ def _latest_raw_offer_rows(db: Session) -> list[RawOfferRecord]:
 
 
 def rebuild_normalized_views(db: Session) -> None:
-    """Upsert food offers from latest raw snapshots; rebuild derived aggregates and scores."""
-    sync_postgres_id_sequence(db, FoodOfferRecord.__tablename__)
+    """Rebuild food offers from latest raw snapshots plus derived aggregate views."""
     db.execute(delete(FairPriceScoreRecord))
     db.execute(delete(PriceAggregateRecord))
     db.flush()
 
     raw_records = _latest_raw_offer_rows(db)
-    existing_by_key = {
-        (row.source, row.source_item_id): row
-        for row in db.scalars(select(FoodOfferRecord)).all()
-    }
+    existing_rows = db.scalars(select(FoodOfferRecord)).all()
+    first_seen_by_key: dict[tuple[str, str], datetime] = {}
+    for row in existing_rows:
+        key = (row.source, row.source_item_id)
+        current_first_seen = first_seen_by_key.get(key)
+        if current_first_seen is None or row.first_seen_at < current_first_seen:
+            first_seen_by_key[key] = row.first_seen_at
+
+    db.execute(delete(FoodOfferRecord))
+    db.flush()
+    sync_postgres_id_sequence(db, FoodOfferRecord.__tablename__)
 
     normalized_rows: list[FoodOfferRecord] = []
     normalized_domain = []
@@ -135,57 +141,31 @@ def rebuild_normalized_views(db: Session) -> None:
         )
         normalized_domain.append(normalized)
 
-        existing = existing_by_key.get(key)
-        if existing:
-            existing.raw_offer_id = raw_record.id
-            existing.source_group_id = normalized.source_group_id
-            existing.category = normalized.category
-            existing.brand = normalized.brand
-            existing.canonical_name = normalized.canonical_name
-            existing.display_name = normalized.display_name
-            existing.unit = normalized.unit
-            existing.unit_amount = normalized.unit_amount
-            existing.pack_descriptor = normalized.pack_descriptor
-            existing.price_lkr = normalized.price_lkr
-            existing.price_per_unit_lkr = normalized.price_per_unit_lkr
-            existing.currency = normalized.currency
-            existing.available = normalized.available
-            existing.sku = normalized.sku
-            existing.url = normalized.url
-            existing.image_url = normalized.image_url
-            existing.cluster_key = normalized.cluster_key
-            existing.last_seen_at = raw_record.scraped_at
-            normalized_rows.append(existing)
-        else:
-            row = FoodOfferRecord(
-                raw_offer_id=raw_record.id,
-                source=normalized.source,
-                source_item_id=normalized.source_item_id,
-                source_group_id=normalized.source_group_id,
-                category=normalized.category,
-                brand=normalized.brand,
-                canonical_name=normalized.canonical_name,
-                display_name=normalized.display_name,
-                unit=normalized.unit,
-                unit_amount=normalized.unit_amount,
-                pack_descriptor=normalized.pack_descriptor,
-                price_lkr=normalized.price_lkr,
-                price_per_unit_lkr=normalized.price_per_unit_lkr,
-                currency=normalized.currency,
-                available=normalized.available,
-                sku=normalized.sku,
-                url=normalized.url,
-                image_url=normalized.image_url,
-                cluster_key=normalized.cluster_key,
-                first_seen_at=raw_record.scraped_at,
-                last_seen_at=raw_record.scraped_at,
-            )
-            db.add(row)
-            normalized_rows.append(row)
-
-    stale_keys = set(existing_by_key) - seen_keys
-    for key in stale_keys:
-        db.delete(existing_by_key[key])
+        row = FoodOfferRecord(
+            raw_offer_id=raw_record.id,
+            source=normalized.source,
+            source_item_id=normalized.source_item_id,
+            source_group_id=normalized.source_group_id,
+            category=normalized.category,
+            brand=normalized.brand,
+            canonical_name=normalized.canonical_name,
+            display_name=normalized.display_name,
+            unit=normalized.unit,
+            unit_amount=normalized.unit_amount,
+            pack_descriptor=normalized.pack_descriptor,
+            price_lkr=normalized.price_lkr,
+            price_per_unit_lkr=normalized.price_per_unit_lkr,
+            currency=normalized.currency,
+            available=normalized.available,
+            sku=normalized.sku,
+            url=normalized.url,
+            image_url=normalized.image_url,
+            cluster_key=normalized.cluster_key,
+            first_seen_at=first_seen_by_key.get(key, raw_record.scraped_at),
+            last_seen_at=raw_record.scraped_at,
+        )
+        db.add(row)
+        normalized_rows.append(row)
 
     db.flush()
 
