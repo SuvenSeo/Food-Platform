@@ -65,10 +65,23 @@ def _doa_url(item: str) -> str:
     return f"{DOA_BASE_URL}{DOA_AJAX_PATH}?{urlencode({'action': 'get_veg_data', 'item': item})}"
 
 
+def _doa_referer(item: str) -> str:
+    return f"{DOA_REFERER}?{urlencode({'item': item})}"
+
+
+def _coerce_doa_rows(payload: object) -> list:
+    if isinstance(payload, list):
+        return payload
+    if isinstance(payload, dict) and isinstance(payload.get("data"), list):
+        return payload["data"]
+    if isinstance(payload, dict) and payload.get("data"):
+        raise ValueError(f"DOA response must be a JSON array: {payload.get('data')}")
+    raise ValueError("DOA response must be a JSON array.")
+
+
 def parse_doa_item_rows(rows: object, *, item: str) -> list[dict]:
     """Convert DOA chart rows into MarketQuote-compatible dictionaries."""
-    if not isinstance(rows, list):
-        raise ValueError("DOA response must be a JSON array.")
+    rows = _coerce_doa_rows(rows)
 
     quotes: list[dict] = []
     seen: set[tuple[str, str, str, str]] = set()
@@ -119,14 +132,27 @@ def fetch_doa_market_quotes(timeout: float = 30.0, items: tuple[str, ...] = DOA_
         timeout=timeout,
         headers={
             "User-Agent": "Mozilla/5.0 (compatible; FoodLensBot/1.0)",
-            "Referer": DOA_REFERER,
-            "Cache-Control": "no-cache",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         },
     ) as client:
+        try:
+            # The WordPress endpoint expects the same session cookie that the chart page sets.
+            client.get(DOA_REFERER)
+        except Exception as exc:
+            logger.warning("DOA: could not warm chart session: %s", exc)
+
         for item in items:
             url = _doa_url(item)
             try:
-                response = client.get(url)
+                response = client.get(
+                    url,
+                    headers={
+                        "Accept": "application/json, text/plain, */*",
+                        "Referer": _doa_referer(item),
+                        "Cache-Control": "no-cache",
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                )
                 response.raise_for_status()
                 item_quotes = parse_doa_item_rows(response.json(), item=item)
                 quotes.extend(item_quotes)

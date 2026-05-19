@@ -30,6 +30,31 @@ export function SiteFooter() {
 
   return (
     <footer className="relative mt-24 border-t-2 border-[color:var(--color-text-primary)] bg-[color:var(--paper-100)]">
+      <div className="mx-auto max-w-[1320px] px-4 pt-10 sm:px-6">
+        <section className="footer-cta" aria-label="Mandiya data tools">
+          <div>
+            <span className="text-kicker">§ Put the desk to work</span>
+            <h2
+              className="mt-3 max-w-[12ch] font-display text-[clamp(2rem,5vw,4.5rem)] font-semibold leading-[0.94] text-[color:var(--paper-50)]"
+              style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 30, 'wght' 660" }}
+            >
+              Alerts, exports, and one clean API.
+            </h2>
+          </div>
+          <div className="footer-cta-copy">
+            <p>
+              Save baskets, track price drops, compare districts, or pull normalized food-price data
+              into your own research stack.
+            </p>
+            <div className="footer-cta-actions">
+              <Link to="/watchlists">Set alerts</Link>
+              <Link to="/developers">Use API</Link>
+              <Link to="/basket">Cost a basket</Link>
+            </div>
+          </div>
+        </section>
+      </div>
+
       {/* Halftone wordmark band */}
       <div className="relative overflow-hidden border-b border-[color:var(--color-border-hover)]">
         <div

@@ -14,6 +14,7 @@ import { CommandSearch } from './command-search'
 import { useCommandSearch } from '../../hooks/use-command-search'
 import { MobileMoversStrip } from './mobile-movers-strip'
 import { SiteFooter } from './site-footer'
+import { TrustCommandRail } from './trust-command-rail'
 import { cn } from '../../lib/utils'
 import type { PlatformFreshnessSummary } from '../../types'
 
@@ -287,6 +288,7 @@ function MandiyaMasthead() {
           <Dateline freshness={freshnessQuery.data} />
         </div>
       </div>
+      <TrustCommandRail freshness={freshnessQuery.data} loading={freshnessQuery.isLoading} />
 
       {/* — Section index nav — */}
       <nav

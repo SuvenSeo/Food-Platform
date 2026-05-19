@@ -845,6 +845,225 @@ a {
   .sparkline-scrub:hover path {
     animation: scrub 0.6s linear infinite;
   }
+
+  /* Trust command rail — persistent source health and next actions */
+  .trust-command-rail {
+    border-bottom: 1px solid var(--color-border-hover);
+    background:
+      linear-gradient(90deg, rgba(200, 50, 30, 0.07), transparent 32%, rgba(44, 74, 34, 0.07));
+  }
+  .trust-command-cell {
+    min-width: 0;
+    padding: clamp(0.85rem, 1.6vw, 1.15rem);
+  }
+  .rail-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-height: 2.15rem;
+    border: 1px solid var(--color-border-hover);
+    border-radius: var(--radius-sm);
+    background: var(--paper-100);
+    color: var(--color-text-primary);
+    padding: 0.45rem 0.7rem;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: transform var(--motion-fast) var(--ease-spring),
+                border-color var(--motion-fast) var(--ease-apple),
+                background var(--motion-fast) var(--ease-apple);
+  }
+  .rail-action:hover {
+    transform: translateY(-1px);
+    border-color: var(--color-border-strong);
+    background: var(--paper-50);
+  }
+  .rail-action:active {
+    transform: translateY(0);
+  }
+  .rail-action-strong {
+    border-color: var(--ink-900);
+    background: var(--ink-900);
+    color: var(--paper-50);
+  }
+  .rail-action-strong:hover {
+    border-color: var(--chili-500);
+    background: var(--chili-500);
+  }
+
+  /* Homepage market board — bento, not decoration */
+  .market-board {
+    display: grid;
+    gap: 1px;
+    overflow: hidden;
+    border: 2px solid var(--color-text-primary);
+    background: var(--color-text-primary);
+    box-shadow: var(--shadow-elevated);
+  }
+  .market-board-photo {
+    min-height: 15rem;
+    background-image:
+      linear-gradient(135deg, rgba(14, 14, 12, 0.28), rgba(14, 14, 12, 0.08)),
+      url('https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80');
+    background-position: center;
+    background-size: cover;
+  }
+  .market-board-panel {
+    min-width: 0;
+    padding: clamp(1.1rem, 2.2vw, 1.8rem);
+  }
+  .market-board-lead {
+    background:
+      linear-gradient(135deg, rgba(200, 50, 30, 0.28), transparent 46%),
+      var(--ink-900);
+  }
+  .market-board-link,
+  .market-board-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: transform var(--motion-fast) var(--ease-spring),
+                color var(--motion-fast) var(--ease-apple),
+                border-color var(--motion-fast) var(--ease-apple);
+  }
+  .market-board-link {
+    margin-top: 1.25rem;
+    color: var(--chili-600);
+  }
+  .market-board-link:hover {
+    transform: translateX(2px);
+    color: var(--chili-700);
+  }
+  .market-board-actions {
+    display: grid;
+    grid-column: 1 / -1;
+    gap: 1px;
+    background: var(--color-text-primary);
+  }
+  .market-board-action {
+    min-height: 3.25rem;
+    background: var(--paper-200);
+    color: var(--color-text-primary);
+  }
+  .market-board-action:hover {
+    color: var(--chili-600);
+  }
+
+  /* Footer CTA — compact pre-footer conversion band */
+  .footer-cta {
+    display: grid;
+    gap: 1.5rem;
+    border: 2px solid var(--ink-900);
+    background:
+      linear-gradient(135deg, rgba(232, 163, 23, 0.22), transparent 36%),
+      var(--ink-900);
+    color: var(--paper-50);
+    padding: clamp(1.25rem, 3vw, 2.5rem);
+  }
+  .footer-cta .text-kicker {
+    color: var(--turmeric);
+  }
+  .footer-cta-copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 1.5rem;
+    color: var(--paper-300);
+    font-size: 0.95rem;
+    line-height: 1.7;
+  }
+  .footer-cta-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  .footer-cta-actions a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.4rem;
+    border: 1px solid rgba(255, 251, 241, 0.22);
+    border-radius: var(--radius-sm);
+    padding: 0.55rem 0.8rem;
+    color: var(--paper-50);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: transform var(--motion-fast) var(--ease-spring),
+                border-color var(--motion-fast) var(--ease-apple),
+                background var(--motion-fast) var(--ease-apple);
+  }
+  .footer-cta-actions a:hover {
+    transform: translateY(-1px);
+    border-color: var(--turmeric);
+    background: rgba(255, 251, 241, 0.08);
+  }
+
+  @media (min-width: 720px) {
+    .market-board {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .market-board-actions {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .footer-cta {
+      grid-template-columns: 1fr 1fr;
+      align-items: end;
+    }
+  }
+
+  @media (max-width: 719px) {
+    .trust-command-rail > div {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      padding-inline: 1rem;
+    }
+    .trust-command-cell {
+      padding: 0.72rem;
+    }
+    .trust-command-cell:nth-child(3) {
+      grid-column: 1 / -1;
+    }
+    .trust-command-cell:nth-child(3) > div {
+      align-items: flex-start;
+    }
+    .trust-command-cell .text-kicker {
+      font-size: 0.58rem;
+      letter-spacing: 0.2em;
+    }
+    .market-board-lead {
+      order: -2;
+    }
+    .market-board-photo {
+      order: -1;
+      min-height: 10rem;
+    }
+  }
+
+  @media (min-width: 1080px) {
+    .market-board {
+      grid-template-columns: 1.08fr 0.96fr 0.96fr;
+    }
+    .market-board-photo,
+    .market-board-lead {
+      min-height: 26rem;
+    }
+    .market-board-photo {
+      grid-row: span 2;
+    }
+    .market-board-lead {
+      grid-row: span 2;
+    }
+  }
 }
 
 /* ─────────────────────────────────────────────

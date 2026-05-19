@@ -4,8 +4,10 @@ import { ArrowRight, BarChart3, Bookmark, Scale, ShoppingBasket, Store, Waves } 
 import { OfferCard } from '../components/ui/offer-card'
 import { LiveTicker } from '../components/marketing/live-ticker'
 import { FeatureBento } from '../components/marketing/feature-bento'
+import { MarketIntelligenceBoard } from '../components/marketing/market-intelligence-board'
 import { useHomeSummary } from '../hooks/use-home-summary'
 import { useIntelligenceSummary } from '../hooks/use-intelligence-summary'
+import { usePlatformFreshness } from '../hooks/use-platform-freshness'
 import { formatCompactDate, formatCurrency } from '../lib/format'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { ErrorState } from '../components/ui/workflow-helpers'
@@ -22,6 +24,7 @@ const workspace = [
 export function HomePage() {
   const homeQuery = useHomeSummary()
   const intel = useIntelligenceSummary()
+  const freshnessQuery = usePlatformFreshness()
   const isLoading = homeQuery.isLoading || intel.isLoading
   const home = homeQuery.data
   const intelligence = intel.data
@@ -43,6 +46,8 @@ export function HomePage() {
           links={[{ label: 'Open retail floor', to: '/retail' }, { label: 'Open intel desk', to: '/intelligence' }]}
         />
       )}
+
+      <MarketIntelligenceBoard home={home} intelligence={intelligence} freshness={freshnessQuery.data} />
 
       {/* ─────────── MASTHEAD ─────────── */}
       <header className="grid gap-y-8 lg:grid-cols-[1.45fr_1px_0.55fr] lg:gap-x-10">

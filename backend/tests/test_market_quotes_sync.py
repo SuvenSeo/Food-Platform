@@ -134,6 +134,25 @@ def test_parse_doa_item_rows_emits_wholesale_and_retail_quotes() -> None:
     assert {quote["price_lkr"] for quote in quotes} == {650.0, 500.0, 700.0, 530.0}
 
 
+def test_parse_doa_item_rows_accepts_wrapped_data_payload() -> None:
+    payload = {
+        "data": [
+            {
+                "Date": "2026-05-18",
+                "Item": "Carrot",
+                "Unit": "kg",
+                "Pettah_Today_Wholesale": "250.000",
+            }
+        ]
+    }
+
+    quotes = parse_doa_item_rows(payload, item="Carrot")
+
+    assert len(quotes) == 1
+    assert quotes[0]["item_name"] == "Carrot"
+    assert quotes[0]["price_lkr"] == 250.0
+
+
 def test_parse_dcs_table_rows_uses_current_week_average_price() -> None:
     quoted_at = datetime(2026, 5, 14, tzinfo=timezone.utc)
     rows = [
