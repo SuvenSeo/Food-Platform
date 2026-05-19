@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
+from app.core.market_quotes import MARKET_QUOTE_STALE_AFTER_MINUTES, MARKET_QUOTE_WARNING_AFTER_MINUTES
 from app.core.sources import SourceProfile, all_source_profiles, get_source_profile
 from app.models.tables import FoodOfferRecord, MarketQuoteRecord, PriceAggregateRecord, ScrapeRun
 
@@ -269,8 +270,8 @@ def compute_platform_trust_snapshot(db: Session) -> dict[str, object]:
         dataset="market_quotes",
         record_count=market_quotes_count,
         last_updated_at=latest_market_quote_at,
-        stale_after_minutes=300,
-        warning_after_minutes=90,
+        stale_after_minutes=MARKET_QUOTE_STALE_AFTER_MINUTES,
+        warning_after_minutes=MARKET_QUOTE_WARNING_AFTER_MINUTES,
     )
     market_dataset["dimensions"] = {
         "districts_count": db.scalar(select(func.count(distinct(MarketQuoteRecord.district)))) or 0,

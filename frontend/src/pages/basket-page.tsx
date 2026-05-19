@@ -12,6 +12,13 @@ import { useWatchlists } from '../hooks/use-watchlists'
 import { api } from '../lib/api'
 import { formatCompactDate, formatCurrency } from '../lib/format'
 
+function basketAvailabilityCopy(reason: string | undefined, windowDays: number) {
+  if (reason === 'stale_data_hidden') return `Only older quotes were found, so this line is hidden from the ${windowDays}-day quick estimate.`
+  if (reason === 'currently_unavailable') return 'Retail item exists, but the latest source marks it unavailable.'
+  if (reason === 'no_match_found') return 'No matching live quote or offer is indexed yet.'
+  return 'Ready for this estimate.'
+}
+
 export function BasketPage() {
   const [preset, setPreset] = useState('essentials')
   const [search, setSearch] = useState('')
@@ -25,6 +32,8 @@ export function BasketPage() {
   const { saveEntry } = useWatchlists()
   const data = basketQuery.data
   const presetOptions = data?.available_presets.length ? data.available_presets : [{ id: preset, label: 'Loading preset...' }]
+  const freshnessWindowDays = data?.items.find((item) => item.freshness_window_days)?.freshness_window_days ?? 30
+  const staleHiddenCount = data?.items.filter((item) => item.availability_reason === 'stale_data_hidden').length ?? 0
 
   const visibleItems = useMemo(() => {
     const needle = search.trim().toLowerCase()
@@ -77,7 +86,7 @@ export function BasketPage() {
         id="basket-ledger-guidance"
         eyebrow="Basket path"
         title="Use presets as a household estimate, then inspect missing lines."
-        body="The total is only as useful as its quoted lines. Filter to missing items before treating a basket as complete."
+        body={`The basket total uses current retail rows and market quotes from the last ${freshnessWindowDays} days. Missing lines are separated so old archive prices do not make the estimate look artificially cheap.`}
         points={['Pick preset', 'Review missing', 'Clip basket']}
         actionLabel="Compare districts"
         actionTo="/compare"
@@ -131,12 +140,19 @@ export function BasketPage() {
                 { label: 'Running total', value: `රු ${formatCurrency(data.summary.total_lkr ?? 0)}` },
                 { label: 'Quoted lines', value: `${data.summary.available_items}/${data.items.length}` },
                 { label: 'Missing lines', value: data.summary.missing_items.toLocaleString() },
+                { label: 'Quote window', value: `${freshnessWindowDays} days` },
               ].map((item) => (
                 <div key={item.label} className="bg-[color:var(--color-bg-card)] p-4">
                   <p className="text-kicker">{item.label}</p>
                   <p className="num mt-2 text-2xl font-bold text-[color:var(--color-text-primary)]">{item.value}</p>
                 </div>
               ))}
+            </div>
+          )}
+
+          {staleHiddenCount > 0 && (
+            <div className="border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4 text-sm text-[color:var(--color-text-secondary)]">
+              {staleHiddenCount} basket line{staleHiddenCount === 1 ? '' : 's'} had only older market data, so those prices are hidden from the quick total.
             </div>
           )}
         </aside>
@@ -215,6 +231,13 @@ export function BasketPage() {
                     </div>
                     <div>
                       <h3 className="font-display text-lg font-semibold text-[color:var(--color-text-primary)]">{item.label}</h3>
+                      <p className="mt-1 text-xs text-[color:var(--color-text-muted)]">
+                        {item.price_lkr == null
+                          ? basketAvailabilityCopy(item.availability_reason, freshnessWindowDays)
+                          : item.kind === 'market_quote'
+                            ? `Market quote inside the last ${item.freshness_window_days ?? freshnessWindowDays} days.`
+                            : 'Retail offer currently marked available.'}
+                      </p>
                       <p className="md:hidden text-xs text-[color:var(--color-text-muted)]">{item.source || 'Source pending'}</p>
                     </div>
                     <p className="hidden truncate font-mono text-[11px] uppercase tracking-[0.16em] text-[color:var(--color-text-secondary)] md:block">

@@ -75,6 +75,33 @@ def test_trust_marks_degraded_after_three_consecutive_zero_runs() -> None:
     assert cargills["health"] == "degraded"
 
 
+def test_trust_uses_daily_cadence_for_market_quote_freshness() -> None:
+    run_upgrade()
+    with SessionLocal() as db:
+        db.execute(delete(MarketQuoteRecord))
+        db.commit()
+        db.add(
+            MarketQuoteRecord(
+                district="Colombo",
+                market_name="Pettah",
+                item_name="Tomato",
+                category="vegetables",
+                unit="kg",
+                price_lkr=320.0,
+                source="harti",
+                quoted_at=utc_now() - timedelta(hours=12),
+            )
+        )
+        db.commit()
+
+    response = client.get("/api/v1/platform/freshness")
+
+    assert response.status_code == 200
+    market_dataset = response.json()["datasets"]["market_quotes"]
+    assert market_dataset["freshness_status"] == "fresh"
+    assert market_dataset["reliability"]["grade"] == "high"
+
+
 def test_trends_market_contract() -> None:
     run_upgrade()
     with SessionLocal() as db:

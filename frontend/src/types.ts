@@ -158,6 +158,10 @@ export type DistrictCompareSummary = {
   mode: 'district' | 'source'
   left: string
   right: string
+  freshness?: {
+    market_quote_window_days: number
+    filtered_categories: string[]
+  }
   items: DistrictCompareItem[]
 }
 
@@ -174,6 +178,7 @@ export type BasketEstimateResponse = {
     total_lkr: number
     available_items: number
     missing_items: number
+    totals_by_kind: Record<string, { count: number; total_lkr: number }>
   }
   items: Array<{
     label: string
@@ -181,6 +186,16 @@ export type BasketEstimateResponse = {
     price_lkr: number | null
     source: string | null
     observed_at: string | null
+    freshness_status?: string
+    freshness_window_days?: number | null
+    availability_status?: string
+    availability_reason?: string
+    alternatives?: Array<{
+      source: string | null
+      label: string
+      price_lkr: number
+      observed_at: string | null
+    }>
   }>
 }
 

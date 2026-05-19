@@ -9,6 +9,11 @@ from sqlalchemy import Select, distinct, func, select
 from sqlalchemy.orm import Session
 
 from app.core.basket_presets import BASKET_PRESETS
+from app.core.market_quotes import (
+    ACTIONABLE_MARKET_QUOTE_DAYS,
+    NON_FOOD_MARKET_CATEGORIES,
+    actionable_market_quote_cutoff,
+)
 from app.core.sources import get_source_profile
 from app.db.session import get_database_provider_status, get_db
 from app.models.tables import FairPriceScoreRecord, FoodOfferRecord, MarketQuoteRecord, PriceAggregateRecord, ScrapeRun
@@ -27,6 +32,52 @@ router = APIRouter()
 RETENTION_ALLOWED_CADENCE = {"daily", "weekly"}
 RETENTION_ALLOWED_CHANNELS = {"email", "web"}
 RETENTION_ALLOWED_COMPARE_MODES = {"district", "source", "category"}
+ITEM_SEARCH_ALIASES = {
+    "rice": ("samba", "nadu", "keerisamba", "kiri samba", "red rice", "white rice"),
+    "dhal": ("dal", "lentil", "parippu"),
+    "dal": ("dhal", "lentil", "parippu"),
+    "chilli": ("chili", "miris"),
+    "chili": ("chilli", "miris"),
+    "onion": ("big onion", "red onion", "bombay onion"),
+}
+
+
+def _actionable_market_quote_filters() -> tuple[object, ...]:
+    return (
+        MarketQuoteRecord.quoted_at >= actionable_market_quote_cutoff(),
+        ~func.lower(func.coalesce(MarketQuoteRecord.category, "")).in_(sorted(NON_FOOD_MARKET_CATEGORIES)),
+    )
+
+
+def _search_text(value: object) -> str:
+    return " ".join(str(value or "").lower().replace("-", " ").replace("_", " ").split())
+
+
+def _item_search_score(row: dict[str, object], term: str) -> int | None:
+    normalized_term = _search_text(term)
+    if not normalized_term:
+        return 0
+
+    queries = [normalized_term, *ITEM_SEARCH_ALIASES.get(normalized_term, ())]
+    name_fields = [_search_text(row.get("canonical_name")), _search_text(row.get("display_name"))]
+    source_fields = [_search_text(source) for source in row.get("sources", [])]
+
+    for query in queries:
+        if any(field == query for field in name_fields):
+            return 0
+    for query in queries:
+        if any(field.startswith(query) for field in name_fields):
+            return 1
+    for query in queries:
+        if any(query in field.split() for field in name_fields):
+            return 2
+    for query in queries:
+        if any(query in field for field in name_fields):
+            return 3
+    for query in queries:
+        if any(query in source for source in source_fields):
+            return 4
+    return None
 
 
 class RetentionSubscriptionPreviewRequest(BaseModel):
@@ -471,6 +522,7 @@ def compare_districts(left: str, right: str, db: Session = Depends(get_db)) -> d
     rows = db.scalars(
         select(MarketQuoteRecord)
         .where(MarketQuoteRecord.district.in_([left, right]))
+        .where(*_actionable_market_quote_filters())
         .order_by(MarketQuoteRecord.quoted_at.desc(), MarketQuoteRecord.item_name.asc())
     ).all()
 
@@ -501,6 +553,10 @@ def compare_districts(left: str, right: str, db: Session = Depends(get_db)) -> d
         "mode": "district",
         "left": left,
         "right": right,
+        "freshness": {
+            "market_quote_window_days": ACTIONABLE_MARKET_QUOTE_DAYS,
+            "filtered_categories": sorted(NON_FOOD_MARKET_CATEGORIES),
+        },
         "items": items,
     }
 
@@ -510,6 +566,7 @@ def compare_sources(left: str, right: str, db: Session = Depends(get_db)) -> dic
     rows = db.scalars(
         select(MarketQuoteRecord)
         .where(MarketQuoteRecord.source.in_([left, right]))
+        .where(*_actionable_market_quote_filters())
         .order_by(MarketQuoteRecord.quoted_at.desc(), MarketQuoteRecord.item_name.asc())
     ).all()
 
@@ -540,6 +597,10 @@ def compare_sources(left: str, right: str, db: Session = Depends(get_db)) -> dic
         "mode": "source",
         "left": left,
         "right": right,
+        "freshness": {
+            "market_quote_window_days": ACTIONABLE_MARKET_QUOTE_DAYS,
+            "filtered_categories": sorted(NON_FOOD_MARKET_CATEGORIES),
+        },
         "items": items,
     }
 
@@ -605,7 +666,8 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
             quote = db.scalar(
                 select(MarketQuoteRecord)
                 .where(MarketQuoteRecord.item_name == preset_item["item_name"])
-                .order_by(MarketQuoteRecord.price_lkr.asc(), MarketQuoteRecord.quoted_at.desc())
+                .where(*_actionable_market_quote_filters())
+                .order_by(MarketQuoteRecord.quoted_at.desc(), MarketQuoteRecord.price_lkr.asc())
             )
             if quote:
                 price = float(quote.price_lkr)
@@ -616,8 +678,9 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
                 alternatives = db.scalars(
                     select(MarketQuoteRecord)
                     .where(MarketQuoteRecord.item_name == preset_item["item_name"])
+                    .where(*_actionable_market_quote_filters())
                     .where(MarketQuoteRecord.id != quote.id)
-                    .order_by(MarketQuoteRecord.price_lkr.asc(), MarketQuoteRecord.quoted_at.desc())
+                    .order_by(MarketQuoteRecord.quoted_at.desc(), MarketQuoteRecord.price_lkr.asc())
                     .limit(3)
                 ).all()
                 items.append(
@@ -627,6 +690,8 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
                         "price_lkr": price,
                         "source": quote.market_name,
                         "observed_at": _to_iso(quote.quoted_at),
+                        "freshness_status": "current",
+                        "freshness_window_days": ACTIONABLE_MARKET_QUOTE_DAYS,
                         "availability_status": "available",
                         "availability_reason": "best_match_found",
                         "alternatives": [
@@ -650,7 +715,10 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
             )
             availability_reason = "currently_unavailable" if unavailable_exists else "no_match_found"
         else:
-            availability_reason = "no_match_found"
+            stale_or_filtered_exists = db.scalar(
+                select(func.count(MarketQuoteRecord.id)).where(MarketQuoteRecord.item_name == preset_item["item_name"])
+            )
+            availability_reason = "stale_data_hidden" if stale_or_filtered_exists else "no_match_found"
 
         items.append(
             {
@@ -659,6 +727,8 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
                 "price_lkr": None,
                 "source": None,
                 "observed_at": None,
+                "freshness_status": "unavailable",
+                "freshness_window_days": ACTIONABLE_MARKET_QUOTE_DAYS if preset_item["kind"] == "market_quote" else None,
                 "availability_status": "missing",
                 "availability_reason": availability_reason,
                 "alternatives": [],
@@ -691,15 +761,12 @@ def list_items(
     rows = item_summary_rows(db)
     if search:
         term = search.strip().lower()
-        rows = [
-            row
-            for row in rows
-            if any(
-                term in str(row.get(field, "")).lower()
-                for field in ("canonical_name", "display_name", "category", "kind", "unit")
-            )
-            or any(term in source.lower() for source in row.get("sources", []))
-        ]
+        scored_rows = []
+        for row in rows:
+            score = _item_search_score(row, term)
+            if score is not None:
+                scored_rows.append((score, _search_text(row.get("display_name")), row))
+        rows = [row for _, _, row in sorted(scored_rows, key=lambda item: (item[0], item[1]))]
     total = len(rows)
     return {"items": rows[offset : offset + limit], "total": total}
 

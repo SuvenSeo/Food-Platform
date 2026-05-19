@@ -15,6 +15,7 @@ import { TrustCommandRail } from './trust-command-rail'
 import { cn } from '../../lib/utils'
 import type { PlatformFreshnessSummary } from '../../types'
 import { drawerNavGroups, primaryNavItems, type NavigationItem } from '../../config/navigation'
+import { LocaleSwitcher } from '../i18n/locale-switcher'
 
 /** Routes that flip the entire app to night-terminal mode. */
 const NIGHT_ROUTES = new Set(['/intelligence', '/pipeline', '/changes'])
@@ -224,6 +225,8 @@ function MandiyaMasthead() {
             <span className="hidden md:inline font-mono uppercase tracking-[0.18em]">Search</span>
             <kbd className="hidden md:inline rounded-sm border border-white/15 px-1.5 py-0.5 font-mono text-[9px] tracking-normal">⌘K</kbd>
           </button>
+
+          <LocaleSwitcher />
 
           <button
             onClick={() => setMobileOpen(true)}

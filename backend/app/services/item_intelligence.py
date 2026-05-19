@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
+from app.core.market_quotes import NON_FOOD_MARKET_CATEGORIES, actionable_market_quote_cutoff
 from app.models.tables import FoodOfferRecord, MarketQuoteRecord, PriceAggregateRecord
 
 
@@ -153,6 +154,10 @@ def item_summary_rows(db: Session) -> list[dict[str, object]]:
             }
         )
 
+    market_quote_filters = (
+        MarketQuoteRecord.quoted_at >= actionable_market_quote_cutoff(),
+        ~func.lower(func.coalesce(MarketQuoteRecord.category, "")).in_(sorted(NON_FOOD_MARKET_CATEGORIES)),
+    )
     market_rows = db.execute(
         select(
             MarketQuoteRecord.item_name,
@@ -163,11 +168,13 @@ def item_summary_rows(db: Session) -> list[dict[str, object]]:
             func.min(MarketQuoteRecord.price_lkr),
             func.max(MarketQuoteRecord.quoted_at),
         )
+        .where(*market_quote_filters)
         .group_by(MarketQuoteRecord.item_name, MarketQuoteRecord.category, MarketQuoteRecord.unit)
         .order_by(MarketQuoteRecord.item_name.asc(), MarketQuoteRecord.category.asc(), MarketQuoteRecord.unit.asc())
     ).all()
     market_source_rows = db.execute(
         select(MarketQuoteRecord.item_name, MarketQuoteRecord.source)
+        .where(*market_quote_filters)
         .group_by(MarketQuoteRecord.item_name, MarketQuoteRecord.source)
         .order_by(MarketQuoteRecord.item_name.asc(), MarketQuoteRecord.source.asc())
     ).all()

@@ -363,6 +363,67 @@ def test_district_compare_summary_exposes_price_delta() -> None:
     assert payload["items"][0]["cheaper_side"] == "left"
 
 
+def test_district_compare_filters_stale_and_non_food_quotes() -> None:
+    seed_api_data()
+    old_timestamp = utc_now() - timedelta(days=800)
+    with SessionLocal() as db:
+        db.add_all(
+            [
+                MarketQuoteRecord(
+                    district="Colombo",
+                    market_name="Legacy Pump",
+                    item_name="Diesel",
+                    category="fuel",
+                    unit="l",
+                    price_lkr=121.0,
+                    source="legacy-fuel-colombo",
+                    quoted_at=old_timestamp,
+                    notes=None,
+                ),
+                MarketQuoteRecord(
+                    district="Kandy",
+                    market_name="Legacy Pump",
+                    item_name="Diesel",
+                    category="fuel",
+                    unit="l",
+                    price_lkr=124.0,
+                    source="legacy-fuel-kandy",
+                    quoted_at=old_timestamp,
+                    notes=None,
+                ),
+                MarketQuoteRecord(
+                    district="Colombo",
+                    market_name="Old Archive",
+                    item_name="Wheat Flour",
+                    category="grains",
+                    unit="kg",
+                    price_lkr=180.0,
+                    source="legacy-grains-colombo",
+                    quoted_at=old_timestamp,
+                    notes=None,
+                ),
+                MarketQuoteRecord(
+                    district="Kandy",
+                    market_name="Old Archive",
+                    item_name="Wheat Flour",
+                    category="grains",
+                    unit="kg",
+                    price_lkr=190.0,
+                    source="legacy-grains-kandy",
+                    quoted_at=old_timestamp,
+                    notes=None,
+                ),
+            ]
+        )
+        db.commit()
+
+    response = client.get("/api/v1/compare/districts", params={"left": "Colombo", "right": "Kandy"})
+
+    assert response.status_code == 200
+    item_names = [item["item_name"] for item in response.json()["items"]]
+    assert item_names == ["Tomato"]
+
+
 def test_basket_estimate_returns_total_for_essentials_preset() -> None:
     seed_api_data()
 
@@ -381,6 +442,33 @@ def test_basket_estimate_returns_total_for_essentials_preset() -> None:
     assert payload["items"][0]["availability_status"] == "available"
     assert payload["items"][0]["availability_reason"] == "best_match_found"
     assert isinstance(payload["items"][0]["alternatives"], list)
+
+
+def test_basket_estimate_prefers_recent_market_quote_over_stale_low_price() -> None:
+    seed_api_data()
+    with SessionLocal() as db:
+        db.add(
+            MarketQuoteRecord(
+                district="Colombo",
+                market_name="Old Archive",
+                item_name="Tomato",
+                category="vegetables",
+                unit="kg",
+                price_lkr=18.0,
+                source="legacy-colombo",
+                quoted_at=utc_now() - timedelta(days=800),
+                notes=None,
+            )
+        )
+        db.commit()
+
+    response = client.get("/api/v1/basket/estimate", params={"preset": "essentials"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    market_item = next(item for item in payload["items"] if item["kind"] == "market_quote")
+    assert market_item["price_lkr"] == 320.0
+    assert payload["summary"]["totals_by_kind"]["market_quote"]["total_lkr"] == 320.0
 
 
 def test_basket_estimate_supports_multiple_presets() -> None:
@@ -502,3 +590,48 @@ def test_item_intelligence_endpoints_and_exports() -> None:
     assert "period,avg_price_lkr" in csv_response.text
     assert json_response.status_code == 200
     assert json_response.json()["item"]["slug"] == "tomato"
+
+
+def test_item_search_matches_food_names_not_broad_categories() -> None:
+    seed_api_data()
+    with SessionLocal() as db:
+        db.add_all(
+            [
+                PriceAggregateRecord(
+                    cluster_key="market|carrot|kg|1.000",
+                    canonical_name="carrot",
+                    brand=None,
+                    category="rice & grains",
+                    unit="kg",
+                    unit_amount=1.0,
+                    offers_count=1,
+                    min_price_lkr=260.0,
+                    max_price_lkr=260.0,
+                    median_price_lkr=260.0,
+                    average_price_lkr=260.0,
+                    calculated_at=utc_now(),
+                ),
+                PriceAggregateRecord(
+                    cluster_key="market|red rice|kg|1.000",
+                    canonical_name="red rice",
+                    brand=None,
+                    category="rice & grains",
+                    unit="kg",
+                    unit_amount=1.0,
+                    offers_count=1,
+                    min_price_lkr=230.0,
+                    max_price_lkr=230.0,
+                    median_price_lkr=230.0,
+                    average_price_lkr=230.0,
+                    calculated_at=utc_now(),
+                ),
+            ]
+        )
+        db.commit()
+
+    response = client.get("/api/v1/items", params={"search": "rice"})
+
+    assert response.status_code == 200
+    names = [item["canonical_name"] for item in response.json()["items"]]
+    assert "red rice" in names
+    assert "carrot" not in names

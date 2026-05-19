@@ -43,6 +43,7 @@ describe('AppShell', () => {
     expect(screen.getAllByRole('link', { name: /^basket$/i }).length).toBeGreaterThan(0)
     expect(screen.getAllByRole('link', { name: /^saved$/i }).length).toBeGreaterThan(0)
     expect(screen.queryAllByRole('link', { name: /^categories$/i })).toHaveLength(0)
+    expect(screen.getByLabelText(/select language/i)).toBeVisible()
   })
 
   it('renders its children', async () => {

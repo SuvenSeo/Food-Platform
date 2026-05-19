@@ -46,8 +46,14 @@ export function ComparePage() {
     () => Array.from(new Set((marketsQuery.data?.items ?? []).map((item) => item.source))).sort(),
     [marketsQuery.data?.items],
   )
-  const districtOptions = districts.length > 0 ? districts : [leftDistrict, rightDistrict]
-  const sourceOptions = sources.length > 0 ? sources : [leftSource, rightSource].filter(Boolean)
+  const districtOptions = useMemo(
+    () => Array.from(new Set([leftDistrict, rightDistrict, ...districts].filter(Boolean))).sort(),
+    [districts, leftDistrict, rightDistrict],
+  )
+  const sourceOptions = useMemo(
+    () => Array.from(new Set([leftSource, rightSource, ...sources].filter(Boolean))).sort(),
+    [leftSource, rightSource, sources],
+  )
   const data = compareQuery.data
   const leftValue = compareMode === 'district' ? leftDistrict : leftSource
   const rightValue = compareMode === 'district' ? rightDistrict : rightSource
@@ -77,11 +83,12 @@ export function ComparePage() {
   }))
 
   const isLoading = compareQuery.isLoading || marketsQuery.isLoading
-  const leftWins = visibleItems.filter((item) => item.cheaper_side === data?.left).length
-  const rightWins = visibleItems.filter((item) => item.cheaper_side === data?.right).length
+  const leftWins = visibleItems.filter((item) => item.cheaper_side === 'left').length
+  const rightWins = visibleItems.filter((item) => item.cheaper_side === 'right').length
   const averageDelta = visibleItems.length
     ? visibleItems.reduce((sum, item) => sum + Math.abs(item.delta_lkr), 0) / visibleItems.length
     : 0
+  const freshnessWindowDays = data?.freshness?.market_quote_window_days ?? 30
 
   return (
     <section className="space-y-8">
@@ -108,7 +115,7 @@ export function ComparePage() {
         id="compare-receipt-guidance"
         eyebrow="Compare path"
         title="Compare only like-for-like rows, then save the useful receipt."
-        body="The chart highlights the largest gaps; the receipt lines below show which side is cheaper and when each quote was observed."
+        body={`The chart highlights the largest gaps. Older rows and non-food categories are hidden, so this receipt focuses on food quotes from the last ${freshnessWindowDays} days.`}
         points={['Pick two sides', 'Sort by delta', 'Clip receipt']}
         actionLabel="Build basket"
         actionTo="/basket"
@@ -218,6 +225,12 @@ export function ComparePage() {
               ))}
             </div>
           )}
+
+          {data?.freshness && (
+            <div className="border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4 text-sm text-[color:var(--color-text-secondary)]">
+              Showing food quote matches from the last {data.freshness.market_quote_window_days} days. Older archive rows and {data.freshness.filtered_categories.join(', ')} rows are hidden from quick comparisons.
+            </div>
+          )}
         </aside>
 
         <div className="min-w-0 space-y-4">
@@ -270,7 +283,7 @@ export function ComparePage() {
             {!isLoading && !visibleItems.length && (
               <EmptyState
                 title="No overlapping produce items found"
-                description="Try a different district pair or continue through adjacent discovery flows."
+                description={`No shared food rows were found inside the ${freshnessWindowDays}-day quick-view window. Try another pair or inspect the markets page for raw quotes.`}
                 hint="Next action: continue in markets or categories."
                 actionLabel="Open price catalog"
                 actionTo="/items"
@@ -279,7 +292,8 @@ export function ComparePage() {
               />
             )}
             {visibleItems.map((item, index) => {
-              const cheaperDistrict = item.cheaper_side === 'equal' ? 'Equal' : item.cheaper_side
+              const cheaperLabel = item.cheaper_side === 'equal' ? 'Equal' : item.cheaper_side === 'left' ? data?.left : data?.right
+              const cheaperText = item.cheaper_side === 'equal' ? 'Equal price' : `${cheaperLabel} cheaper`
               return (
                 <article
                   key={item.item_name}
@@ -309,8 +323,8 @@ export function ComparePage() {
                     </div>
                   </div>
                   <div className="md:text-right">
-                    <Badge variant={cheaperDistrict === data?.left || cheaperDistrict === data?.right ? 'green' : 'neutral'}>
-                      {cheaperDistrict} cheaper
+                    <Badge variant={item.cheaper_side === 'left' || item.cheaper_side === 'right' ? 'green' : 'neutral'}>
+                      {cheaperText}
                     </Badge>
                     <p className="num mt-2 text-lg font-bold text-[color:var(--chili-600)]">
                       රු {formatCurrency(Math.abs(item.delta_lkr))}
