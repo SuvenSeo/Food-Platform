@@ -31,7 +31,7 @@ export function Metric({ label, value, helper, highlight, className }: MetricPro
       </p>
       <p
         className={cn(
-          'num text-[40px] font-bold leading-[0.95] tracking-[-0.025em]',
+          'num text-[40px] font-bold leading-[0.95] tracking-normal',
           highlight ? 'text-[color:var(--paper-50)]' : 'text-[color:var(--color-text-primary)]',
         )}
       >

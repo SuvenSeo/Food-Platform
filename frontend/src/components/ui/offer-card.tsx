@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { ImageOff } from 'lucide-react'
 
-import { formatCurrency } from '../../lib/format'
+import { formatCompactDate, formatCurrency } from '../../lib/format'
 import type { OfferItem } from '../../types'
 import { cn } from '../../lib/utils'
 
@@ -60,17 +60,18 @@ function DeltaMark({ delta }: { delta: number | null }) {
     )
   }
 
-  const isCheap = delta < -5
-  const isExpensive = delta > 5
+  const isCheap = delta > 5
+  const isExpensive = delta < -5
   const color =
     isCheap ? 'var(--curry-leaf)' : isExpensive ? 'var(--chili-600)' : 'var(--color-text-muted)'
   const arrow = isCheap ? '↘' : isExpensive ? '↗' : '→'
+  const direction = isCheap ? 'cheaper than median' : isExpensive ? 'above median' : 'near median'
 
   return (
     <span
       className="inline-flex items-baseline gap-1 font-mono text-[12px] font-bold"
       style={{ color }}
-      aria-label={`Price delta versus median ${delta.toFixed(1)} percent`}
+      aria-label={`${delta.toFixed(1)} percent ${direction}`}
     >
       <span aria-hidden="true">{arrow}</span>
       <span className="num">{delta > 0 ? '+' : ''}{delta.toFixed(1)}%</span>
@@ -83,6 +84,7 @@ export function OfferCard({ offer }: { offer: OfferItem }) {
   const sourceLabel = SOURCE_LABELS[offer.source] ?? offer.source
   const tilt = SOURCE_TILT[offer.source] ?? -2.5
   const unitLabel = offer.unit_amount ? `${offer.unit_amount} ${offer.unit ?? ''}`.trim() : offer.unit ?? '—'
+  const freshnessLabel = offer.last_seen_at ? `Fresh ${formatCompactDate(offer.last_seen_at)}` : 'Freshness pending'
 
   return (
     <motion.article
@@ -120,7 +122,7 @@ export function OfferCard({ offer }: { offer: OfferItem }) {
       <div className="flex min-w-0 flex-col justify-between gap-2 p-3 pr-4">
         <div className="min-w-0">
           <h3
-            className="font-display text-[15px] leading-[1.18] tracking-[-0.012em] text-[color:var(--color-text-primary)] line-clamp-2"
+            className="font-display text-[15px] leading-[1.18] tracking-normal text-[color:var(--color-text-primary)] line-clamp-2"
             style={{ fontVariationSettings: "'opsz' 36, 'wght' 600" }}
           >
             {offer.display_name}
@@ -128,11 +130,14 @@ export function OfferCard({ offer }: { offer: OfferItem }) {
           <p className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--color-text-muted)]">
             {(offer.brand || 'generic')} <span className="mx-1 opacity-60">·</span> {offer.category}
           </p>
+          <p className="mt-1 truncate font-mono text-[9px] uppercase tracking-[0.18em] text-[color:var(--color-text-faint)]">
+            {freshnessLabel}
+          </p>
         </div>
 
         <div className="flex items-end justify-between gap-3">
           <div className="min-w-0">
-            <p className="num flex items-baseline gap-1 text-[26px] font-bold leading-none tracking-[-0.02em] text-[color:var(--color-text-primary)]">
+            <p className="num flex items-baseline gap-1 text-[26px] font-bold leading-none tracking-normal text-[color:var(--color-text-primary)]">
               <span className="text-[12px] font-semibold text-[color:var(--color-text-muted)]">රු</span>
               {formatCurrency(offer.price_lkr)}
             </p>

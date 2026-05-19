@@ -51,8 +51,8 @@ export function LiveTicker({ offers, className }: LiveTickerProps) {
         <div className="flex w-max animate-tape-horizontal items-center gap-0 group-hover:[animation-play-state:paused]">
           {loop.map((offer, i) => {
             const delta = offer.delta_vs_median_pct
-            const isUp = (delta ?? 0) > 0
-            const isDown = (delta ?? 0) < 0
+            const isGoodValue = (delta ?? 0) > 0
+            const isPremium = (delta ?? 0) < 0
             return (
               <Link
                 key={`${offer.id}-${i}`}
@@ -76,11 +76,11 @@ export function LiveTicker({ offers, className }: LiveTickerProps) {
                   <span
                     className={cn(
                       'num font-mono text-[12px] font-bold',
-                      isDown && 'text-[color:var(--curry-leaf)]',
-                      isUp && 'text-[color:var(--chili-600)]',
+                      isGoodValue && 'text-[color:var(--curry-leaf)]',
+                      isPremium && 'text-[color:var(--chili-600)]',
                     )}
                   >
-                    {isDown ? '↘' : isUp ? '↗' : '→'} {Math.abs(delta).toFixed(1)}%
+                    {isGoodValue ? '↘' : isPremium ? '↗' : '→'} {Math.abs(delta).toFixed(1)}%
                   </span>
                 )}
                 <span className="ml-4 text-[color:var(--color-border-strong)]" aria-hidden="true">

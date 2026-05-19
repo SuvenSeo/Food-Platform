@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     resend_api_key: str = Field(default="", alias="RESEND_API_KEY")
     alert_from_email: str = Field(default="alerts@foodlk.lk", alias="ALERT_FROM_EMAIL")
     site_url: str = Field(default="https://food-platform-one.vercel.app", alias="SITE_URL")
+    api_rate_limit_per_minute: int = Field(default=600, alias="API_RATE_LIMIT_PER_MINUTE")
 
     @property
     def cors_list(self) -> list[str]:

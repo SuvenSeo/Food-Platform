@@ -19,6 +19,7 @@ const TermsPage = lazy(() => import('../pages/terms-page').then((module) => ({ d
 const PipelinePage = lazy(() => import('../pages/pipeline-page').then((module) => ({ default: module.PipelinePage })))
 const OfferDetailPage = lazy(() => import('../pages/offer-detail-page').then((module) => ({ default: module.OfferDetailPage })))
 const ChangesPage = lazy(() => import('../pages/changes-page').then((module) => ({ default: module.ChangesPage })))
+const NotFoundPage = lazy(() => import('../pages/not-found-page').then((module) => ({ default: module.NotFoundPage })))
 
 const routeMetadata: Record<string, { title: string; description: string }> = {
   '/': {
@@ -126,6 +127,7 @@ export function AppRoutes() {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/pipeline" element={<PipelinePage />} />
           <Route path="/offers/:offerId" element={<OfferDetailPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
     </AppShell>

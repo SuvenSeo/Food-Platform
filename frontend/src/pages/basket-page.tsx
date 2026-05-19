@@ -9,7 +9,7 @@ import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
 import { useWatchlists } from '../hooks/use-watchlists'
 import { api } from '../lib/api'
-import { formatCurrency } from '../lib/format'
+import { formatCompactDate, formatCurrency } from '../lib/format'
 
 export function BasketPage() {
   const [preset, setPreset] = useState('essentials')
@@ -206,6 +206,9 @@ export function BasketPage() {
                     </div>
                     <p className="hidden truncate font-mono text-[11px] uppercase tracking-[0.16em] text-[color:var(--color-text-secondary)] md:block">
                       {item.source || 'Pending'}
+                      <span className="block text-[9px] tracking-[0.12em] text-[color:var(--color-text-faint)]">
+                        {item.observed_at ? formatCompactDate(item.observed_at) : 'Freshness pending'}
+                      </span>
                     </p>
                     <div className="md:text-right">
                       {item.price_lkr == null ? (

@@ -31,7 +31,7 @@ export function SectionHeader({
             )}
             style={{
               fontSize: 'clamp(1.75rem, 3.4vw, 2.75rem)',
-              letterSpacing: '-0.035em',
+              letterSpacing: 0,
               fontVariationSettings: "'opsz' 96, 'SOFT' 30, 'wght' 600",
             }}
           >

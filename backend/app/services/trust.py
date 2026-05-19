@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
+from app.core.sources import SourceProfile, all_source_profiles, get_source_profile
 from app.models.tables import FoodOfferRecord, MarketQuoteRecord, PriceAggregateRecord, ScrapeRun
 
 
@@ -90,14 +91,51 @@ def _dataset_reliability(
     }
 
 
+def _source_profile_for(source: str) -> SourceProfile:
+    profile = get_source_profile(source)
+    if profile:
+        return profile
+    return SourceProfile(
+        key=source,
+        label=source,
+        type="unknown",
+        enabled=True,
+        expected_frequency_minutes=360,
+        timeout_seconds=60,
+        minimum_rows=1,
+        stale_after_minutes=720,
+    )
+
+
+def _source_record_count(db: Session, profile: SourceProfile) -> int:
+    if profile.type == "market":
+        return db.scalar(select(func.count(MarketQuoteRecord.id)).where(MarketQuoteRecord.source == profile.key)) or 0
+    if profile.type == "retail":
+        return db.scalar(select(func.count(FoodOfferRecord.id)).where(FoodOfferRecord.source == profile.key)) or 0
+    return 0
+
+
+def _latest_running_run(db: Session, source: str) -> ScrapeRun | None:
+    return db.scalar(
+        select(ScrapeRun)
+        .where(ScrapeRun.source == source, ScrapeRun.finished_at.is_(None))
+        .order_by(ScrapeRun.started_at.desc())
+        .limit(1)
+    )
+
+
 def _compute_source_pipeline_health(db: Session) -> dict[str, object]:
-    """Per-source latest-run quality: healthy only when the last run stored items."""
-    sources = db.scalars(select(distinct(ScrapeRun.source))).all()
+    """Per-source expected health, not just a raw list of runs that happened."""
+    expected_profiles = {profile.key: profile for profile in all_source_profiles() if profile.enabled}
+    observed_sources = set(db.scalars(select(distinct(ScrapeRun.source))).all())
+    sources = [*expected_profiles.keys(), *sorted(observed_sources - set(expected_profiles))]
     per_source: list[dict[str, object]] = []
     healthy_count = 0
     degraded_count = 0
+    blocking_warnings: list[str] = []
 
     for source in sources:
+        profile = expected_profiles.get(source) or _source_profile_for(source)
         recent_runs = db.scalars(
             select(ScrapeRun)
             .where(ScrapeRun.source == source, ScrapeRun.finished_at.is_not(None))
@@ -105,27 +143,60 @@ def _compute_source_pipeline_health(db: Session) -> dict[str, object]:
             .limit(3)
         ).all()
         latest = recent_runs[0] if recent_runs else None
+        running = _latest_running_run(db, source)
+        record_count = _source_record_count(db, profile)
+        lag_minutes = _minutes_since(latest.finished_at) if latest else None
+        latest_seen = latest.items_seen if latest else 0
+        latest_stored = latest.items_stored if latest else 0
 
-        if not latest:
-            health = "unknown"
+        if running and not latest:
+            health = "running"
+        elif not latest:
+            health = "missing"
         elif latest.status != "completed":
             health = "failed"
-        elif latest.items_seen > 0 or latest.items_stored > 0:
-            health = "healthy"
-            healthy_count += 1
-        elif len(recent_runs) >= 3 and all(run.items_seen == 0 for run in recent_runs):
+        elif len(recent_runs) >= 3 and all(run.items_seen == 0 and run.items_stored == 0 for run in recent_runs):
             health = "degraded"
             degraded_count += 1
+        elif latest_seen < profile.minimum_rows and latest_stored < profile.minimum_rows:
+            health = "empty"
+        elif lag_minutes is not None and lag_minutes > profile.stale_after_minutes:
+            health = "stale"
+            degraded_count += 1
+        elif max(latest_seen, latest_stored, record_count) >= profile.minimum_rows:
+            health = "healthy"
+            healthy_count += 1
         else:
             health = "empty"
 
+        if health in {"missing", "failed", "empty"} and profile.enabled:
+            blocking_warnings.append(f"{profile.key} has no usable latest scrape run")
+
         per_source.append(
             {
-                "source": source,
+                "source": profile.key,
+                "label": profile.label,
+                "source_type": profile.type,
+                "enabled": profile.enabled,
                 "health": health,
+                "status": health,
+                "expected_frequency_minutes": profile.expected_frequency_minutes,
+                "timeout_seconds": profile.timeout_seconds,
+                "minimum_rows": profile.minimum_rows,
+                "stale_after_minutes": profile.stale_after_minutes,
+                "freshness_lag_minutes": lag_minutes,
+                "records_count": record_count,
                 "latest_status": latest.status if latest else None,
-                "latest_items_seen": latest.items_seen if latest else 0,
+                "latest_started_at": _to_iso(latest.started_at) if latest else _to_iso(running.started_at) if running else None,
                 "latest_finished_at": _to_iso(latest.finished_at) if latest else None,
+                "latest_items_seen": latest_seen,
+                "latest_items_stored": latest_stored,
+                "latest_error_message": latest.error_message if latest else None,
+                "items_seen": latest_seen,
+                "items_stored": latest_stored,
+                "started_at": _to_iso(latest.started_at) if latest else _to_iso(running.started_at) if running else None,
+                "finished_at": _to_iso(latest.finished_at) if latest else None,
+                "error_message": latest.error_message if latest else None,
             }
         )
 
@@ -138,6 +209,7 @@ def _compute_source_pipeline_health(db: Session) -> dict[str, object]:
         "total_sources": total_sources,
         "source_health_ratio": round(source_health_ratio, 2) if total_sources else None,
         "sources": per_source,
+        "blocking_warnings": blocking_warnings,
     }
 
 
@@ -172,6 +244,10 @@ def compute_platform_trust_snapshot(db: Session) -> dict[str, object]:
         confidence_score -= 10
     if latest_pipeline_status not in {"completed", None}:
         confidence_score -= 10
+    if total_pipeline_sources > 0 and healthy_pipeline_sources == 0:
+        confidence_score = min(confidence_score, 45)
+    elif total_pipeline_sources > 0 and source_health_ratio < 0.5:
+        confidence_score = min(confidence_score, 65)
     confidence_score = max(0, min(confidence_score, 100))
     confidence_grade = _grade(confidence_score)
 
@@ -223,6 +299,10 @@ def compute_platform_trust_snapshot(db: Session) -> dict[str, object]:
     )
     if min_dataset_score < 80:
         confidence_score -= 10
+    if total_pipeline_sources > 0 and healthy_pipeline_sources == 0:
+        confidence_score = min(confidence_score, 45)
+    elif total_pipeline_sources > 0 and source_health_ratio < 0.5:
+        confidence_score = min(confidence_score, 65)
     confidence_score = max(0, min(confidence_score, 100))
     confidence_grade = _grade(confidence_score)
 
@@ -247,6 +327,7 @@ def compute_platform_trust_snapshot(db: Session) -> dict[str, object]:
             "latest_status": latest_pipeline_status,
             "source_health_ratio": pipeline_health["source_health_ratio"],
             "sources": pipeline_health["sources"],
+            "blocking_warnings": pipeline_health["blocking_warnings"],
         },
         "confidence": {
             "score": confidence_score,

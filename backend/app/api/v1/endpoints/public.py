@@ -1,7 +1,11 @@
+import csv
+import io
+import re
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, EmailStr, Field, field_validator
+from fastapi.responses import StreamingResponse
 from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
@@ -67,7 +71,21 @@ class RetentionSubscriptionPreviewRequest(BaseModel):
         return normalized
 
 
+def _normalization_confidence(offer: FoodOfferRecord) -> float:
+    confidence = 0.35
+    if offer.unit:
+        confidence += 0.2
+    if offer.unit_amount:
+        confidence += 0.2
+    if offer.price_per_unit_lkr:
+        confidence += 0.15
+    if offer.canonical_name and offer.display_name:
+        confidence += 0.1
+    return round(min(confidence, 1.0), 2)
+
+
 def _serialize_offer_summary(offer: FoodOfferRecord, score: FairPriceScoreRecord | None) -> dict[str, object]:
+    raw_offer = offer.raw_offer
     return {
         "id": offer.id,
         "source": offer.source,
@@ -79,9 +97,18 @@ def _serialize_offer_summary(offer: FoodOfferRecord, score: FairPriceScoreRecord
         "price_per_unit_lkr": float(offer.price_per_unit_lkr) if offer.price_per_unit_lkr else None,
         "unit": offer.unit,
         "unit_amount": offer.unit_amount,
+        "original_title": raw_offer.title if raw_offer else None,
+        "original_variant_title": raw_offer.variant_title if raw_offer else None,
+        "original_unit_text": offer.pack_descriptor,
+        "normalized_unit": offer.unit,
+        "normalized_unit_amount": offer.unit_amount,
+        "normalized_unit_price_lkr": float(offer.price_per_unit_lkr) if offer.price_per_unit_lkr else None,
+        "normalization_confidence": _normalization_confidence(offer),
         "available": offer.available,
         "url": offer.url,
         "image_url": offer.image_url,
+        "first_seen_at": _to_iso(offer.first_seen_at),
+        "last_seen_at": _to_iso(offer.last_seen_at),
         "price_band": score.price_band if score else None,
         "delta_vs_median_pct": score.delta_vs_median_pct if score else None,
     }
@@ -93,6 +120,91 @@ def _to_iso(value: datetime | None) -> str | None:
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc).isoformat()
     return value.isoformat()
+
+
+def _slugify(value: str | None) -> str:
+    value = (value or "").strip().lower()
+    value = re.sub(r"[^a-z0-9]+", "-", value)
+    return value.strip("-") or "item"
+
+
+def _matches_slug(value: str | None, slug: str) -> bool:
+    return _slugify(value) == slug
+
+
+def _item_history_series(db: Session, slug: str) -> list[dict[str, object]]:
+    rows = db.scalars(
+        select(MarketQuoteRecord).order_by(MarketQuoteRecord.quoted_at.asc(), MarketQuoteRecord.source.asc())
+    ).all()
+    matched = [row for row in rows if _matches_slug(row.item_name, slug)]
+    grouped: dict[str, list[MarketQuoteRecord]] = {}
+    for row in matched:
+        period = row.quoted_at.strftime("%Y-%m-%d") if row.quoted_at else "unknown"
+        grouped.setdefault(period, []).append(row)
+
+    series = []
+    for period, period_rows in sorted(grouped.items()):
+        prices = [float(row.price_lkr) for row in period_rows]
+        series.append(
+            {
+                "period": period,
+                "avg_price_lkr": round(sum(prices) / len(prices), 2),
+                "min_price_lkr": min(prices),
+                "max_price_lkr": max(prices),
+                "data_points": len(period_rows),
+                "sources": sorted({row.source for row in period_rows}),
+                "districts": sorted({row.district for row in period_rows}),
+            }
+        )
+    return series
+
+
+def _item_summary_rows(db: Session) -> list[dict[str, object]]:
+    aggregates = db.scalars(
+        select(PriceAggregateRecord).order_by(PriceAggregateRecord.canonical_name.asc(), PriceAggregateRecord.brand.asc())
+    ).all()
+    rows = [
+        {
+            "slug": _slugify(row.canonical_name),
+            "canonical_name": row.canonical_name,
+            "category": row.category,
+            "kind": "retail",
+            "unit": row.unit,
+            "unit_amount": row.unit_amount,
+            "offers_count": row.offers_count,
+            "median_price_lkr": float(row.median_price_lkr),
+            "latest_updated_at": _to_iso(row.calculated_at),
+        }
+        for row in aggregates
+    ]
+
+    market_rows = db.execute(
+        select(
+            MarketQuoteRecord.item_name,
+            MarketQuoteRecord.category,
+            MarketQuoteRecord.unit,
+            func.count(MarketQuoteRecord.id).label("quotes_count"),
+            func.avg(MarketQuoteRecord.price_lkr).label("avg_price"),
+            func.max(MarketQuoteRecord.quoted_at).label("latest_quoted_at"),
+        )
+        .group_by(MarketQuoteRecord.item_name, MarketQuoteRecord.category, MarketQuoteRecord.unit)
+        .order_by(MarketQuoteRecord.item_name.asc())
+    ).all()
+    for row in market_rows:
+        rows.append(
+            {
+                "slug": _slugify(row.item_name),
+                "canonical_name": row.item_name,
+                "category": row.category,
+                "kind": "market",
+                "unit": row.unit,
+                "unit_amount": 1,
+                "market_quotes_count": row.quotes_count,
+                "average_market_price_lkr": round(float(row.avg_price), 2) if row.avg_price else None,
+                "latest_updated_at": _to_iso(row.latest_quoted_at),
+            }
+        )
+    return rows
 
 
 @router.get("/health")
@@ -386,6 +498,8 @@ def compare_districts(left: str, right: str, db: Session = Depends(get_db)) -> d
                 "category": left_row.category,
                 "left_price_lkr": float(left_row.price_lkr),
                 "right_price_lkr": float(right_row.price_lkr),
+                "left_quoted_at": _to_iso(left_row.quoted_at),
+                "right_quoted_at": _to_iso(right_row.quoted_at),
                 "delta_lkr": delta,
                 "cheaper_side": "left" if delta > 0 else "right" if delta < 0 else "equal",
             }
@@ -423,6 +537,8 @@ def compare_sources(left: str, right: str, db: Session = Depends(get_db)) -> dic
                 "category": left_row.category,
                 "left_price_lkr": float(left_row.price_lkr),
                 "right_price_lkr": float(right_row.price_lkr),
+                "left_quoted_at": _to_iso(left_row.quoted_at),
+                "right_quoted_at": _to_iso(right_row.quoted_at),
                 "delta_lkr": delta,
                 "cheaper_side": "left" if delta > 0 else "right" if delta < 0 else "equal",
             }
@@ -478,6 +594,7 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
                         "kind": "offer",
                         "price_lkr": price,
                         "source": offer.source,
+                        "observed_at": _to_iso(offer.last_seen_at),
                         "availability_status": "available",
                         "availability_reason": "best_match_found",
                         "alternatives": [
@@ -485,6 +602,7 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
                                 "source": alt.source,
                                 "label": alt.display_name,
                                 "price_lkr": float(alt.price_lkr),
+                                "observed_at": _to_iso(alt.last_seen_at),
                             }
                             for alt in alternatives
                         ],
@@ -516,6 +634,7 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
                         "kind": "market_quote",
                         "price_lkr": price,
                         "source": quote.market_name,
+                        "observed_at": _to_iso(quote.quoted_at),
                         "availability_status": "available",
                         "availability_reason": "best_match_found",
                         "alternatives": [
@@ -523,6 +642,7 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
                                 "source": alt.market_name,
                                 "label": alt.item_name,
                                 "price_lkr": float(alt.price_lkr),
+                                "observed_at": _to_iso(alt.quoted_at),
                             }
                             for alt in alternatives
                         ],
@@ -546,6 +666,7 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
                 "kind": preset_item["kind"],
                 "price_lkr": None,
                 "source": None,
+                "observed_at": None,
                 "availability_status": "missing",
                 "availability_reason": availability_reason,
                 "alternatives": [],
@@ -565,6 +686,135 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
             "totals_by_kind": totals_by_kind,
         },
         "items": items,
+    }
+
+
+@router.get("/items")
+def list_items(
+    search: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    rows = _item_summary_rows(db)
+    if search:
+        term = search.strip().lower()
+        rows = [row for row in rows if term in str(row["canonical_name"]).lower()]
+    total = len(rows)
+    return {"items": rows[offset : offset + limit], "total": total}
+
+
+@router.get("/items/{slug}/history")
+def item_history(
+    slug: str,
+    district: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    normalized_slug = _slugify(slug)
+    series = _item_history_series(db, normalized_slug)
+    if district:
+        district_lower = district.lower()
+        series = [
+            row
+            for row in series
+            if any(str(row_district).lower() == district_lower for row_district in row["districts"])
+        ]
+    return {
+        "item": {"slug": normalized_slug},
+        "district": district,
+        "series": series,
+        "total_data_points": sum(int(row["data_points"]) for row in series),
+    }
+
+
+@router.get("/items/{slug}/history.csv")
+def item_history_csv(slug: str, db: Session = Depends(get_db)) -> StreamingResponse:
+    normalized_slug = _slugify(slug)
+    output = io.StringIO()
+    writer = csv.DictWriter(
+        output,
+        fieldnames=[
+            "period",
+            "avg_price_lkr",
+            "min_price_lkr",
+            "max_price_lkr",
+            "data_points",
+            "sources",
+            "districts",
+        ],
+    )
+    writer.writeheader()
+    for row in _item_history_series(db, normalized_slug):
+        writer.writerow(
+            {
+                **row,
+                "sources": "|".join(row["sources"]),
+                "districts": "|".join(row["districts"]),
+            }
+        )
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{normalized_slug}-history.csv"'},
+    )
+
+
+@router.get("/items/{slug}/history.json")
+def item_history_json(slug: str, db: Session = Depends(get_db)) -> dict[str, object]:
+    return item_history(slug=slug, district=None, db=db)
+
+
+@router.get("/items/{slug}")
+def item_detail(slug: str, db: Session = Depends(get_db)) -> dict[str, object]:
+    normalized_slug = _slugify(slug)
+    offer_rows = db.execute(
+        select(FoodOfferRecord, FairPriceScoreRecord)
+        .outerjoin(FairPriceScoreRecord, FairPriceScoreRecord.food_offer_id == FoodOfferRecord.id)
+        .order_by(FoodOfferRecord.price_lkr.asc(), FoodOfferRecord.last_seen_at.desc())
+    ).all()
+    matched_offers = [
+        (offer, score)
+        for offer, score in offer_rows
+        if _matches_slug(offer.canonical_name, normalized_slug) or _matches_slug(offer.display_name, normalized_slug)
+    ]
+    market_rows = [
+        row
+        for row in db.scalars(
+            select(MarketQuoteRecord).order_by(MarketQuoteRecord.price_lkr.asc(), MarketQuoteRecord.quoted_at.desc())
+        ).all()
+        if _matches_slug(row.item_name, normalized_slug)
+    ]
+
+    if not matched_offers and not market_rows:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    canonical_name = (
+        matched_offers[0][0].canonical_name
+        if matched_offers
+        else market_rows[0].item_name
+    )
+    category = matched_offers[0][0].category if matched_offers else market_rows[0].category
+
+    return {
+        "item": {
+            "slug": normalized_slug,
+            "canonical_name": canonical_name,
+            "category": category,
+            "retail_offers_count": len(matched_offers),
+            "market_quotes_count": len(market_rows),
+        },
+        "summary": {
+            "lowest_retail_price_lkr": float(matched_offers[0][0].price_lkr) if matched_offers else None,
+            "lowest_market_price_lkr": float(market_rows[0].price_lkr) if market_rows else None,
+            "sources": sorted({offer.source for offer, _ in matched_offers} | {row.source for row in market_rows}),
+            "districts": sorted({row.district for row in market_rows}),
+        },
+        "source_comparison": [
+            _serialize_offer_summary(offer, score)
+            for offer, score in matched_offers[:20]
+        ],
+        "district_history": _item_history_series(db, normalized_slug),
     }
 
 
@@ -614,8 +864,8 @@ def get_offer(offer_id: int, db: Session = Depends(get_db)) -> dict[str, object]
     return _serialize_offer_summary(offer, score)
 
 
-@router.get("/pipeline/status")
-def pipeline_status(
+@router.get("/pipeline/runs")
+def pipeline_runs(
     limit: int = Query(default=50, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
@@ -641,6 +891,30 @@ def pipeline_status(
             for row in rows
         ],
         "total": total,
+    }
+
+
+@router.get("/pipeline/status")
+def pipeline_status(
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    snapshot = compute_platform_trust_snapshot(db)
+    pipeline = snapshot["pipeline"]
+    rows = pipeline["sources"][offset : offset + limit]
+    return {
+        "generated_at": snapshot["generated_at"],
+        "items": rows,
+        "summary": {
+            "healthy_sources": pipeline["healthy_sources"],
+            "degraded_sources": pipeline["degraded_sources"],
+            "total_sources": pipeline["total_sources"],
+            "source_health_ratio": pipeline["source_health_ratio"],
+            "latest_status": pipeline["latest_status"],
+            "blocking_warnings": pipeline.get("blocking_warnings", []),
+        },
+        "total": pipeline["total_sources"],
     }
 
 

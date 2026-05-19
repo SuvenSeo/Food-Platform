@@ -8,7 +8,11 @@ function StatusDot({ status }: { status: string }) {
   const map: Record<string, string> = {
     success: 'bg-emerald-400',
     completed: 'bg-emerald-400',
+    healthy: 'bg-emerald-400',
     running: 'bg-orange-400',
+    stale: 'bg-amber-400',
+    empty: 'bg-amber-400',
+    missing: 'bg-red-400',
     failed: 'bg-red-400',
     error: 'bg-red-400',
   }
@@ -18,20 +22,22 @@ function StatusDot({ status }: { status: string }) {
 
 function StatusIcon({ status }: { status: string }) {
   const s = status.toLowerCase()
-  if (s === 'success' || s === 'completed')
+  if (s === 'success' || s === 'completed' || s === 'healthy')
     return <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-  if (s === 'failed' || s === 'error')
+  if (s === 'failed' || s === 'error' || s === 'missing')
     return <XCircle className="h-4 w-4 text-red-400" />
   return <Clock className="h-4 w-4 text-orange-400" />
 }
 
 export function PipelineCard({ item }: { item: PipelineItem }) {
   const statusLow = item.status.toLowerCase()
-  const isHealthy = statusLow === 'success' || statusLow === 'completed'
-  const isError = statusLow === 'failed' || statusLow === 'error'
+  const isHealthy = statusLow === 'success' || statusLow === 'completed' || statusLow === 'healthy'
+  const isError = statusLow === 'failed' || statusLow === 'error' || statusLow === 'missing'
 
   const healthPct =
     item.items_seen > 0 ? Math.round((item.items_stored / item.items_seen) * 100) : 0
+  const sourceLabel = item.label || item.source
+  const typeLabel = item.source_type ? `${item.source_type} source` : 'source'
 
   return (
     <motion.article 
@@ -45,9 +51,11 @@ export function PipelineCard({ item }: { item: PipelineItem }) {
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <StatusDot status={item.status} />
-            <h3 className="text-base font-semibold tracking-tight text-foreground truncate">{item.source}</h3>
+            <h3 className="text-base font-semibold tracking-tight text-foreground truncate">{sourceLabel}</h3>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">{formatCompactDate(item.finished_at)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {typeLabel} · {formatCompactDate(item.finished_at)}
+          </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <StatusIcon status={item.status} />
@@ -81,10 +89,15 @@ export function PipelineCard({ item }: { item: PipelineItem }) {
         <div className="rounded-xl bg-surface-elevated p-3">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <TimerReset className="h-3.5 w-3.5" />
-            Stored
+            Records
           </div>
-          <p className="num mt-1.5 text-xl font-semibold tracking-tighter text-foreground">{item.items_stored.toLocaleString()}</p>
+          <p className="num mt-1.5 text-xl font-semibold tracking-tighter text-foreground">{(item.records_count ?? item.items_stored).toLocaleString()}</p>
         </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+        <p>Min rows {item.minimum_rows ?? 1}</p>
+        <p className="text-right">Stale after {item.stale_after_minutes ?? 0}m</p>
       </div>
 
       {/* Health bar */}

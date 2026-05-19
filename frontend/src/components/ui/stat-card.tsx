@@ -31,7 +31,7 @@ export function StatCard({ label, value, helper, trend, accent = false }: StatCa
           accent ? 'text-[color:var(--paper-300)]' : 'text-[color:var(--color-text-muted)]',
         )}>{label}</p>
         <p className={cn(
-          'num mt-3 text-[36px] font-bold leading-[0.95] tracking-[-0.025em]',
+          'num mt-3 text-[36px] font-bold leading-[0.95] tracking-normal',
           accent ? 'text-[color:var(--paper-50)]' : 'text-[color:var(--color-text-primary)]',
         )}>
           {value}

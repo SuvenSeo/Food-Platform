@@ -46,7 +46,7 @@ export function WatchlistsPage() {
           </div>
           <h3
             className="text-foreground"
-            style={{ fontFamily: '"DM Serif Display", serif', fontSize: '1.5rem', letterSpacing: '-0.03em' }}
+            style={{ fontFamily: '"DM Serif Display", serif', fontSize: '1.5rem', letterSpacing: 0 }}
           >
             No saved views yet
           </h3>

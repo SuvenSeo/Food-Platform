@@ -144,7 +144,7 @@ export function RetailPage() {
         ].map(({ label, value }) => (
           <div key={label} className="bg-[color:var(--color-bg-card)] px-5 py-4">
             <p className="text-kicker">{label}</p>
-            <p className="num mt-2 text-[28px] font-bold leading-none tracking-[-0.025em] text-[color:var(--color-text-primary)]">
+            <p className="num mt-2 text-[28px] font-bold leading-none tracking-normal text-[color:var(--color-text-primary)]">
               {value.toLocaleString()}
             </p>
           </div>

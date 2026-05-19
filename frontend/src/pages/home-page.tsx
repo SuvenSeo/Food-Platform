@@ -49,7 +49,7 @@ export function HomePage() {
         <div>
           <span className="stamp">Issue 01 · The Food Desk</span>
           <h1
-            className="mt-7 font-display text-balance leading-[0.92] tracking-[-0.045em] text-[color:var(--color-text-primary)]"
+            className="mt-7 font-display text-balance leading-[0.92] tracking-normal text-[color:var(--color-text-primary)]"
             style={{ fontSize: 'clamp(3.25rem, 9vw, 8.5rem)', fontVariationSettings: "'opsz' 144, 'SOFT' 30, 'wght' 700" }}
           >
             The price of <em className="font-display italic font-normal text-[color:var(--chili-500)]">everything</em>, on one front page.
@@ -137,12 +137,14 @@ export function HomePage() {
           {lead ? (
             <Link to={`/offers/${lead.id}`} className="group mt-6 block">
               <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[color:var(--chili-500)]">
-                {lead.delta_vs_median_pct !== null && lead.delta_vs_median_pct < 0
-                  ? `Down ${Math.abs(lead.delta_vs_median_pct).toFixed(1)}% from median · biggest mover today`
+                {lead.delta_vs_median_pct !== null && lead.delta_vs_median_pct > 0
+                  ? `${lead.delta_vs_median_pct.toFixed(1)}% cheaper than median · biggest mover today`
+                  : lead.delta_vs_median_pct !== null && lead.delta_vs_median_pct < 0
+                  ? `${Math.abs(lead.delta_vs_median_pct).toFixed(1)}% above median · watchlist premium`
                   : 'Today’s top value, fresh off the scrape'}
               </p>
               <h2
-                className="mt-3 font-display tracking-[-0.035em] text-[color:var(--color-text-primary)] group-hover:text-[color:var(--chili-700)]"
+                className="mt-3 font-display tracking-normal text-[color:var(--color-text-primary)] group-hover:text-[color:var(--chili-700)]"
                 style={{ fontSize: 'clamp(2rem, 4.6vw, 3.4rem)', lineHeight: '0.96', fontVariationSettings: "'opsz' 96, 'SOFT' 30, 'wght' 600" }}
               >
                 {lead.display_name} <span className="font-display italic font-normal text-[color:var(--color-text-muted)]">at</span>{' '}
@@ -203,7 +205,7 @@ export function HomePage() {
                   <dt className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[color:var(--color-text-secondary)]">
                     {kpi.label}
                   </dt>
-                  <dd className="num text-[28px] font-bold leading-none tracking-[-0.025em] text-[color:var(--color-text-primary)]">
+                  <dd className="num text-[28px] font-bold leading-none tracking-normal text-[color:var(--color-text-primary)]">
                     {kpi.value.toLocaleString()}
                   </dd>
                 </div>

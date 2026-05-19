@@ -61,7 +61,7 @@ function StatTile({ stat, animate, index }: { stat: StatItem; animate: boolean, 
       )}>{stat.label}</p>
       <div className="mt-4">
         <p className={cn(
-          'num text-[42px] font-bold tracking-[-0.025em] leading-[0.95]',
+          'num text-[42px] font-bold tracking-normal leading-[0.95]',
           stat.highlight ? 'text-[color:var(--paper-50)]' : 'text-[color:var(--color-text-primary)]',
         )}>
           {stat.prefix}

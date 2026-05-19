@@ -100,3 +100,40 @@ def _send_confirmation_email(email: str, token: str) -> bool:
     except Exception:
         logger.exception("failed to send alert confirmation to %s", email)
         return False
+
+
+def confirm(db: Session, token: str) -> AlertSubscriptionRecord:
+    record = db.scalar(select(AlertSubscriptionRecord).where(AlertSubscriptionRecord.unsubscribe_token == token))
+    if not record:
+        raise ValueError("Alert subscription not found")
+    record.confirmed = True
+    record.active = True
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+def manage(db: Session, token: str) -> dict[str, object]:
+    record = db.scalar(select(AlertSubscriptionRecord).where(AlertSubscriptionRecord.unsubscribe_token == token))
+    if not record:
+        raise ValueError("Alert subscription not found")
+    return {
+        "id": record.id,
+        "email": record.email,
+        "scope": record.scope,
+        "scope_value": record.scope_value,
+        "cadence": record.cadence,
+        "active": record.active,
+        "confirmed": record.confirmed,
+        "created_at": record.created_at.isoformat() if record.created_at else None,
+    }
+
+
+def unsubscribe(db: Session, token: str) -> AlertSubscriptionRecord:
+    record = db.scalar(select(AlertSubscriptionRecord).where(AlertSubscriptionRecord.unsubscribe_token == token))
+    if not record:
+        raise ValueError("Alert subscription not found")
+    record.active = False
+    db.commit()
+    db.refresh(record)
+    return record

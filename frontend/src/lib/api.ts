@@ -8,7 +8,7 @@ import type {
   MarketQuoteItem,
   OffersResponse,
   PlatformFreshnessSummary,
-  PipelineItem,
+  PipelineStatusResponse,
   PriceTrendResponse,
   StatsSummary,
   TrendItem,
@@ -60,7 +60,7 @@ export const api = {
   getOffers: (searchParams = '') => fetchJson<OffersResponse>(`/offers${searchParams}`),
   getOffer: (id: string) => fetchJson<OffersResponse['items'][number]>(`/offers/${id}`),
   getTrends: (category: string) => fetchJson<{ items: TrendItem[] }>(`/trends/${category}`),
-  getPipeline: () => fetchJson<{ items: PipelineItem[] }>('/pipeline/status'),
+  getPipeline: () => fetchJson<PipelineStatusResponse>('/pipeline/status'),
   getMarketQuotes: (searchParams = '') => fetchJson<{ items: MarketQuoteItem[]; total: number }>(`/market-quotes${searchParams}`),
   getMarketPriceTrend: (item: string, district?: string, granularity: 'monthly' | 'yearly' = 'monthly') => {
     const params = new URLSearchParams({ item, granularity })

@@ -11,7 +11,7 @@ import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
 import { useWatchlists } from '../hooks/use-watchlists'
 import { api } from '../lib/api'
-import { formatCurrency } from '../lib/format'
+import { formatCompactDate, formatCurrency } from '../lib/format'
 
 export function ComparePage() {
   const marketsQuery = useQuery({
@@ -282,10 +282,16 @@ export function ComparePage() {
                       <div className="bg-[color:var(--color-bg-secondary)] p-3">
                         <p className="eyebrow-label">{data?.left}</p>
                         <p className="num mt-1 text-lg font-bold text-[color:var(--color-text-primary)]">රු {formatCurrency(item.left_price_lkr)}</p>
+                        <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-[color:var(--color-text-faint)]">
+                          {formatCompactDate(item.left_quoted_at)}
+                        </p>
                       </div>
                       <div className="bg-[color:var(--color-bg-secondary)] p-3">
                         <p className="eyebrow-label">{data?.right}</p>
                         <p className="num mt-1 text-lg font-bold text-[color:var(--color-text-primary)]">රු {formatCurrency(item.right_price_lkr)}</p>
+                        <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-[color:var(--color-text-faint)]">
+                          {formatCompactDate(item.right_quoted_at)}
+                        </p>
                       </div>
                     </div>
                   </div>

@@ -38,7 +38,7 @@ function BentoCard({ title, description, href, icon: Icon, accent, idx }: Featur
       <div className="flex items-baseline gap-2.5">
         <Icon className="h-5 w-5 shrink-0 text-[color:var(--chili-500)]" aria-hidden="true" />
         <h3
-          className="font-display text-[22px] leading-[1.05] tracking-[-0.025em] text-[color:var(--color-text-primary)]"
+          className="font-display text-[22px] leading-[1.05] tracking-normal text-[color:var(--color-text-primary)]"
           style={{ fontVariationSettings: "'opsz' 48, 'wght' 600" }}
         >
           {title}

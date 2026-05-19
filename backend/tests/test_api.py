@@ -152,8 +152,12 @@ def test_platform_freshness_exposes_confidence_and_provenance() -> None:
     assert payload["coverage"]["offers_count"] == 1
     assert payload["coverage"]["market_quotes_count"] == 2
     assert payload["pipeline"]["healthy_sources"] >= 1
+    assert payload["pipeline"]["total_sources"] >= 8
+    assert {source["source"] for source in payload["pipeline"]["sources"]} >= {"spar2u", "glomark", "keells", "cargills", "wfp", "cbsl", "dcs", "doa"}
+    assert payload["pipeline"]["blocking_warnings"]
     assert payload["confidence"]["score"] >= 0
     assert payload["confidence"]["grade"] in {"high", "medium", "low"}
+    assert payload["confidence"]["grade"] != "high"
     assert payload["datasets"]["offers"]["dataset"] == "offers"
     assert payload["datasets"]["offers"]["reliability"]["grade"] in {"high", "medium", "low"}
     assert payload["datasets"]["market_quotes"]["dataset"] == "market_quotes"
@@ -209,11 +213,18 @@ def test_trends_and_pipeline_status() -> None:
 
     trends = client.get("/api/v1/trends/grocery")
     pipeline = client.get("/api/v1/pipeline/status")
+    runs = client.get("/api/v1/pipeline/runs")
 
     assert trends.status_code == 200
     assert trends.json()["items"][0]["median_price_lkr"] == 1650.0
     assert pipeline.status_code == 200
     assert pipeline.json()["items"][0]["source"] == "spar2u"
+    assert pipeline.json()["items"][0]["source_type"] == "retail"
+    assert pipeline.json()["items"][0]["health"] == "healthy"
+    assert pipeline.json()["summary"]["total_sources"] >= 8
+    assert runs.status_code == 200
+    assert runs.json()["total"] == 1
+    assert runs.json()["items"][0]["status"] == "completed"
 
 
 def test_admin_trigger_requires_key_and_rebuilds_views() -> None:
@@ -426,3 +437,42 @@ def test_offer_detail_returns_404_when_missing() -> None:
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Offer not found"
+
+
+def test_offer_payload_exposes_original_and_normalized_unit_metadata() -> None:
+    seed_api_data()
+
+    response = client.get("/api/v1/offers")
+
+    assert response.status_code == 200
+    item = response.json()["items"][0]
+    assert item["original_title"] is None
+    assert item["original_unit_text"] == "WT / 1000"
+    assert item["normalized_unit"] == "l"
+    assert item["normalized_unit_amount"] == 1.0
+    assert item["normalized_unit_price_lkr"] == 1600.0
+    assert item["normalization_confidence"] > 0
+    assert item["last_seen_at"] is not None
+
+
+def test_item_intelligence_endpoints_and_exports() -> None:
+    seed_api_data()
+
+    index_response = client.get("/api/v1/items")
+    detail_response = client.get("/api/v1/items/local-coconut-oil")
+    history_response = client.get("/api/v1/items/tomato/history")
+    csv_response = client.get("/api/v1/items/tomato/history.csv")
+    json_response = client.get("/api/v1/items/tomato/history.json")
+
+    assert index_response.status_code == 200
+    assert index_response.json()["items"][0]["slug"] == "local-coconut-oil"
+    assert detail_response.status_code == 200
+    assert detail_response.json()["item"]["canonical_name"] == "local coconut oil"
+    assert detail_response.json()["source_comparison"][0]["source"] == "spar2u"
+    assert history_response.status_code == 200
+    assert history_response.json()["series"][0]["period"]
+    assert csv_response.status_code == 200
+    assert "text/csv" in csv_response.headers["content-type"]
+    assert "period,avg_price_lkr" in csv_response.text
+    assert json_response.status_code == 200
+    assert json_response.json()["item"]["slug"] == "tomato"

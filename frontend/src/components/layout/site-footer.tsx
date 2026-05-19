@@ -37,7 +37,7 @@ export function SiteFooter() {
           className="select-none whitespace-nowrap text-center font-display font-bold leading-[0.85] text-[color:var(--color-text-primary)]"
           style={{
             fontSize: 'clamp(5.5rem, 18vw, 16rem)',
-            letterSpacing: '-0.06em',
+            letterSpacing: 0,
             fontVariationSettings: "'opsz' 144, 'SOFT' 30, 'wght' 700",
             backgroundImage:
               'radial-gradient(circle, rgba(14,14,12,0.95) 1px, transparent 1.3px)',
@@ -59,7 +59,7 @@ export function SiteFooter() {
           <div>
             <span className="text-kicker">§ Masthead</span>
             <h3
-              className="mt-3 font-display text-[40px] leading-[0.95] tracking-[-0.035em] text-[color:var(--color-text-primary)]"
+              className="mt-3 font-display text-[40px] leading-[0.95] tracking-normal text-[color:var(--color-text-primary)]"
               style={{ fontVariationSettings: "'opsz' 96, 'wght' 700" }}
             >
               Mandiya<span className="text-[color:var(--chili-500)]">.</span>

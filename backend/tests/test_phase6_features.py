@@ -78,6 +78,40 @@ def test_alerts_subscribe_preview_mode_without_resend() -> None:
         assert row.scope_value == "essentials"
 
 
+def test_alert_confirm_manage_and_unsubscribe_flow() -> None:
+    seed_api_data()
+    with SessionLocal() as db:
+        db.execute(delete(AlertSubscriptionRecord))
+        db.commit()
+
+    subscribe = client.post(
+        "/api/v1/alerts/subscribe",
+        json={
+            "email": "manage@example.com",
+            "scope": "category",
+            "scope_value": "vegetables",
+            "cadence": "daily",
+        },
+    )
+    assert subscribe.status_code == 202
+
+    with SessionLocal() as db:
+        row = db.scalar(select(AlertSubscriptionRecord).where(AlertSubscriptionRecord.email == "manage@example.com"))
+        assert row is not None
+        token = row.unsubscribe_token
+
+    manage = client.get(f"/api/v1/alerts/manage/{token}")
+    confirm = client.post(f"/api/v1/alerts/confirm/{token}")
+    unsubscribe = client.post(f"/api/v1/alerts/unsubscribe/{token}")
+
+    assert manage.status_code == 200
+    assert manage.json()["subscription"]["scope"] == "category"
+    assert confirm.status_code == 200
+    assert confirm.json()["confirmed"] is True
+    assert unsubscribe.status_code == 200
+    assert unsubscribe.json()["active"] is False
+
+
 def test_basket_presets_include_four_families() -> None:
     seed_api_data()
 

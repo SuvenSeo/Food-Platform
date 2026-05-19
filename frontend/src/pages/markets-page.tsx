@@ -210,7 +210,7 @@ export function MarketsPage() {
                 </span>
               </div>
               <h3
-                className="font-display text-[20px] leading-[1.1] tracking-[-0.025em] text-[color:var(--color-text-primary)]"
+                className="font-display text-[20px] leading-[1.1] tracking-normal text-[color:var(--color-text-primary)]"
                 style={{ fontVariationSettings: "'opsz' 36, 'wght' 600" }}
               >
                 {quote.item_name}
@@ -221,7 +221,7 @@ export function MarketsPage() {
               </p>
               <div className="rule-dotted mt-auto h-px w-full" aria-hidden="true" />
               <div className="flex items-end justify-between gap-3">
-                <p className="num text-[28px] font-bold leading-none tracking-[-0.025em] text-[color:var(--color-text-primary)]">
+                <p className="num text-[28px] font-bold leading-none tracking-normal text-[color:var(--color-text-primary)]">
                   <span className="text-[12px] font-semibold text-[color:var(--color-text-muted)]">රු </span>
                   {formatCurrency(quote.price_lkr)}
                   <span className="ml-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-text-muted)]">

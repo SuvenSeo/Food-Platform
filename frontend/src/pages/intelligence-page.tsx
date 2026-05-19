@@ -49,7 +49,7 @@ export function IntelligencePage() {
           </span>
         </div>
         <h1
-          className="font-display tracking-[-0.04em] text-[color:var(--color-text-primary)]"
+          className="font-display tracking-normal text-[color:var(--color-text-primary)]"
           style={{ fontSize: 'clamp(2.4rem, 6.5vw, 5.5rem)', lineHeight: '0.95', fontVariationSettings: "'opsz' 144, 'wght' 700" }}
         >
           National food <em className="font-display italic font-normal" style={{ color: URGENCY_COLOR[urgency] }}>signals.</em>
@@ -73,7 +73,7 @@ export function IntelligencePage() {
           <div>
             <span className="text-kicker">§ Command brief</span>
             <h2
-              className="mt-3 max-w-[34ch] font-display leading-[1.05] tracking-[-0.025em] text-[color:var(--color-text-primary)]"
+              className="mt-3 max-w-[34ch] font-display leading-[1.05] tracking-normal text-[color:var(--color-text-primary)]"
               style={{ fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', fontVariationSettings: "'opsz' 96, 'wght' 600" }}
             >
               {briefContent?.headline ?? 'Brief currently unavailable.'}
@@ -100,7 +100,7 @@ export function IntelligencePage() {
             <div key={`${h.label}-${i}`} className="bg-[color:var(--color-bg-card)] p-5">
               <p className="text-kicker">{h.label}</p>
               <p
-                className="mt-2 font-display text-[20px] leading-[1.1] tracking-[-0.025em] text-[color:var(--color-text-primary)]"
+                className="mt-2 font-display text-[20px] leading-[1.1] tracking-normal text-[color:var(--color-text-primary)]"
                 style={{ fontVariationSettings: "'opsz' 48, 'wght' 600" }}
               >
                 {h.value}

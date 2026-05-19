@@ -113,7 +113,7 @@ export function AppLoader({ children }: AppLoaderProps) {
                 top: '50%',
                 transform: 'translateY(-50%)',
                 fontSize: 'clamp(8rem, 26vw, 28rem)',
-                letterSpacing: '-0.06em',
+                letterSpacing: 0,
                 fontVariationSettings: "'opsz' 144, 'wght' 700",
                 color: 'transparent',
                 backgroundImage:
@@ -190,7 +190,7 @@ export function AppLoader({ children }: AppLoaderProps) {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.5 }}
-                className="mt-6 font-display text-[44px] font-bold leading-none tracking-[-0.04em] text-[#0E0E0C]"
+                className="mt-6 font-display text-[44px] font-bold leading-none tracking-normal text-[#0E0E0C]"
                 style={{ fontVariationSettings: "'opsz' 144, 'wght' 700" }}
               >
                 Mandiya<span className="text-[#C8321E]">.</span>

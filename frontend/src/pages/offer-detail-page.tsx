@@ -14,7 +14,7 @@ import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workfl
 import { useMarketTrend } from '../hooks/use-market-trend'
 import { useWatchlists } from '../hooks/use-watchlists'
 import { ApiError, api } from '../lib/api'
-import { formatCurrency, mapTrendSeriesToChart } from '../lib/format'
+import { formatCompactDate, formatCurrency, mapTrendSeriesToChart } from '../lib/format'
 
 export function OfferDetailPage() {
   const { offerId } = useParams()
@@ -67,8 +67,16 @@ export function OfferDetailPage() {
   const offer = offerQuery.data
   const relatedOffers = (relatedQuery.data?.items ?? []).filter((item) => item.id !== offer.id).slice(0, 3)
   const delta = offer.delta_vs_median_pct
-  const isCheap = delta !== null && delta < -5
-  const isExpensive = delta !== null && delta > 5
+  const isCheap = delta !== null && delta > 5
+  const isExpensive = delta !== null && delta < -5
+  const deltaCopy =
+    delta === null
+      ? 'Pending median signal'
+      : isCheap
+      ? `${delta.toFixed(1)}% cheaper than median`
+      : isExpensive
+      ? `${Math.abs(delta).toFixed(1)}% above median`
+      : `${delta.toFixed(1)}% near median`
 
   return (
     <section className="space-y-8">
@@ -122,7 +130,7 @@ export function OfferDetailPage() {
           <p className="eyebrow-accent">Single-stall profile · {offer.source}</p>
           <h1
             className="mt-3 text-balance text-foreground"
-            style={{ fontFamily: '"DM Serif Display", serif', fontSize: 'clamp(1.75rem, 4vw, 2.75rem)', letterSpacing: '-0.035em' }}
+            style={{ fontFamily: '"DM Serif Display", serif', fontSize: 'clamp(1.75rem, 4vw, 2.75rem)', letterSpacing: 0 }}
           >
             {offer.display_name}
           </h1>
@@ -138,7 +146,7 @@ export function OfferDetailPage() {
               {delta !== null && (
                 <p className={`num mt-1 flex items-center gap-1 text-xs font-semibold ${isCheap ? 'text-emerald-400' : isExpensive ? 'text-red-400' : 'text-muted-foreground'}`}>
                   {isCheap ? <TrendingDown className="h-3 w-3" /> : isExpensive ? <TrendingUp className="h-3 w-3" /> : null}
-                  {delta > 0 ? '+' : ''}{delta.toFixed(1)}% vs median
+                  {deltaCopy}
                 </p>
               )}
             </div>
@@ -151,9 +159,9 @@ export function OfferDetailPage() {
               <p className="mt-2 text-base font-semibold text-foreground">{offer.brand || 'Unspecified'}</p>
             </div>
             <div className="bg-surface-soft p-4">
-              <p className="eyebrow-label">Unit</p>
+              <p className="eyebrow-label">Freshness</p>
               <p className="mt-2 text-base font-semibold text-foreground">
-                {offer.unit_amount ? `${offer.unit_amount} ${offer.unit || ''}` : offer.unit || '—'}
+                {formatCompactDate(offer.last_seen_at)}
               </p>
             </div>
           </div>
@@ -225,11 +233,17 @@ export function OfferDetailPage() {
             <p className="num text-xl font-semibold text-foreground">
               {offer.price_per_unit_lkr ? `Rs ${formatCurrency(offer.price_per_unit_lkr)}` : '—'}
             </p>
+            <p className="text-xs text-muted-foreground">
+              Normalised as {offer.normalized_unit_amount ?? offer.unit_amount ?? '—'} {offer.normalized_unit ?? offer.unit ?? ''}; source unit {offer.original_unit_text || 'not supplied'}.
+            </p>
           </div>
           <div className="fp-soft-card space-y-2">
             <p className="eyebrow-label">Median delta</p>
             <p className={`num text-xl font-semibold ${isCheap ? 'text-emerald-400' : isExpensive ? 'text-red-400' : 'text-foreground'}`}>
-              {delta == null ? 'Pending' : `${delta > 0 ? '+' : ''}${delta.toFixed(2)}%`}
+              {deltaCopy}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Normalisation confidence {(offer.normalization_confidence * 100).toFixed(0)}%.
             </p>
           </div>
         </div>

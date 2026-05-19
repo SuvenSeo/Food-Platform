@@ -82,12 +82,12 @@
   --space-32: 8rem;
 
   /* Radii */
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 20px;
-  --radius-xl: 28px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
   --radius-pill: 9999px;
-  --radius: 16px;
+  --radius: 8px;
 
   /* Fluid type scale */
   --text-display: clamp(3.5rem, 8vw, 7rem);
@@ -216,7 +216,7 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.011em;
+  letter-spacing: 0;
   font-variant-numeric: tabular-nums;
   /* Paper warmth — soft wash, not glow */
   background-image:
@@ -240,7 +240,7 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Fraunces', Georgia, serif;
   font-variation-settings: 'opsz' 96, 'SOFT' 30;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
   line-height: 1.08;
   font-weight: 600;
   color: var(--color-text-primary);
@@ -331,7 +331,7 @@ a {
   font-variation-settings: 'opsz' 144, 'SOFT' 30, 'wght' 600;
   font-size: var(--text-display);
   line-height: 0.95;
-  letter-spacing: -0.045em;
+  letter-spacing: 0;
   color: var(--color-text-primary);
 }
 
@@ -340,7 +340,7 @@ a {
   font-variation-settings: 'opsz' 96, 'SOFT' 30, 'wght' 600;
   font-size: var(--text-headline);
   line-height: 1.05;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   color: var(--color-text-primary);
 }
 
@@ -348,7 +348,7 @@ a {
   font-family: 'Fraunces', Georgia, serif;
   font-variation-settings: 'opsz' 36, 'wght' 600;
   font-size: var(--text-title);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--color-text-primary);
 }
 
@@ -388,7 +388,7 @@ a {
   font-variation-settings: 'opsz' 144, 'SOFT' 30, 'wght' 700;
   font-size: clamp(3.25rem, 9vw, 8.5rem);
   line-height: 0.88;
-  letter-spacing: -0.05em;
+  letter-spacing: 0;
   color: var(--color-text-primary);
 }
 
@@ -398,7 +398,7 @@ a {
   font-style: italic;
   font-size: clamp(1.125rem, 1.6vw, 1.5rem);
   line-height: 1.4;
-  letter-spacing: -0.012em;
+  letter-spacing: 0;
   color: var(--color-text-secondary);
 }
 
@@ -502,7 +502,7 @@ a {
     font-size: 0.85rem;
     font-weight: 600;
     font-family: 'Inter', sans-serif;
-    letter-spacing: -0.005em;
+    letter-spacing: 0;
     transition: transform 120ms var(--ease-spring), box-shadow 160ms var(--ease-apple), background 160ms var(--ease-apple);
     position: relative;
     overflow: hidden;

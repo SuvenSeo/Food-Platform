@@ -22,9 +22,18 @@ export type OfferItem = {
   price_per_unit_lkr: number | null
   unit: string | null
   unit_amount: number | null
+  original_title: string | null
+  original_variant_title: string | null
+  original_unit_text: string | null
+  normalized_unit: string | null
+  normalized_unit_amount: number | null
+  normalized_unit_price_lkr: number | null
+  normalization_confidence: number
   available: boolean
   url: string
   image_url: string | null
+  first_seen_at: string | null
+  last_seen_at: string | null
   price_band: string | null
   delta_vs_median_pct: number | null
 }
@@ -47,12 +56,34 @@ export type TrendItem = {
 
 export type PipelineItem = {
   source: string
+  label?: string
+  source_type?: 'retail' | 'market' | 'unknown'
+  health?: string
+  records_count?: number
+  freshness_lag_minutes?: number | null
+  expected_frequency_minutes?: number
+  stale_after_minutes?: number
+  minimum_rows?: number
   status: string
   items_seen: number
   items_stored: number
   started_at: string | null
   finished_at: string | null
   error_message: string | null
+}
+
+export type PipelineStatusResponse = {
+  generated_at: string | null
+  total: number
+  items: PipelineItem[]
+  summary: {
+    healthy_sources: number
+    degraded_sources: number
+    total_sources: number
+    source_health_ratio: number | null
+    latest_status: string | null
+    blocking_warnings: string[]
+  }
 }
 
 export type MarketQuoteItem = {
@@ -112,6 +143,8 @@ export type DistrictCompareItem = {
   category: string
   left_price_lkr: number
   right_price_lkr: number
+  left_quoted_at: string | null
+  right_quoted_at: string | null
   delta_lkr: number
   cheaper_side: 'left' | 'right' | 'equal'
 }
@@ -142,6 +175,7 @@ export type BasketEstimateResponse = {
     kind: string
     price_lkr: number | null
     source: string | null
+    observed_at: string | null
   }>
 }
 
@@ -169,9 +203,12 @@ export type PlatformFreshnessSummary = {
   }
   pipeline: {
     healthy_sources: number
+    degraded_sources?: number
     total_sources: number
     latest_status: string | null
     source_health_ratio: number | null
+    blocking_warnings?: string[]
+    sources?: PipelineItem[]
   }
   confidence: {
     score: number

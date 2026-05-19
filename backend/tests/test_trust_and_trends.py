@@ -43,8 +43,8 @@ def test_trust_counts_zero_yield_completed_run_as_unhealthy() -> None:
     assert response.status_code == 200
     pipeline = response.json()["pipeline"]
     assert pipeline["healthy_sources"] == 0
-    assert pipeline["total_sources"] == 1
-    source_row = pipeline["sources"][0]
+    assert pipeline["total_sources"] >= 8
+    source_row = next(row for row in pipeline["sources"] if row["source"] == "keells")
     assert source_row["source"] == "keells"
     assert source_row["health"] in {"empty", "degraded"}
 

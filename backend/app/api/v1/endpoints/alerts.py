@@ -45,3 +45,41 @@ def subscribe_alert(
         ),
     }
     return JSONResponse(status_code=status_code, content=body)
+
+
+@router.get("/manage/{token}")
+def manage_alert(token: str, db: Session = Depends(get_db)) -> dict[str, object]:
+    try:
+        return {"ok": True, "subscription": alerts_service.manage(db, token)}
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/confirm/{token}")
+def confirm_alert(token: str, db: Session = Depends(get_db)) -> dict[str, object]:
+    try:
+        record = alerts_service.confirm(db, token)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {
+        "ok": True,
+        "id": record.id,
+        "active": record.active,
+        "confirmed": record.confirmed,
+        "message": "Alert subscription confirmed.",
+    }
+
+
+@router.post("/unsubscribe/{token}")
+def unsubscribe_alert(token: str, db: Session = Depends(get_db)) -> dict[str, object]:
+    try:
+        record = alerts_service.unsubscribe(db, token)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {
+        "ok": True,
+        "id": record.id,
+        "active": record.active,
+        "confirmed": record.confirmed,
+        "message": "Alert subscription disabled.",
+    }

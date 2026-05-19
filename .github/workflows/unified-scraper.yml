@@ -161,4 +161,6 @@ jobs:
         env:
           ALLOW_SQLITE_FALLBACK: "false"
           APP_ENV: production
-        run: python scripts/verify_market_source.py --source ${{ matrix.source }} --min-rows 1
+        run: |
+          python scripts/verify_last_scrape.py --source ${{ matrix.source }} --max-wait-seconds 30
+          python scripts/verify_market_source.py --source ${{ matrix.source }} --min-rows 1

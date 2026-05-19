@@ -21,8 +21,10 @@ def test_spar2u():
             print(f"  Sample: {o.title[:60]} | Rs {o.price_lkr} | img={bool(o.image_url)}")
             if o.image_url:
                 print(f"  Image: {o.image_url[:80]}")
+        return len(offers) > 0
     except Exception as exc:
         print(f"  FAILED: {exc}")
+        return False
 
 def test_glomark():
     print("=== Glomark ===")
@@ -33,8 +35,10 @@ def test_glomark():
         if offers:
             o = offers[0]
             print(f"  Sample: {o.title[:60]} | Rs {o.price_lkr} | img={bool(o.image_url)}")
+        return len(offers) > 0
     except Exception as exc:
         print(f"  FAILED: {exc}")
+        return False
 
 def test_wfp():
     print("=== WFP (official market data) ===")
@@ -45,8 +49,10 @@ def test_wfp():
         if quotes:
             q = quotes[-1]
             print(f"  Sample: {q['item_name']} | {q['district']} | Rs {q['price_lkr']}/{q['unit']} | {q['quoted_at'][:10]}")
+        return len(quotes) > 0
     except Exception as exc:
         print(f"  FAILED: {exc}")
+        return False
 
 def test_cbsl():
     print("=== CBSL Daily Price Report ===")
@@ -56,8 +62,10 @@ def test_cbsl():
         print(f"  OK — {len(quotes)} market quotes parsed from PDF")
         for q in quotes[:3]:
             print(f"  {q['item_name'][:30]:30s} | Rs {q['price_lkr']}/{q['unit']} | {q['market_name']}")
+        return len(quotes) > 0
     except Exception as exc:
         print(f"  FAILED: {exc}")
+        return False
 
 def test_dcs():
     print("=== DCS Weekly Retail Prices ===")
@@ -69,8 +77,10 @@ def test_dcs():
             print(f"  {q['item_name'][:30]:30s} | Rs {q['price_lkr']}/{q['unit']}")
         if not quotes:
             print("  (0 quotes — DCS may use JS rendering for download links)")
+        return len(quotes) > 0
     except Exception as exc:
         print(f"  FAILED: {exc}")
+        return False
 
 def test_doa():
     print("=== DOA SHEP Vegetable Prices ===")
@@ -82,8 +92,10 @@ def test_doa():
             print(f"  {q['item_name'][:30]:30s} | {q['market_name'][:25]:25s} | Rs {q['price_lkr']}/{q['unit']} | {q['quoted_at'][:10]}")
         if not quotes:
             print("  (0 quotes — DOA endpoint may have changed)")
+        return len(quotes) > 0
     except Exception as exc:
         print(f"  FAILED: {exc}")
+        return False
 
 def test_keells():
     print("=== Keells (guest API scrape) ===")
@@ -94,8 +106,10 @@ def test_keells():
         if offers:
             o = offers[0]
             print(f"  Sample: {o.title[:60]} | Rs {o.price_lkr}")
+        return len(offers) > 0
     except Exception as exc:
         print(f"  FAILED: {exc}")
+        return False
 
 def test_cargills():
     print("=== Cargills (JSON/browser scrape) ===")
@@ -106,22 +120,27 @@ def test_cargills():
         if offers:
             o = offers[0]
             print(f"  Sample: {o.title[:60]} | Rs {o.price_lkr}")
+        return len(offers) > 0
     except Exception as exc:
         print(f"  FAILED: {exc}")
+        return False
 
 if __name__ == "__main__":
-    test_spar2u()
+    results = []
+    results.append(test_spar2u())
     print()
-    test_glomark()
+    results.append(test_glomark())
     print()
-    test_wfp()
+    results.append(test_wfp())
     print()
-    test_cbsl()
+    results.append(test_cbsl())
     print()
-    test_dcs()
+    results.append(test_dcs())
     print()
-    test_doa()
+    results.append(test_doa())
     print()
-    test_keells()
+    results.append(test_keells())
     print()
-    test_cargills()
+    results.append(test_cargills())
+    if not all(results):
+        raise SystemExit(1)
