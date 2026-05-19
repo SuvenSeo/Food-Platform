@@ -455,6 +455,20 @@ def test_offer_payload_exposes_original_and_normalized_unit_metadata() -> None:
     assert item["last_seen_at"] is not None
 
 
+def test_offer_browse_returns_catalog_facets_and_server_filters() -> None:
+    seed_api_data()
+
+    response = client.get("/api/v1/offers", params={"source": "spar2u", "unit": "l", "sort_by": "unit-low"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 1
+    assert payload["items"][0]["source"] == "spar2u"
+    assert payload["facets"]["sources"][0]["value"] == "spar2u"
+    assert payload["facets"]["sources"][0]["count"] == 1
+    assert payload["facets"]["units"][0]["value"] == "l"
+
+
 def test_item_intelligence_endpoints_and_exports() -> None:
     seed_api_data()
 
@@ -471,6 +485,7 @@ def test_item_intelligence_endpoints_and_exports() -> None:
     assert detail_response.json()["source_comparison"][0]["source"] == "spar2u"
     assert history_response.status_code == 200
     assert history_response.json()["series"][0]["period"]
+    assert history_response.json()["forecast"]["direction"] in {"steady", "up", "down", "insufficient-data"}
     assert csv_response.status_code == 200
     assert "text/csv" in csv_response.headers["content-type"]
     assert "period,avg_price_lkr" in csv_response.text

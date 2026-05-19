@@ -5,6 +5,7 @@ import { Search, X } from 'lucide-react'
 const destinations = [
   { label: 'Home', to: '/', group: 'Discover' },
   { label: 'Retail offers', to: '/retail', group: 'Discover' },
+  { label: 'All items catalog', to: '/items', group: 'Discover' },
   { label: 'Market quotes', to: '/markets', group: 'Discover' },
   { label: 'Categories', to: '/categories', group: 'Discover' },
   { label: 'Intelligence desk', to: '/intelligence', group: 'Intelligence' },

@@ -8,6 +8,8 @@ const HomePage = lazy(() => import('../pages/home-page').then((module) => ({ def
 const IntelligencePage = lazy(() => import('../pages/intelligence-page').then((module) => ({ default: module.IntelligencePage })))
 const RetailPage = lazy(() => import('../pages/retail-page').then((module) => ({ default: module.RetailPage })))
 const MarketsPage = lazy(() => import('../pages/markets-page').then((module) => ({ default: module.MarketsPage })))
+const ItemsPage = lazy(() => import('../pages/items-page').then((module) => ({ default: module.ItemsPage })))
+const ItemDetailPage = lazy(() => import('../pages/item-detail-page').then((module) => ({ default: module.ItemDetailPage })))
 const CategoriesPage = lazy(() => import('../pages/categories-page').then((module) => ({ default: module.CategoriesPage })))
 const ComparePage = lazy(() => import('../pages/compare-page').then((module) => ({ default: module.ComparePage })))
 const BasketPage = lazy(() => import('../pages/basket-page').then((module) => ({ default: module.BasketPage })))
@@ -33,6 +35,10 @@ const routeMetadata: Record<string, { title: string; description: string }> = {
   '/retail': {
     title: 'Retail Discovery | FoodLK',
     description: 'Browse normalised supermarket and grocery offers with source-aware filters and transparent pricing.',
+  },
+  '/items': {
+    title: 'Price Catalog | FoodLK',
+    description: 'Browse grouped retail products and public-market items with photos, prices, sources, and item intelligence.',
   },
   '/markets': {
     title: 'Market Quotes | FoodLK',
@@ -115,6 +121,8 @@ export function AppRoutes() {
           <Route path="/" element={<HomePage />} />
           <Route path="/intelligence" element={<IntelligencePage />} />
           <Route path="/retail" element={<RetailPage />} />
+          <Route path="/items" element={<ItemsPage />} />
+          <Route path="/items/:slug" element={<ItemDetailPage />} />
           <Route path="/markets" element={<MarketsPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/compare" element={<ComparePage />} />

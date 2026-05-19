@@ -10,50 +10,68 @@ import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workfl
 import { api } from '../lib/api'
 
 export function RetailPage() {
+  const PAGE_SIZE = 48
   const [search, setSearch] = useState('')
   const [sourceFilter, setSourceFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [unitFilter, setUnitFilter] = useState('all')
   const [sortBy, setSortBy] = useState<'unit-low' | 'unit-high' | 'price-low' | 'price-high' | 'name'>('unit-low')
+  const [page, setPage] = useState(1)
+
+  const queryString = useMemo(() => {
+    const params = new URLSearchParams({
+      limit: String(PAGE_SIZE),
+      offset: String((page - 1) * PAGE_SIZE),
+      sort_by: sortBy,
+    })
+    if (search.trim()) params.set('search', search.trim())
+    if (sourceFilter !== 'all') params.set('source', sourceFilter)
+    if (categoryFilter !== 'all') params.set('category', categoryFilter)
+    if (unitFilter !== 'all') params.set('unit', unitFilter)
+    return `?${params.toString()}`
+  }, [categoryFilter, page, search, sortBy, sourceFilter, unitFilter])
 
   const offersQuery = useQuery({
-    queryKey: ['offers', 'retail-page'],
-    queryFn: () => api.getOffers('?limit=24'),
+    queryKey: ['offers', 'retail-page', queryString],
+    queryFn: () => api.getOffers(queryString),
   })
   const offers = useMemo(() => offersQuery.data?.items ?? [], [offersQuery.data?.items])
+  const facets = offersQuery.data?.facets
   const sources = useMemo(
-    () => Array.from(new Set(offers.map((o) => o.source))).sort(),
-    [offers]
+    () => facets?.sources ?? Array.from(new Set(offers.map((o) => o.source))).sort().map((source) => ({ value: source, label: source, count: offers.filter((o) => o.source === source).length })),
+    [facets?.sources, offers]
   )
   const categories = useMemo(
-    () => Array.from(new Set(offers.map((o) => o.category))).sort(),
-    [offers],
+    () => facets?.categories ?? Array.from(new Set(offers.map((o) => o.category))).sort().map((category) => ({ value: category, label: category, count: offers.filter((o) => o.category === category).length })),
+    [facets?.categories, offers],
   )
   const units = useMemo(
-    () => Array.from(new Set(offers.map((o) => o.unit).filter(Boolean) as string[])).sort(),
-    [offers],
+    () => facets?.units ?? Array.from(new Set(offers.map((o) => o.unit).filter(Boolean) as string[])).sort().map((unit) => ({ value: unit, label: unit, count: offers.filter((o) => o.unit === unit).length })),
+    [facets?.units, offers],
   )
-  const visibleOffers = useMemo(() => {
-    const needle = search.trim().toLowerCase()
-    return offers
-      .filter((o) => (sourceFilter === 'all' ? true : o.source === sourceFilter))
-      .filter((o) => (categoryFilter === 'all' ? true : o.category === categoryFilter))
-      .filter((o) => (unitFilter === 'all' ? true : o.unit === unitFilter))
-      .filter((o) => {
-        if (!needle) return true
-        return [o.display_name, o.canonical_name, o.brand, o.category, o.source]
-          .filter(Boolean).join(' ').toLowerCase().includes(needle)
-      })
-      .sort((a, b) => {
-        const aUnit = a.price_per_unit_lkr ?? a.price_lkr
-        const bUnit = b.price_per_unit_lkr ?? b.price_lkr
-        if (sortBy === 'unit-high') return bUnit - aUnit
-        if (sortBy === 'unit-low') return aUnit - bUnit
-        if (sortBy === 'price-high') return b.price_lkr - a.price_lkr
-        if (sortBy === 'name') return a.display_name.localeCompare(b.display_name)
-        return a.price_lkr - b.price_lkr
-      })
-  }, [categoryFilter, offers, search, sortBy, sourceFilter, unitFilter])
+  const total = offersQuery.data?.total ?? offers.length
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+
+  const chooseSource = (source: string) => {
+    setSourceFilter(source)
+    setPage(1)
+  }
+  const chooseCategory = (category: string) => {
+    setCategoryFilter(category)
+    setPage(1)
+  }
+  const chooseUnit = (unit: string) => {
+    setUnitFilter(unit)
+    setPage(1)
+  }
+  const chooseSort = (sort: typeof sortBy) => {
+    setSortBy(sort)
+    setPage(1)
+  }
+  const searchFloor = (value: string) => {
+    setSearch(value)
+    setPage(1)
+  }
 
   return (
     <section className="space-y-10">
@@ -76,16 +94,19 @@ export function RetailPage() {
       {/* — Source bar — */}
       <div className="flex flex-wrap items-center gap-2 border-y-2 border-[color:var(--color-text-primary)] bg-[color:var(--color-bg-card)] px-4 py-3">
         <span className="text-kicker mr-2">§ Source</span>
-        <SourcePill source="all" active={sourceFilter === 'all'} onClick={() => setSourceFilter('all')} count={offers.length} />
+        <SourcePill source="all" active={sourceFilter === 'all'} onClick={() => chooseSource('all')} count={facets?.sources.reduce((sum, item) => sum + item.count, 0) ?? total} />
         {sources.map((s) => (
           <SourcePill
-            key={s}
-            source={s}
-            active={sourceFilter === s}
-            onClick={() => setSourceFilter(s)}
-            count={offers.filter((o) => o.source === s).length}
+            key={s.value}
+            source={s.label}
+            active={sourceFilter === s.value}
+            onClick={() => chooseSource(s.value)}
+            count={s.count}
           />
         ))}
+      </div>
+      <div className="rounded-card border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] px-4 py-3 text-sm text-[color:var(--color-text-secondary)]">
+        Showing {offers.length.toLocaleString()} of {total.toLocaleString()} scraped retail offers. Source filters are built from the full catalog, not just the current page.
       </div>
 
       {/* — Toolbar — */}
@@ -96,7 +117,7 @@ export function RetailPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--color-text-muted)]" />
             <input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => searchFloor(e.target.value)}
               className="fp-input pl-10"
               placeholder="Item, brand, source, category…"
             />
@@ -104,28 +125,28 @@ export function RetailPage() {
         </label>
         <label className="space-y-2">
           <span className="text-kicker">Category</span>
-          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="fp-select">
+          <select value={categoryFilter} onChange={(e) => chooseCategory(e.target.value)} className="fp-select">
             <option value="all">All categories</option>
-            {categories.map((category) => <option key={category} value={category}>{category}</option>)}
+            {categories.map((category) => <option key={category.value} value={category.value}>{category.label} ({category.count})</option>)}
           </select>
         </label>
         <label className="space-y-2">
           <span className="text-kicker">Source</span>
-          <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className="fp-select">
+          <select value={sourceFilter} onChange={(e) => chooseSource(e.target.value)} className="fp-select">
             <option value="all">All sources</option>
-            {sources.map((s) => <option key={s} value={s}>{s}</option>)}
+            {sources.map((s) => <option key={s.value} value={s.value}>{s.label} ({s.count})</option>)}
           </select>
         </label>
         <label className="space-y-2">
           <span className="text-kicker">Unit</span>
-          <select value={unitFilter} onChange={(e) => setUnitFilter(e.target.value)} className="fp-select">
+          <select value={unitFilter} onChange={(e) => chooseUnit(e.target.value)} className="fp-select">
             <option value="all">All units</option>
-            {units.map((unit) => <option key={unit} value={unit}>per {unit}</option>)}
+            {units.map((unit) => <option key={unit.value} value={unit.value}>per {unit.label} ({unit.count})</option>)}
           </select>
         </label>
         <label className="space-y-2">
           <span className="text-kicker">Order by</span>
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="fp-select">
+          <select value={sortBy} onChange={(e) => chooseSort(e.target.value as typeof sortBy)} className="fp-select">
             <option value="unit-low">Unit price low to high</option>
             <option value="unit-high">Unit price high to low</option>
             <option value="price-low">Price ↗ low to high</option>
@@ -138,9 +159,9 @@ export function RetailPage() {
       {/* — Meter strip — */}
       <div className="grid grid-cols-3 gap-[1px] bg-[color:var(--color-border)]">
         {[
-          { label: 'Stalls visible', value: visibleOffers.length },
-          { label: 'Sources in view', value: new Set(visibleOffers.map((o) => o.source)).size || 0 },
-          { label: 'Catalog size', value: offersQuery.data?.total ?? offers.length },
+          { label: 'Stalls visible', value: offers.length },
+          { label: 'Sources in catalog', value: sources.length || 0 },
+          { label: 'Catalog size', value: total },
         ].map(({ label, value }) => (
           <div key={label} className="bg-[color:var(--color-bg-card)] px-5 py-4">
             <p className="text-kicker">{label}</p>
@@ -154,7 +175,7 @@ export function RetailPage() {
       {/* — Results — */}
       {offersQuery.isLoading ? (
         <SectionSkeleton cards={6} />
-      ) : !visibleOffers.length ? (
+      ) : !offers.length ? (
         <EmptyState
           title="No stalls match this filter"
           description="Adjust your search, reset source filters, or switch discovery surfaces."
@@ -166,9 +187,35 @@ export function RetailPage() {
         />
       ) : (
         <div className="grid gap-[1px] bg-[color:var(--color-border)] sm:grid-cols-2">
-          {visibleOffers.map((offer) => (
+          {offers.map((offer) => (
             <OfferCard key={offer.id} offer={offer} />
           ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[color:var(--color-border)] py-4">
+          <p className="font-mono text-xs uppercase tracking-[0.16em] text-[color:var(--color-text-muted)]">
+            Page {page} / {totalPages}
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="fp-button-secondary"
+              disabled={page === 1 || offersQuery.isFetching}
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
+            >
+              Previous
+            </button>
+            <button
+              type="button"
+              className="fp-button-primary"
+              disabled={page >= totalPages || offersQuery.isFetching}
+              onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+            >
+              Next page
+            </button>
+          </div>
         </div>
       )}
 

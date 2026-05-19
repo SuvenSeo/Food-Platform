@@ -27,6 +27,7 @@ const navGroups = [
     items: [
       { to: '/', label: 'Home', icon: LayoutGrid, end: true },
       { to: '/retail', label: 'Retail', icon: Store, end: false },
+      { to: '/items', label: 'Items', icon: Search, end: false },
       { to: '/markets', label: 'Markets', icon: Waves, end: false },
       { to: '/categories', label: 'Categories', icon: Soup, end: false },
     ],

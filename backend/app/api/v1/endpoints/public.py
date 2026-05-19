@@ -6,10 +6,11 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from fastapi.responses import StreamingResponse
-from sqlalchemy import distinct, func, select
+from sqlalchemy import Select, distinct, func, select
 from sqlalchemy.orm import Session
 
 from app.core.basket_presets import BASKET_PRESETS
+from app.core.sources import get_source_profile
 from app.db.session import get_database_provider_status, get_db
 from app.models.tables import FairPriceScoreRecord, FoodOfferRecord, MarketQuoteRecord, PriceAggregateRecord, ScrapeRun
 from app.services.trust import build_reliability_summary, compute_platform_trust_snapshot
@@ -159,52 +160,184 @@ def _item_history_series(db: Session, slug: str) -> list[dict[str, object]]:
     return series
 
 
+def _price_prediction(series: list[dict[str, object]]) -> dict[str, object]:
+    points = [row for row in series if row.get("avg_price_lkr") is not None]
+    prices = [float(row["avg_price_lkr"]) for row in points]
+    if len(prices) < 2:
+        return {
+            "direction": "insufficient-data",
+            "label": "Not enough history",
+            "next_estimate_lkr": None,
+            "confidence": "low",
+            "basis": "At least two dated price points are needed before forecasting.",
+        }
+
+    last_price = prices[-1]
+    previous_price = prices[-2]
+    delta_lkr = last_price - previous_price
+    delta_pct = (delta_lkr / previous_price * 100) if previous_price else 0.0
+    damped_next = max(0.0, last_price + (delta_lkr * 0.6))
+    if abs(delta_pct) < 2:
+        direction = "steady"
+        label = "Likely stable"
+    elif delta_pct > 0:
+        direction = "up"
+        label = "May increase"
+    else:
+        direction = "down"
+        label = "May reduce"
+
+    confidence = "high" if len(prices) >= 8 else "medium" if len(prices) >= 4 else "low"
+    return {
+        "direction": direction,
+        "label": label,
+        "next_estimate_lkr": round(damped_next, 2),
+        "last_price_lkr": round(last_price, 2),
+        "delta_lkr": round(delta_lkr, 2),
+        "delta_pct": round(delta_pct, 2),
+        "confidence": confidence,
+        "basis": f"Baseline forecast from the latest {min(len(prices), 8)} historical price points.",
+    }
+
+
 def _item_summary_rows(db: Session) -> list[dict[str, object]]:
+    offer_rows = db.scalars(select(FoodOfferRecord).order_by(FoodOfferRecord.price_lkr.asc())).all()
+    best_offer_by_name: dict[str, FoodOfferRecord] = {}
+    sources_by_name: dict[str, set[str]] = {}
+    latest_by_name: dict[str, datetime] = {}
+    for offer in offer_rows:
+        key = offer.canonical_name
+        sources_by_name.setdefault(key, set()).add(offer.source)
+        latest = latest_by_name.get(key)
+        if latest is None or offer.last_seen_at > latest:
+            latest_by_name[key] = offer.last_seen_at
+        if key not in best_offer_by_name:
+            best_offer_by_name[key] = offer
+
     aggregates = db.scalars(
         select(PriceAggregateRecord).order_by(PriceAggregateRecord.canonical_name.asc(), PriceAggregateRecord.brand.asc())
     ).all()
-    rows = [
-        {
+    rows = []
+    for row in aggregates:
+        best_offer = best_offer_by_name.get(row.canonical_name)
+        latest_updated_at = latest_by_name.get(row.canonical_name, row.calculated_at)
+        rows.append({
             "slug": _slugify(row.canonical_name),
             "canonical_name": row.canonical_name,
+            "display_name": best_offer.display_name if best_offer else row.canonical_name,
             "category": row.category,
             "kind": "retail",
             "unit": row.unit,
             "unit_amount": row.unit_amount,
             "offers_count": row.offers_count,
             "median_price_lkr": float(row.median_price_lkr),
-            "latest_updated_at": _to_iso(row.calculated_at),
-        }
-        for row in aggregates
-    ]
+            "lowest_price_lkr": float(best_offer.price_lkr) if best_offer else float(row.min_price_lkr),
+            "price_per_unit_lkr": float(best_offer.price_per_unit_lkr) if best_offer and best_offer.price_per_unit_lkr else None,
+            "image_url": best_offer.image_url if best_offer else None,
+            "best_offer_id": best_offer.id if best_offer else None,
+            "sources": sorted(sources_by_name.get(row.canonical_name, set())),
+            "source_count": len(sources_by_name.get(row.canonical_name, set())),
+            "latest_updated_at": _to_iso(latest_updated_at),
+        })
 
-    market_rows = db.execute(
-        select(
-            MarketQuoteRecord.item_name,
-            MarketQuoteRecord.category,
-            MarketQuoteRecord.unit,
-            func.count(MarketQuoteRecord.id).label("quotes_count"),
-            func.avg(MarketQuoteRecord.price_lkr).label("avg_price"),
-            func.max(MarketQuoteRecord.quoted_at).label("latest_quoted_at"),
-        )
-        .group_by(MarketQuoteRecord.item_name, MarketQuoteRecord.category, MarketQuoteRecord.unit)
-        .order_by(MarketQuoteRecord.item_name.asc())
+    market_groups: dict[tuple[str, str, str], list[MarketQuoteRecord]] = {}
+    market_quotes = db.scalars(
+        select(MarketQuoteRecord).order_by(MarketQuoteRecord.item_name.asc(), MarketQuoteRecord.price_lkr.asc())
     ).all()
-    for row in market_rows:
+    for quote in market_quotes:
+        market_groups.setdefault((quote.item_name, quote.category, quote.unit), []).append(quote)
+
+    for (item_name, category, unit), quotes in sorted(market_groups.items()):
+        prices = [float(quote.price_lkr) for quote in quotes]
+        latest_quoted_at = max((quote.quoted_at for quote in quotes if quote.quoted_at), default=None)
         rows.append(
             {
-                "slug": _slugify(row.item_name),
-                "canonical_name": row.item_name,
-                "category": row.category,
+                "slug": _slugify(item_name),
+                "canonical_name": item_name,
+                "display_name": item_name,
+                "category": category,
                 "kind": "market",
-                "unit": row.unit,
+                "unit": unit,
                 "unit_amount": 1,
-                "market_quotes_count": row.quotes_count,
-                "average_market_price_lkr": round(float(row.avg_price), 2) if row.avg_price else None,
-                "latest_updated_at": _to_iso(row.latest_quoted_at),
+                "market_quotes_count": len(quotes),
+                "average_market_price_lkr": round(sum(prices) / len(prices), 2) if prices else None,
+                "lowest_price_lkr": round(min(prices), 2) if prices else None,
+                "image_url": None,
+                "sources": sorted({quote.source for quote in quotes}),
+                "source_count": len({quote.source for quote in quotes}),
+                "latest_updated_at": _to_iso(latest_quoted_at),
             }
         )
     return rows
+
+
+def _offer_facets(db: Session) -> dict[str, list[dict[str, object]]]:
+    source_rows = db.execute(
+        select(FoodOfferRecord.source, func.count(FoodOfferRecord.id))
+        .group_by(FoodOfferRecord.source)
+        .order_by(FoodOfferRecord.source.asc())
+    ).all()
+    category_rows = db.execute(
+        select(FoodOfferRecord.category, func.count(FoodOfferRecord.id))
+        .group_by(FoodOfferRecord.category)
+        .order_by(FoodOfferRecord.category.asc())
+    ).all()
+    unit_rows = db.execute(
+        select(FoodOfferRecord.unit, func.count(FoodOfferRecord.id))
+        .where(FoodOfferRecord.unit.is_not(None))
+        .group_by(FoodOfferRecord.unit)
+        .order_by(FoodOfferRecord.unit.asc())
+    ).all()
+    sources = []
+    for source, count in source_rows:
+        profile = get_source_profile(source)
+        sources.append({"value": source, "label": profile.label if profile else source, "count": count})
+    return {
+        "sources": sources,
+        "categories": [{"value": category, "label": category, "count": count} for category, count in category_rows],
+        "units": [{"value": unit, "label": unit, "count": count} for unit, count in unit_rows if unit],
+    }
+
+
+def _apply_offer_filters(
+    query: Select,
+    *,
+    category: str | None,
+    source: str | None,
+    unit: str | None,
+    search: str | None,
+) -> Select:
+    if category and category != "all":
+        query = query.where(FoodOfferRecord.category == category.lower())
+    if source and source != "all":
+        query = query.where(FoodOfferRecord.source == source.lower())
+    if unit and unit != "all":
+        query = query.where(FoodOfferRecord.unit == unit.lower())
+    if search:
+        term = f"%{search.lower()}%"
+        query = query.where(
+            func.lower(FoodOfferRecord.display_name).like(term)
+            | func.lower(FoodOfferRecord.canonical_name).like(term)
+            | func.lower(func.coalesce(FoodOfferRecord.brand, "")).like(term)
+            | func.lower(FoodOfferRecord.category).like(term)
+            | func.lower(FoodOfferRecord.source).like(term)
+        )
+    return query
+
+
+def _apply_offer_sort(query: Select, sort_by: str) -> Select:
+    unit_price = func.coalesce(FoodOfferRecord.price_per_unit_lkr, FoodOfferRecord.price_lkr)
+    if sort_by == "unit-high":
+        return query.order_by(unit_price.desc(), FoodOfferRecord.display_name.asc())
+    if sort_by == "unit-low":
+        return query.order_by(unit_price.asc(), FoodOfferRecord.display_name.asc())
+    if sort_by == "price-high":
+        return query.order_by(FoodOfferRecord.price_lkr.desc(), FoodOfferRecord.display_name.asc())
+    if sort_by == "price-low":
+        return query.order_by(FoodOfferRecord.price_lkr.asc(), FoodOfferRecord.display_name.asc())
+    if sort_by == "name":
+        return query.order_by(FoodOfferRecord.display_name.asc())
+    return query.order_by(FoodOfferRecord.last_seen_at.desc(), FoodOfferRecord.source.asc())
 
 
 @router.get("/health")
@@ -699,7 +832,15 @@ def list_items(
     rows = _item_summary_rows(db)
     if search:
         term = search.strip().lower()
-        rows = [row for row in rows if term in str(row["canonical_name"]).lower()]
+        rows = [
+            row
+            for row in rows
+            if any(
+                term in str(row.get(field, "")).lower()
+                for field in ("canonical_name", "display_name", "category", "kind", "unit")
+            )
+            or any(term in source.lower() for source in row.get("sources", []))
+        ]
     total = len(rows)
     return {"items": rows[offset : offset + limit], "total": total}
 
@@ -724,6 +865,7 @@ def item_history(
         "district": district,
         "series": series,
         "total_data_points": sum(int(row["data_points"]) for row in series),
+        "forecast": _price_prediction(series),
     }
 
 
@@ -815,31 +957,30 @@ def item_detail(slug: str, db: Session = Depends(get_db)) -> dict[str, object]:
             for offer, score in matched_offers[:20]
         ],
         "district_history": _item_history_series(db, normalized_slug),
+        "forecast": _price_prediction(_item_history_series(db, normalized_slug)),
     }
 
 
 @router.get("/offers")
 def list_offers(
     category: str | None = Query(default=None),
+    source: str | None = Query(default=None),
+    unit: str | None = Query(default=None),
     search: str | None = Query(default=None),
-    limit: int = Query(default=20, ge=1, le=100),
+    sort_by: str = Query(default="recent"),
+    limit: int = Query(default=20, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
     base_query = (
         select(FoodOfferRecord, FairPriceScoreRecord)
         .outerjoin(FairPriceScoreRecord, FairPriceScoreRecord.food_offer_id == FoodOfferRecord.id)
-        .order_by(FoodOfferRecord.last_seen_at.desc())
     )
 
     count_query = select(func.count(FoodOfferRecord.id))
-    if category:
-        base_query = base_query.where(FoodOfferRecord.category == category.lower())
-        count_query = count_query.where(FoodOfferRecord.category == category.lower())
-    if search:
-        term = f"%{search.lower()}%"
-        base_query = base_query.where(func.lower(FoodOfferRecord.display_name).like(term))
-        count_query = count_query.where(func.lower(FoodOfferRecord.display_name).like(term))
+    base_query = _apply_offer_filters(base_query, category=category, source=source, unit=unit, search=search)
+    count_query = _apply_offer_filters(count_query, category=category, source=source, unit=unit, search=search)
+    base_query = _apply_offer_sort(base_query, sort_by)
 
     rows = db.execute(base_query.limit(limit).offset(offset)).all()
     total = db.scalar(count_query) or 0
@@ -848,7 +989,7 @@ def list_offers(
         _serialize_offer_summary(offer, score)
         for offer, score in rows
     ]
-    return {"items": items, "total": total}
+    return {"items": items, "total": total, "facets": _offer_facets(db)}
 
 
 @router.get("/offers/{offer_id}")

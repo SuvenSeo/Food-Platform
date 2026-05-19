@@ -41,6 +41,11 @@ export type OfferItem = {
 export type OffersResponse = {
   total: number
   items: OfferItem[]
+  facets?: {
+    sources: Array<{ value: string; label: string; count: number }>
+    categories: Array<{ value: string; label: string; count: number }>
+    units: Array<{ value: string; label: string; count: number }>
+  }
 }
 
 export type TrendItem = {
@@ -232,6 +237,75 @@ export type PriceTrendResponse = {
   series: PriceTrendPoint[]
   total_data_points: number
   date_range: { from: string | null; to: string | null }
+}
+
+export type ItemSummary = {
+  slug: string
+  canonical_name: string
+  display_name?: string
+  category: string
+  kind: 'retail' | 'market'
+  unit: string | null
+  unit_amount: number | null
+  offers_count?: number
+  market_quotes_count?: number
+  median_price_lkr?: number | null
+  average_market_price_lkr?: number | null
+  lowest_price_lkr?: number | null
+  price_per_unit_lkr?: number | null
+  image_url?: string | null
+  best_offer_id?: number | null
+  sources?: string[]
+  source_count?: number
+  latest_updated_at: string | null
+}
+
+export type ItemForecast = {
+  direction: 'up' | 'down' | 'steady' | 'insufficient-data'
+  label: string
+  next_estimate_lkr: number | null
+  last_price_lkr?: number | null
+  delta_lkr?: number | null
+  delta_pct?: number | null
+  confidence: 'low' | 'medium' | 'high'
+  basis: string
+}
+
+export type ItemHistoryPoint = {
+  period: string
+  avg_price_lkr: number | null
+  min_price_lkr: number | null
+  max_price_lkr: number | null
+  data_points: number
+  sources: string[]
+  districts: string[]
+}
+
+export type ItemHistoryResponse = {
+  item: { slug: string }
+  district: string | null
+  series: ItemHistoryPoint[]
+  total_data_points: number
+  forecast: ItemForecast
+}
+
+export type ItemDetailResponse = {
+  item: {
+    slug: string
+    canonical_name: string
+    category: string
+    retail_offers_count: number
+    market_quotes_count: number
+  }
+  summary: {
+    lowest_retail_price_lkr: number | null
+    lowest_market_price_lkr: number | null
+    sources: string[]
+    districts: string[]
+  }
+  source_comparison: OfferItem[]
+  district_history: ItemHistoryPoint[]
+  forecast: ItemForecast
 }
 
 export type TrendSummaryItem = {
