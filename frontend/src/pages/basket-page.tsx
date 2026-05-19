@@ -3,7 +3,6 @@ import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Bookmark, Search } from 'lucide-react'
 
-import { Panel } from '../components/primitives/panel'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { SectionHeader } from '../components/ui/section-header'
 import { RevealSection } from '../components/ui/reveal-section'
@@ -66,10 +65,10 @@ export function BasketPage() {
         />
       )}
 
-      <Panel variant="accent" className="space-y-6">
+      <div className="space-y-6">
         {/* Preset selector */}
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="space-y-2">
+        <div className="premium-surface rounded-2xl p-6 flex flex-wrap items-center justify-between gap-6">
+          <div className="space-y-3">
             <p className="eyebrow-label">Basket preset</p>
             <div className="flex flex-wrap gap-2">
               {presetOptions.map((item) => (
@@ -77,10 +76,10 @@ export function BasketPage() {
                   key={item.id}
                   type="button"
                   onClick={() => setPreset(item.id)}
-                  className={`rounded-pill px-4 py-2 text-sm font-semibold transition-all ${
+                  className={`rounded-pill px-4 py-2 text-sm font-medium transition-all ${
                     preset === item.id
-                      ? 'bg-orange-500/15 text-orange-400 ring-1 ring-orange-500/25'
-                      : 'border border-white/[0.08] text-[#737373] hover:text-[#a3a3a3]'
+                      ? 'bg-orange-500/15 text-orange-400 ring-1 ring-orange-500/30 shadow-[0_0_12px_rgba(249,115,22,0.15)]'
+                      : 'bg-white/5 border border-white/10 text-muted-foreground hover:text-foreground hover:bg-white/10'
                   }`}
                 >
                   {item.label}
@@ -98,68 +97,78 @@ export function BasketPage() {
                 href: `/basket?preset=${data.preset.id}`,
                 summary: `${data.summary.available_items} items · Rs ${formatCurrency(data.summary.total_lkr ?? 0)}`,
               })}
-              className="inline-flex items-center gap-2 rounded-pill bg-orange-500/10 px-4 py-2 text-sm font-semibold text-orange-400 ring-1 ring-orange-500/20 transition hover:bg-orange-500/15"
+              className="inline-flex items-center gap-2 rounded-pill bg-white/5 px-5 py-2.5 text-sm font-medium text-foreground ring-1 ring-white/10 transition-all hover:bg-white/10 hover:ring-white/20"
             >
-              <Bookmark className="h-4 w-4" />
+              <Bookmark className="h-4 w-4 text-orange-400" />
               Save to watchlists
             </button>
           )}
         </div>
 
-        {/* Summary KPIs */}
+        {/* Summary KPIs - Stats Bento */}
         {!basketQuery.isLoading && data && (
-          <div className="hairline-grid rounded-lg overflow-hidden grid-cols-3">
-            <div className="bg-[#0d0d0d] p-4">
-              <p className="eyebrow-label">Estimated total</p>
-              <p className="num mt-2 text-2xl font-semibold text-orange-400">
-                Rs {formatCurrency(data.summary.total_lkr ?? 0)}
-              </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="premium-surface rounded-2xl p-6 relative overflow-hidden group transition-all duration-300 hover:ring-1 hover:ring-orange-500/30 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-transparent opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
+              <p className="eyebrow-label text-orange-400/80">Estimated total</p>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-muted-foreground text-sm font-medium">Rs</span>
+                <p className="num text-4xl font-semibold tracking-tight text-foreground">
+                  {formatCurrency(data.summary.total_lkr ?? 0)}
+                </p>
+              </div>
             </div>
-            <div className="bg-[#0d0d0d] p-4">
-              <p className="eyebrow-label">Available</p>
-              <p className="num mt-2 text-2xl font-semibold text-[#f5f5f5]">{data.summary.available_items}</p>
+            <div className="premium-surface rounded-2xl p-6 relative overflow-hidden group transition-all duration-300 hover:ring-1 hover:ring-white/20">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <p className="eyebrow-label">Available Items</p>
+              <div className="mt-3 flex items-baseline gap-2">
+                <p className="num text-4xl font-medium tracking-tight text-foreground">{data.summary.available_items}</p>
+                <span className="text-muted-foreground text-sm font-medium">/ {data.items.length}</span>
+              </div>
             </div>
-            <div className="bg-[#0d0d0d] p-4">
-              <p className="eyebrow-label">Missing</p>
-              <p className="num mt-2 text-2xl font-semibold text-[#737373]">{data.summary.missing_items}</p>
+            <div className="premium-surface rounded-2xl p-6 relative overflow-hidden group transition-all duration-300 hover:ring-1 hover:ring-white/20">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <p className="eyebrow-label">Missing Quotes</p>
+              <p className="num mt-3 text-4xl font-medium tracking-tight text-muted-foreground">{data.summary.missing_items}</p>
             </div>
           </div>
         )}
 
         {/* Filters */}
-        <div className="fp-toolbar lg:grid-cols-4">
-          <label className="space-y-2">
-            <span className="eyebrow-label">Search items</span>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#737373]" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="fp-input pl-10"
-                placeholder="oil, tomato, rice..."
-              />
-            </div>
-          </label>
-          <label className="space-y-2">
-            <span className="eyebrow-label">Availability</span>
-            <select
+        <div className="premium-surface rounded-2xl p-2 flex flex-col md:flex-row gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-transparent border-0 ring-0 focus:ring-0 pl-11 pr-4 py-3 text-sm placeholder:text-muted-foreground"
+              placeholder="Search basket items (e.g. oil, tomato, rice...)"
+            />
+          </div>
+          <div className="h-px md:w-px md:h-auto bg-white/10 mx-2" />
+          <div className="flex gap-2 p-1 relative items-center">
+             <select
               value={availabilityFilter}
               onChange={(e) => setAvailabilityFilter(e.target.value as typeof availabilityFilter)}
-              className="fp-select"
+              className="bg-transparent border-0 text-sm font-medium text-foreground focus:ring-0 cursor-pointer appearance-none px-4 py-2 hover:bg-white/5 rounded-lg transition-colors"
             >
-              <option value="all">All items</option>
-              <option value="available">Available only</option>
-              <option value="missing">Missing only</option>
+              <option value="all" className="bg-background">All instances</option>
+              <option value="available" className="bg-background">Available only</option>
+              <option value="missing" className="bg-background">Missing only</option>
             </select>
-          </label>
-          <label className="space-y-2">
-            <span className="eyebrow-label">Sort</span>
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="fp-select">
-              <option value="price-low">Price: low → high</option>
-              <option value="price-high">Price: high → low</option>
-              <option value="name">Name: A-Z</option>
+            
+            <div className="h-4 w-px bg-white/10" />
+            
+            <select 
+              value={sortBy} 
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)} 
+              className="bg-transparent border-0 text-sm font-medium text-foreground focus:ring-0 cursor-pointer appearance-none px-4 py-2 hover:bg-white/5 rounded-lg transition-colors"
+            >
+              <option value="price-low" className="bg-background">Lowest price</option>
+              <option value="price-high" className="bg-background">Highest price</option>
+              <option value="name" className="bg-background">Alphabetical</option>
             </select>
-          </label>
+          </div>
         </div>
 
         {/* Items */}
@@ -177,34 +186,51 @@ export function BasketPage() {
               secondaryActionTo="/compare"
             />
           ) : (
-            <div className="space-y-2">
-              {visibleItems.map((item, i) => (
+            <motion.div 
+              className="grid gap-3"
+              variants={{
+                hidden: { opacity: 0 },
+                show: {
+                  opacity: 1,
+                  transition: {
+                    staggerChildren: 0.04
+                  }
+                }
+              }}
+              initial="hidden"
+              animate="show"
+            >
+              {visibleItems.map((item) => (
                 <motion.article
                   key={item.label}
-                  className="fp-soft-card flex items-center justify-between gap-4"
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.03, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                  className="premium-surface rounded-xl p-4 flex items-center justify-between gap-4 transition-all duration-200 hover:ring-1 hover:ring-white/20 hover:bg-white/[0.04]"
+                  variants={{
+                    hidden: { opacity: 0, y: 15, scale: 0.98 },
+                    show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 350, damping: 25 } }
+                  }}
                 >
                   <div className="min-w-0">
-                    <h4 className="text-sm font-semibold text-[#f5f5f5] truncate">{item.label}</h4>
-                    <p className="text-xs text-[#737373] mt-0.5">{item.source || 'Source unavailable'}</p>
+                    <h4 className="text-[15px] font-medium text-foreground truncate">{item.label}</h4>
+                    <div className="flex items-center gap-2 mt-1">
+                       <span className="w-1.5 h-1.5 rounded-full bg-orange-500/50" />
+                       <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{item.source || 'Source unavailable'}</p>
+                    </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-3">
+                  <div className="flex shrink-0 items-center gap-4">
                     {item.price_lkr === null ? (
-                      <Badge variant="neutral">N/A</Badge>
+                      <Badge variant="neutral" className="bg-white/5">N/A</Badge>
                     ) : (
-                      <>
-                        <Badge variant="green">Confirmed</Badge>
-                        <p className="num text-base font-semibold text-[#f5f5f5]">
-                          Rs {formatCurrency(item.price_lkr)}
+                      <div className="text-right">
+                        <p className="num text-lg font-medium tracking-tight text-foreground">
+                          <span className="text-xs font-normal text-muted-foreground mr-1">Rs</span>
+                          {formatCurrency(item.price_lkr)}
                         </p>
-                      </>
+                      </div>
                     )}
                   </div>
                 </motion.article>
               ))}
-            </div>
+            </motion.div>
           )}
         </RevealSection>
 
@@ -216,7 +242,7 @@ export function BasketPage() {
             { label: 'Review watchlists', to: '/watchlists' },
           ]}
         />
-      </Panel>
+      </div>
     </section>
   )
 }

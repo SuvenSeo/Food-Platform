@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
 import { Search } from 'lucide-react'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -8,8 +7,6 @@ import {
 
 import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { SectionHeader } from '../components/ui/section-header'
-import { RevealSection } from '../components/ui/reveal-section'
-import { Badge } from '../components/ui/badge'
 import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
 import { useMarketTrend } from '../hooks/use-market-trend'
 import { useTrendsSummary } from '../hooks/use-trends-summary'
@@ -26,7 +23,7 @@ export function MarketsPage() {
 
   const marketQuotesQuery = useQuery({
     queryKey: ['market-quotes', 'markets-page'],
-    queryFn: () => api.getMarketQuotes('?limit=12'),
+    queryFn: () => api.getMarketQuotes('?limit=24'),
   })
   const trendsSummaryQuery = useTrendsSummary()
 
@@ -41,7 +38,6 @@ export function MarketsPage() {
   }, [quotes, trendsSummaryQuery.data?.top_items])
 
   const activeTrendItem = trendItem ?? commodityOptions[0] ?? ''
-
   const trendDistrictParam = trendDistrict === 'all' ? undefined : trendDistrict
   const marketTrendQuery = useMarketTrend(activeTrendItem, {
     district: trendDistrictParam,
@@ -66,39 +62,37 @@ export function MarketsPage() {
   }, [categoryFilter, districtFilter, quotes, search, sortBy])
 
   return (
-    <section className="space-y-8">
+    <section className="space-y-12">
       <SectionHeader
-        eyebrow="Discovery"
-        title="Wet-market quotes"
-        description="Public-market discovery surface with district filters, freshness context, and provenance hints."
+        eyebrow="Wet Markets"
+        title="Quotes from Pettah, Kandy, Galle and beyond"
+        description="District-by-district produce quotes from official feeds and field stringers, plotted as historical series and listed as today’s spot prices."
       />
 
       {marketQuotesQuery.isError && (
         <ErrorState
-          title="Market discovery feed unavailable"
+          title="Markets desk has gone quiet"
           message="Market quotes could not be loaded."
           helper="Continue with retail discovery and district compare while market ingestion recovers."
           onRetry={() => marketQuotesQuery.refetch()}
-          links={[
-            { label: 'Open retail discovery', to: '/retail' },
-            { label: 'Open compare', to: '/compare' },
-          ]}
+          links={[{ label: 'Open retail floor', to: '/retail' }, { label: 'Open compare', to: '/compare' }]}
         />
       )}
 
-      <div className="fp-panel space-y-6">
-        <SectionHeader
-          eyebrow="Trend explorer"
-          title="Commodity price series"
-          description="Pick a commodity and optional district to plot official market quote history."
-        />
+      {/* — Trend chart — */}
+      <article className="border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-6">
+        <div className="flex items-baseline justify-between">
+          <span className="text-kicker">§ Trend explorer</span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-faint)]">
+            Quote series · official aggregate
+          </span>
+        </div>
+        <div className="rule-double mt-2 h-1.5 w-full" aria-hidden="true" />
 
-        <motion.div className="fp-toolbar">
-          <label className="space-y-2 md:col-span-2">
-            <span className="eyebrow-label" id="trend-item-label">Commodity</span>
+        <div className="mt-6 grid gap-4 md:grid-cols-[2fr_1fr]">
+          <label className="space-y-2">
+            <span className="text-kicker">Commodity</span>
             <select
-              id="trend-item"
-              aria-labelledby="trend-item-label"
               value={activeTrendItem}
               onChange={(e) => setTrendItem(e.target.value)}
               className="fp-select"
@@ -107,194 +101,151 @@ export function MarketsPage() {
               {commodityOptions.length === 0 ? (
                 <option value="">No commodities indexed</option>
               ) : (
-                commodityOptions.map((item) => (
-                  <option key={item} value={item}>{item}</option>
-                ))
+                commodityOptions.map((item) => <option key={item} value={item}>{item}</option>)
               )}
             </select>
           </label>
           <label className="space-y-2">
-            <span className="eyebrow-label" id="trend-district-label">District (trend)</span>
-            <select
-              id="trend-district"
-              aria-labelledby="trend-district-label"
-              value={trendDistrict}
-              onChange={(e) => setTrendDistrict(e.target.value)}
-              className="fp-select"
-            >
+            <span className="text-kicker">District</span>
+            <select value={trendDistrict} onChange={(e) => setTrendDistrict(e.target.value)} className="fp-select">
               <option value="all">All districts</option>
               {districts.map((d) => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </label>
-        </motion.div>
-
-        {trendsSummaryQuery.isLoading || marketTrendQuery.isLoading ? (
-          <SectionSkeleton cards={1} />
-        ) : trendChartData.length > 1 ? (
-          <div
-            className="h-64 w-full"
-            role="img"
-            aria-label={activeTrendItem ? `Price trend for ${activeTrendItem}` : 'Commodity price trend'}
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trendChartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="marketTrendGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                <XAxis dataKey="period" tick={{ fill: '#737373', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#737373', fontSize: 11 }} axisLine={false} tickLine={false} width={60} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#161616', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, color: '#f5f5f5', fontSize: 12 }}
-                  labelStyle={{ color: '#a3a3a3' }}
-                  formatter={(v) => [`Rs ${Number(v).toLocaleString()}`, 'Avg price']}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="price"
-                  stroke="#f97316"
-                  strokeWidth={2}
-                  fill="url(#marketTrendGrad)"
-                  dot={false}
-                  activeDot={{ r: 4, fill: '#f97316' }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-            <p className="mt-3 text-xs text-[#737373]">
-              {marketTrendQuery.data?.total_data_points ?? 0} quote points
-              {trendDistrictParam ? ` · filtered to ${trendDistrictParam}` : ' · national aggregate'}
-            </p>
-          </div>
-        ) : (
-          <EmptyState
-            title="No trend series for this selection"
-            description="Try another commodity or remove the district filter. Empty series means we have no historical quotes indexed yet."
-            hint="Quotes below show the latest spot prices even when history is sparse."
-            actionLabel="Open compare"
-            actionTo="/compare"
-          />
-        )}
-
-        <div className="fp-toolbar border-t pt-6" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
-          <label className="space-y-2 md:col-span-2">
-            <span className="eyebrow-label" id="market-search-label">Search item or market</span>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#737373]" aria-hidden="true" />
-              <input
-                id="market-search"
-                aria-labelledby="market-search-label"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="fp-input pl-10"
-                placeholder="Tomato, Pettah, Colombo..."
-              />
-            </div>
-          </label>
-          <label className="space-y-2">
-            <span className="eyebrow-label" id="quote-district-label">District</span>
-            <select
-              id="quote-district"
-              aria-labelledby="quote-district-label"
-              value={districtFilter}
-              onChange={(e) => setDistrictFilter(e.target.value)}
-              className="fp-select"
-            >
-              <option value="all">All districts</option>
-              {districts.map((d) => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </label>
-          <label className="space-y-2">
-            <span className="eyebrow-label" id="quote-category-label">Category</span>
-            <select
-              id="quote-category"
-              aria-labelledby="quote-category-label"
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="fp-select"
-            >
-              <option value="all">All categories</option>
-              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </label>
-          <label className="space-y-2">
-            <span className="eyebrow-label" id="quote-sort-label">Sort</span>
-            <select
-              id="quote-sort"
-              aria-labelledby="quote-sort-label"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-              className="fp-select"
-            >
-              <option value="price-low">Price: low → high</option>
-              <option value="price-high">Price: high → low</option>
-              <option value="district">District: A–Z</option>
             </select>
           </label>
         </div>
 
-        <RevealSection>
-          {marketQuotesQuery.isLoading ? (
-            <SectionSkeleton cards={4} />
-          ) : !visibleQuotes.length ? (
-            <EmptyState
-              title="No market quotes found"
-              description="Try broader filters or move to another discovery surface."
-              hint="Next action: continue in retail or compare."
-              actionLabel="Open retail discovery"
-              actionTo="/retail"
-              secondaryActionLabel="Open compare"
-              secondaryActionTo="/compare"
-            />
-          ) : (
-            <div className="grid gap-4 lg:grid-cols-2">
-              {visibleQuotes.map((quote, i) => (
-                <motion.article
-                  key={quote.id}
-                  className="premium-card p-5"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="eyebrow-label">{quote.district}</p>
-                      <h3 className="mt-2 text-base font-semibold text-[#f5f5f5]">{quote.market_name}</h3>
-                      <p className="mt-0.5 text-sm font-medium text-[#a3a3a3]">{quote.item_name}</p>
-                    </div>
-                    <Badge variant="neutral">{quote.category}</Badge>
-                  </div>
-
-                  <div className="mt-4 flex items-end justify-between border-t pt-4"
-                    style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
-                    <div>
-                      <p className="num text-2xl font-semibold text-[#f5f5f5]">
-                        Rs {formatCurrency(quote.price_lkr)}
-                      </p>
-                      <p className="text-xs text-[#737373]">per {quote.unit}</p>
-                    </div>
-                    <div className="text-right text-xs text-[#404040]">
-                      <p>{quote.source}</p>
-                      <p>{formatCompactDate(quote.quoted_at)}</p>
-                    </div>
-                  </div>
-                </motion.article>
-              ))}
+        <div className="mt-6">
+          {trendsSummaryQuery.isLoading || marketTrendQuery.isLoading ? (
+            <SectionSkeleton cards={1} />
+          ) : trendChartData.length > 1 ? (
+            <div className="h-72 w-full" role="img" aria-label={`Price trend for ${activeTrendItem}`}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendChartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="marketTrendGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#C8321E" stopOpacity={0.22} />
+                      <stop offset="95%" stopColor="#C8321E" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="2 4" stroke="rgba(14,14,12,0.08)" />
+                  <XAxis dataKey="period" tick={{ fill: '#6B6657', fontSize: 11, fontFamily: 'JetBrains Mono' }} axisLine={{ stroke: '#0E0E0C', strokeWidth: 1 }} tickLine={false} />
+                  <YAxis tick={{ fill: '#6B6657', fontSize: 11, fontFamily: 'JetBrains Mono' }} axisLine={false} tickLine={false} width={60} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#FBF7EE', border: '1px solid #0E0E0C', borderRadius: 0, color: '#0E0E0C', fontSize: 12, fontFamily: 'JetBrains Mono' }}
+                    labelStyle={{ color: '#3A372F' }}
+                    formatter={(v) => [`රු ${Number(v).toLocaleString()}`, 'Avg price']}
+                  />
+                  <Area type="monotone" dataKey="price" stroke="#C8321E" strokeWidth={2} fill="url(#marketTrendGrad)" dot={false} activeDot={{ r: 4, fill: '#C8321E' }} />
+                </AreaChart>
+              </ResponsiveContainer>
+              <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-muted)]">
+                <span className="num text-[color:var(--color-text-primary)]">{marketTrendQuery.data?.total_data_points ?? 0}</span> quote points
+                {trendDistrictParam ? ` · ${trendDistrictParam}` : ' · national aggregate'}
+              </p>
             </div>
+          ) : (
+            <EmptyState
+              title="No trend series for this selection"
+              description="Try another commodity or remove the district filter."
+              hint="Quotes below show today’s spot prices regardless."
+            />
           )}
-        </RevealSection>
+        </div>
+      </article>
 
-        <NextActionLinks
-          title="Next actions"
-          links={[
-            { label: 'Compare districts', to: '/compare' },
-            { label: 'Category overview', to: '/categories' },
-            { label: 'Build basket', to: '/basket' },
-          ]}
-        />
+      {/* — Filters — */}
+      <div className="grid gap-4 border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4 md:grid-cols-[2fr_1fr_1fr_1fr]">
+        <label className="space-y-2">
+          <span className="text-kicker">Search markets</span>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--color-text-muted)]" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} className="fp-input pl-10" placeholder="Tomato, Pettah, Colombo…" />
+          </div>
+        </label>
+        <label className="space-y-2">
+          <span className="text-kicker">District</span>
+          <select value={districtFilter} onChange={(e) => setDistrictFilter(e.target.value)} className="fp-select">
+            <option value="all">All districts</option>
+            {districts.map((d) => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </label>
+        <label className="space-y-2">
+          <span className="text-kicker">Category</span>
+          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="fp-select">
+            <option value="all">All categories</option>
+            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </label>
+        <label className="space-y-2">
+          <span className="text-kicker">Sort</span>
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="fp-select">
+            <option value="price-low">Price ↗</option>
+            <option value="price-high">Price ↘</option>
+            <option value="district">District A–Z</option>
+          </select>
+        </label>
       </div>
+
+      {/* — Stalls — */}
+      {marketQuotesQuery.isLoading ? (
+        <SectionSkeleton cards={6} />
+      ) : !visibleQuotes.length ? (
+        <EmptyState
+          title="No quotes match this filter"
+          description="Try broader filters or switch surfaces."
+          hint="Next: retail or compare."
+          actionLabel="Open retail"
+          actionTo="/retail"
+          secondaryActionLabel="Open compare"
+          secondaryActionTo="/compare"
+        />
+      ) : (
+        <div className="grid gap-[1px] bg-[color:var(--color-border)] sm:grid-cols-2 lg:grid-cols-3">
+          {visibleQuotes.map((quote) => (
+            <article key={quote.id} className="group flex flex-col gap-3 bg-[color:var(--color-bg-card)] p-5 transition-colors hover:bg-[color:var(--color-bg-card-hover)]">
+              <div className="flex items-baseline justify-between">
+                <span className="text-kicker">§ {quote.district}</span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-faint)]">
+                  {quote.category}
+                </span>
+              </div>
+              <h3
+                className="font-display text-[20px] leading-[1.1] tracking-[-0.025em] text-[color:var(--color-text-primary)]"
+                style={{ fontVariationSettings: "'opsz' 36, 'wght' 600" }}
+              >
+                {quote.item_name}
+              </h3>
+              <p className="font-display text-[13px] italic leading-[1.4] text-[color:var(--color-text-secondary)]"
+                style={{ fontVariationSettings: "'opsz' 24" }}>
+                {quote.market_name}
+              </p>
+              <div className="rule-dotted mt-auto h-px w-full" aria-hidden="true" />
+              <div className="flex items-end justify-between gap-3">
+                <p className="num text-[28px] font-bold leading-none tracking-[-0.025em] text-[color:var(--color-text-primary)]">
+                  <span className="text-[12px] font-semibold text-[color:var(--color-text-muted)]">රු </span>
+                  {formatCurrency(quote.price_lkr)}
+                  <span className="ml-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-text-muted)]">
+                    /{quote.unit}
+                  </span>
+                </p>
+                <div className="text-right">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-muted)]">{quote.source}</p>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-faint)]">{formatCompactDate(quote.quoted_at)}</p>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+
+      <NextActionLinks
+        title="Next column"
+        links={[
+          { label: 'Compare districts', to: '/compare' },
+          { label: 'Category overview', to: '/categories' },
+          { label: 'Build basket', to: '/basket' },
+        ]}
+      />
     </section>
   )
 }

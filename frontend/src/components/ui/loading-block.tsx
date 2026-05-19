@@ -13,7 +13,7 @@ export function LoadingBlock({ message = 'Loading data...' }: { message?: string
       >
         <Soup className="h-4 w-4 text-orange-400/50" />
       </motion.div>
-      <p className="text-sm text-[#737373]">{message}</p>
+      <p className="text-sm text-muted-foreground">{message}</p>
     </div>
   )
 }

@@ -1,253 +1,299 @@
 import { Link } from 'react-router-dom'
-import {
-  ArrowRight, BarChart3, Scale, ShoppingBasket, Store, Waves, TrendingDown,
-} from 'lucide-react'
+import { ArrowRight, BarChart3, Bookmark, Scale, ShoppingBasket, Store, Waves } from 'lucide-react'
 
-import { Panel } from '../components/primitives/panel'
-import { Metric } from '../components/primitives/metric'
-import { EditorialHero } from '../components/marketing/editorial-hero'
-import { FeatureBento } from '../components/marketing/feature-bento'
-import { LiveTicker } from '../components/marketing/live-ticker'
 import { OfferCard } from '../components/ui/offer-card'
-import { SectionHeader } from '../components/ui/section-header'
-import { RevealSection } from '../components/ui/reveal-section'
+import { LiveTicker } from '../components/marketing/live-ticker'
+import { FeatureBento } from '../components/marketing/feature-bento'
 import { useHomeSummary } from '../hooks/use-home-summary'
 import { useIntelligenceSummary } from '../hooks/use-intelligence-summary'
 import { formatCompactDate, formatCurrency } from '../lib/format'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { ErrorState } from '../components/ui/workflow-helpers'
 
-const workspaceFeatures = [
-  {
-    title: 'Retail discovery',
-    description: 'Dense offer grid with source filters and fair-price bands.',
-    href: '/retail',
-    icon: Store,
-  },
-  {
-    title: 'Market watch',
-    description: 'District quotes from official and field sources.',
-    href: '/markets',
-    icon: Waves,
-  },
-  {
-    title: 'Intelligence desk',
-    description: 'Rankings, trends, and source health in one brief.',
-    href: '/intelligence',
-    icon: BarChart3,
-    accent: true,
-  },
-  {
-    title: 'Compare districts',
-    description: 'Side-by-side wet-market deltas with watchlist saves.',
-    href: '/compare',
-    icon: Scale,
-  },
-  {
-    title: 'Basket workspace',
-    description: 'Household presets with availability-aware totals.',
-    href: '/basket',
-    icon: ShoppingBasket,
-  },
+const workspace = [
+  { title: 'Retail Floor', description: 'Stall-by-stall offers from Spar, Glomark, Keells, Cargills.', href: '/retail', icon: Store },
+  { title: 'Wet Markets', description: 'District quotes from official and field sources.', href: '/markets', icon: Waves },
+  { title: 'The Intelligence Desk', description: 'Rankings, trends and source health for the trader.', href: '/intelligence', icon: BarChart3, accent: true },
+  { title: 'Compare Districts', description: 'Side-by-side wet-market deltas saved as receipts.', href: '/compare', icon: Scale },
+  { title: 'Basket Workshop', description: 'Household preset baskets, availability-aware totals.', href: '/basket', icon: ShoppingBasket },
+  { title: 'Watchlists', description: 'Clip pairs, presets and offer views for later.', href: '/watchlists', icon: Bookmark },
 ]
 
 export function HomePage() {
   const homeQuery = useHomeSummary()
-  const intelligenceQuery = useIntelligenceSummary()
-  const isLoading = homeQuery.isLoading || intelligenceQuery.isLoading
+  const intel = useIntelligenceSummary()
+  const isLoading = homeQuery.isLoading || intel.isLoading
   const home = homeQuery.data
-  const intelligence = intelligenceQuery.data
-  const hasError = homeQuery.isError || intelligenceQuery.isError
+  const intelligence = intel.data
+  const hasError = homeQuery.isError || intel.isError
   const movers = intelligence?.rankings.top_value ?? home?.spotlights.cheapest_offers ?? []
+  const lead = movers[0]
+  const supporting = (home?.spotlights.cheapest_offers ?? []).slice(0, 4)
+  const trends = intelligence?.rankings.trend_snapshot?.slice(0, 5) ?? []
+  const districts = home?.spotlights.market_quotes ?? []
 
   return (
     <div className="space-y-16">
       {hasError && (
         <ErrorState
-          title="Home signal coverage is partial"
+          title="Today’s edition went to press with gaps"
           message="Some discovery or intelligence sections could not be refreshed."
-          helper="You can still continue into retail discovery and compare workflows while background data reconnects."
-          onRetry={() => { void homeQuery.refetch(); void intelligenceQuery.refetch() }}
-          links={[
-            { label: 'Open retail discovery', to: '/retail' },
-            { label: 'Open intelligence desk', to: '/intelligence' },
-          ]}
+          helper="You can still continue into retail discovery and compare workflows."
+          onRetry={() => { void homeQuery.refetch(); void intel.refetch() }}
+          links={[{ label: 'Open retail floor', to: '/retail' }, { label: 'Open intel desk', to: '/intelligence' }]}
         />
       )}
 
-      <EditorialHero
-        eyebrow={
-          <div className="inline-flex items-center gap-2.5 rounded-full border border-brand-500/25 bg-brand-500/10 px-4 py-2">
-            <span className="eyebrow-accent">
-              {home?.hero.platform ?? 'FoodLK · Sri Lanka price intelligence'}
-            </span>
-            <span className="live-dot-orange" aria-hidden="true" />
-          </div>
-        }
-        title={
-          home?.hero.headline ?? (
-            <>
-              Track how food prices
-              <br />
-              move across retail
-              <br />
-              shelves and markets.
-            </>
-          )
-        }
-        description="Follow Sri Lankan grocery and wet-market pricing with editorial clarity, high data density, and practical tools built for everyday decisions."
-        primaryCta={{ label: 'Start discovery', to: '/retail' }}
-        secondaryCta={{ label: 'Open intelligence desk', to: '/intelligence' }}
-        footer={`Last refreshed ${formatCompactDate(home?.hero.last_updated_at ?? null)}`}
-      />
+      {/* ─────────── MASTHEAD ─────────── */}
+      <header className="grid gap-y-8 lg:grid-cols-[1.45fr_1px_0.55fr] lg:gap-x-10">
+        <div>
+          <span className="stamp">Issue 01 · The Food Desk</span>
+          <h1
+            className="mt-7 font-display text-balance leading-[0.92] tracking-[-0.045em] text-[color:var(--color-text-primary)]"
+            style={{ fontSize: 'clamp(3.25rem, 9vw, 8.5rem)', fontVariationSettings: "'opsz' 144, 'SOFT' 30, 'wght' 700" }}
+          >
+            The price of <em className="font-display italic font-normal text-[color:var(--chili-500)]">everything</em>, on one front page.
+          </h1>
 
+          <p className="text-lede mt-7 max-w-[58ch]">
+            Daily wholesale and retail prices from across Sri Lanka — Spar, Glomark, Keells, Cargills,
+            and the wet markets of Pettah, Kandy, Galle — normalised into one number per item.
+          </p>
+
+          <div className="mt-9">
+            <div className="rule-dotted h-px w-full max-w-[420px]" aria-hidden="true" />
+            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
+              <Link to="/retail" className="fp-button-primary">
+                Open the front page
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+              <Link
+                to="/intelligence"
+                className="group inline-flex items-center gap-2 font-display text-[15px] italic text-[color:var(--color-text-primary)] underline decoration-1 underline-offset-[6px] transition-all hover:decoration-[color:var(--chili-500)] hover:text-[color:var(--chili-500)]"
+              >
+                Read the intelligence desk
+                <span className="transition-transform group-hover:translate-x-0.5">→</span>
+              </Link>
+            </div>
+            <p className="mt-7 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-muted)]">
+              Edition closed {formatCompactDate(home?.hero.last_updated_at ?? null)} · Colombo bureau
+            </p>
+          </div>
+        </div>
+
+        <div className="hidden self-stretch bg-[color:var(--color-border-hover)] lg:block" aria-hidden="true" />
+
+        {/* Editor's brief */}
+        <aside className="flex flex-col gap-5 lg:pt-2" aria-label="Editor's brief">
+          <div className="flex items-baseline justify-between">
+            <span className="text-kicker">§ Editor’s brief</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-muted)]">P. 01</span>
+          </div>
+          <div className="rule-double h-1.5 w-full" aria-hidden="true" />
+          <p
+            className="font-display text-[16px] italic leading-[1.55] text-[color:var(--color-text-secondary)]"
+            style={{
+              fontVariationSettings: "'opsz' 36",
+            }}
+          >
+            <span className="float-left mr-2 font-display text-[64px] font-bold not-italic leading-[0.85] text-[color:var(--chili-500)]">D</span>
+            aily, our scrapers walk Spar, Glomark, Keells and Cargills shelves and gather what
+            the wet markets quote in Pettah, Kandy, Galle. We normalise the noise so you can read
+            one number per item and one trend per week — the way the news desk would want it.
+          </p>
+          <div className="rule-dotted h-px w-full" aria-hidden="true" />
+          <div className="grid grid-cols-3 gap-3 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-muted)]">
+            <div>
+              <p className="num text-[24px] font-bold leading-none text-[color:var(--color-text-primary)]">04</p>
+              <p className="mt-1">Retail chains</p>
+            </div>
+            <div>
+              <p className="num text-[24px] font-bold leading-none text-[color:var(--color-text-primary)]">25</p>
+              <p className="mt-1">Districts</p>
+            </div>
+            <div>
+              <p className="num text-[24px] font-bold leading-none text-[color:var(--color-text-primary)]">3×</p>
+              <p className="mt-1">Languages</p>
+            </div>
+          </div>
+        </aside>
+      </header>
+
+      {/* ─────────── TODAY'S TAPE ─────────── */}
       {!isLoading && movers.length > 0 && (
-        <RevealSection>
-          <LiveTicker offers={movers} />
-        </RevealSection>
+        <LiveTicker offers={movers} />
       )}
 
-      <RevealSection>
-        {isLoading ? (
-          <SectionSkeleton cards={4} />
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Metric
-              label="Offers indexed"
-              value={(home?.kpis.offers_count ?? 0).toLocaleString()}
-              helper="Normalised retail offers ready for search and ranking."
-              highlight
-            />
-            <Metric
-              label="Sources tracked"
-              value={home?.kpis.sources_count ?? 0}
-              helper="Approved grocery feeds contributing live data."
-            />
-            <Metric
-              label="Categories covered"
-              value={home?.kpis.categories_count ?? 0}
-              helper="Category pages on the same aggregate layer."
-            />
-            <Metric
-              label="Market quotes"
-              value={(home?.kpis.market_quotes_count ?? 0).toLocaleString()}
-              helper="District snapshots for produce intelligence."
-            />
+      {/* ─────────── FRONT PAGE ─────────── */}
+      <section className="grid gap-10 lg:grid-cols-[1.6fr_1fr] lg:gap-x-12">
+        {/* LEFT — lead story */}
+        <article>
+          <div className="flex items-baseline justify-between">
+            <span className="text-kicker">§ Lead story</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-faint)]">By Mandiya · Today</span>
           </div>
-        )}
-      </RevealSection>
+          <div className="rule-double mt-2 h-1.5 w-full" aria-hidden="true" />
 
-      <RevealSection>
-        <section className="space-y-6">
-          <SectionHeader
-            eyebrow="Discovery"
-            title="What moved today"
-            description="Current retail opportunities — branch into intelligence for validation."
-          />
-          {isLoading ? (
-            <SectionSkeleton cards={3} />
+          {lead ? (
+            <Link to={`/offers/${lead.id}`} className="group mt-6 block">
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[color:var(--chili-500)]">
+                {lead.delta_vs_median_pct !== null && lead.delta_vs_median_pct < 0
+                  ? `Down ${Math.abs(lead.delta_vs_median_pct).toFixed(1)}% from median · biggest mover today`
+                  : 'Today’s top value, fresh off the scrape'}
+              </p>
+              <h2
+                className="mt-3 font-display tracking-[-0.035em] text-[color:var(--color-text-primary)] group-hover:text-[color:var(--chili-700)]"
+                style={{ fontSize: 'clamp(2rem, 4.6vw, 3.4rem)', lineHeight: '0.96', fontVariationSettings: "'opsz' 96, 'SOFT' 30, 'wght' 600" }}
+              >
+                {lead.display_name} <span className="font-display italic font-normal text-[color:var(--color-text-muted)]">at</span>{' '}
+                <span className="num font-bold">රු {formatCurrency(lead.price_lkr)}</span>
+              </h2>
+              <p
+                className="mt-4 max-w-[58ch] font-display text-[16px] leading-[1.55] text-[color:var(--color-text-secondary)] [&::first-letter]:float-left [&::first-letter]:mr-2 [&::first-letter]:mt-1 [&::first-letter]:font-display [&::first-letter]:text-[58px] [&::first-letter]:font-bold [&::first-letter]:leading-[0.85] [&::first-letter]:text-[color:var(--color-text-primary)]"
+                style={{ fontVariationSettings: "'opsz' 24, 'wght' 400" }}
+              >
+                Across {(home?.kpis.sources_count ?? 4)} retail chains and {(home?.kpis.market_quotes_count ?? 0).toLocaleString()} market quotes,
+                this morning’s sweep flagged <em>{lead.brand ?? lead.display_name}</em> from
+                <span className="font-mono uppercase tracking-[0.18em]"> {lead.source} </span> as the biggest mover.
+                The number above is normalised to a per-{lead.unit ?? 'pack'} basis and compared to a median pulled from
+                last seven days of similar offers.
+              </p>
+              <p className="mt-4 inline-flex items-baseline gap-2 font-display text-[15px] italic text-[color:var(--color-text-primary)] underline decoration-1 underline-offset-[6px] transition-colors group-hover:text-[color:var(--chili-500)] group-hover:decoration-[color:var(--chili-500)]">
+                Read the full offer
+                <span>→</span>
+              </p>
+            </Link>
           ) : (
-            <div className="grid gap-4 lg:grid-cols-3">
-              {(home?.spotlights.cheapest_offers ?? []).map((offer) => (
+            <SectionSkeleton cards={1} />
+          )}
+
+          {/* Pull-quote */}
+          {trends[0] && (
+            <blockquote className="pull-quote mt-10">
+              “{trends[0].canonical_name}” trades at a median of{' '}
+              <span className="num not-italic font-bold">රු {formatCurrency(trends[0].median_price_lkr)}</span>{' '}
+              across {trends[0].offers_count} live offers this week.
+            </blockquote>
+          )}
+
+          {/* Three-up supporting */}
+          {!isLoading && supporting.length > 0 && (
+            <div className="mt-10 grid gap-[1px] bg-[color:var(--color-border)] sm:grid-cols-2">
+              {supporting.slice(0, 4).map((offer) => (
                 <OfferCard key={offer.id} offer={offer} />
               ))}
             </div>
           )}
-        </section>
-      </RevealSection>
+        </article>
 
-      <RevealSection>
-        <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <Panel className="space-y-5">
-            <SectionHeader
-              eyebrow="Markets"
-              title="Public market watch"
-              description="Wet-market snapshots with source and timing context."
-            />
-            {isLoading ? (
-              <SectionSkeleton cards={2} />
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {(home?.spotlights.market_quotes ?? []).map((quote) => (
-                  <article key={quote.id} className="fp-soft-card">
-                    <p className="eyebrow-label">{quote.district}</p>
-                    <h3 className="mt-2 text-base font-semibold text-foreground">{quote.market_name}</h3>
-                    <p className="mt-0.5 text-sm text-muted-foreground">{quote.item_name}</p>
-                    <p className="num mt-3 text-xl font-semibold text-foreground">
-                      Rs {formatCurrency(quote.price_lkr)}{' '}
-                      <span className="text-sm font-normal text-muted-foreground">/ {quote.unit}</span>
-                    </p>
-                    <p className="mt-2 text-xs text-faint">{formatCompactDate(quote.quoted_at ?? null)}</p>
-                  </article>
-                ))}
-              </div>
-            )}
-            <Link to="/markets" className="inline-flex items-center gap-1.5 text-sm text-brand-400 hover:text-brand-300">
-              View all market quotes <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-            </Link>
-          </Panel>
-
-          <Panel variant="accent" className="relative overflow-hidden">
-            <SectionHeader
-              eyebrow="Workspace"
-              title="Decision tools"
-              description="Move from discovery into compare, basket, and intelligence workflows."
-            />
-            <FeatureBento items={workspaceFeatures} className="mt-6" />
-          </Panel>
-        </section>
-      </RevealSection>
-
-      {!isLoading && (intelligence?.rankings.top_value ?? []).length > 0 && (
-        <RevealSection delay={100}>
-          <Panel className="space-y-5">
-            <SectionHeader
-              eyebrow="Lead signal"
-              title="Top-value signals right now"
-              description="Discovery snapshot with provenance before deeper analysis."
-            />
-            <div className="grid gap-4 lg:grid-cols-2">
-              {(intelligence?.rankings.top_value ?? []).slice(0, 2).map((offer) => (
-                <div key={offer.id} className="fp-soft-card">
-                  <div className="flex items-start gap-4">
-                    {offer.image_url && (
-                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-border bg-surface">
-                        <img
-                          src={offer.image_url}
-                          alt={offer.display_name}
-                          className="h-full w-full object-contain p-1"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      </div>
-                    )}
-                    <div className="min-w-0">
-                      <p className="eyebrow-label">{offer.source}</p>
-                      <p className="mt-1.5 truncate text-base font-semibold text-foreground">
-                        {offer.display_name}
-                      </p>
-                      <div className="mt-1.5 flex items-center gap-2">
-                        <p className="num text-lg font-semibold text-brand-400">
-                          Rs {formatCurrency(offer.price_lkr)}
-                        </p>
-                        {offer.delta_vs_median_pct !== null && offer.delta_vs_median_pct < -5 && (
-                          <span className="flex items-center gap-0.5 text-xs font-semibold text-emerald-400">
-                            <TrendingDown className="h-3 w-3" aria-hidden="true" />
-                            {offer.delta_vs_median_pct.toFixed(1)}%
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+        {/* RIGHT — sidebar columns */}
+        <aside className="space-y-10">
+          {/* Numbers of the day */}
+          <div>
+            <span className="text-kicker">§ Numbers of the day</span>
+            <div className="rule-double mt-2 h-1.5 w-full" aria-hidden="true" />
+            <dl className="mt-5 space-y-4">
+              {[
+                { label: 'Offers indexed', value: home?.kpis.offers_count ?? 0 },
+                { label: 'Sources tracked', value: home?.kpis.sources_count ?? 0 },
+                { label: 'Categories covered', value: home?.kpis.categories_count ?? 0 },
+                { label: 'Market quotes', value: home?.kpis.market_quotes_count ?? 0 },
+              ].map((kpi) => (
+                <div key={kpi.label} className="flex items-baseline justify-between border-b border-[color:var(--color-border)] pb-3">
+                  <dt className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[color:var(--color-text-secondary)]">
+                    {kpi.label}
+                  </dt>
+                  <dd className="num text-[28px] font-bold leading-none tracking-[-0.025em] text-[color:var(--color-text-primary)]">
+                    {kpi.value.toLocaleString()}
+                  </dd>
                 </div>
               ))}
-            </div>
-            <Link to="/intelligence" className="fp-button-secondary w-fit">
-              Full intelligence desk <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </dl>
+          </div>
+
+          {/* Market watch */}
+          <div>
+            <span className="text-kicker">§ Wet-market watch</span>
+            <div className="rule-double mt-2 h-1.5 w-full" aria-hidden="true" />
+            <ul className="mt-5 space-y-3">
+              {(districts.length ? districts : Array.from({ length: 4 })).slice(0, 4).map((quote, i) => (
+                <li key={(quote as { id?: number })?.id ?? i} className="flex items-baseline justify-between gap-3 border-b border-dotted border-[color:var(--color-border-hover)] pb-3">
+                  {quote ? (
+                    <>
+                      <div className="min-w-0">
+                        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-muted)]">
+                          {(quote as { district: string }).district}
+                        </p>
+                        <p
+                          className="truncate font-display text-[15px] text-[color:var(--color-text-primary)]"
+                          style={{ fontVariationSettings: "'opsz' 36, 'wght' 500" }}
+                        >
+                          {(quote as { item_name: string }).item_name}
+                        </p>
+                      </div>
+                      <p className="num shrink-0 text-[18px] font-bold text-[color:var(--color-text-primary)]">
+                        <span className="text-[10px] font-semibold text-[color:var(--color-text-muted)]">රු </span>
+                        {formatCurrency((quote as { price_lkr: number }).price_lkr)}
+                      </p>
+                    </>
+                  ) : (
+                    <div className="shimmer h-8 w-full" />
+                  )}
+                </li>
+              ))}
+            </ul>
+            <Link
+              to="/markets"
+              className="mt-4 inline-flex items-baseline gap-1.5 font-display text-[14px] italic text-[color:var(--color-text-primary)] underline decoration-1 underline-offset-[5px] transition-colors hover:text-[color:var(--chili-500)] hover:decoration-[color:var(--chili-500)]"
+            >
+              Read every district →
             </Link>
-          </Panel>
-        </RevealSection>
-      )}
+          </div>
+
+          {/* Trend snapshot */}
+          {trends.length > 0 && (
+            <div>
+              <span className="text-kicker">§ Trend snapshot</span>
+              <div className="rule-double mt-2 h-1.5 w-full" aria-hidden="true" />
+              <ul className="mt-5 space-y-2.5 font-mono text-[12px] tabular-nums">
+                {trends.map((t, i) => (
+                  <li key={t.cluster_key} className="flex items-baseline gap-3 border-b border-dotted border-[color:var(--color-border-hover)] pb-2">
+                    <span className="num text-[10px] text-[color:var(--color-text-faint)]">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <span
+                      className="flex-1 truncate font-display text-[14px] text-[color:var(--color-text-primary)]"
+                      style={{ fontVariationSettings: "'opsz' 36" }}
+                    >
+                      {t.canonical_name}
+                    </span>
+                    <span className="num shrink-0 text-[13px] font-bold text-[color:var(--color-text-primary)]">
+                      රු {formatCurrency(t.median_price_lkr)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </aside>
+      </section>
+
+      {/* ─────────── WORKSPACE / CLASSIFIEDS ─────────── */}
+      <section>
+        <div className="flex items-baseline justify-between">
+          <span className="text-kicker">§ The Workshop</span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-muted)]">Pp. 02 — 07</span>
+        </div>
+        <div className="rule-double mt-2 h-1.5 w-full" aria-hidden="true" />
+        <p
+          className="mt-5 max-w-[64ch] font-display text-[16px] italic leading-[1.5] text-[color:var(--color-text-secondary)]"
+          style={{ fontVariationSettings: "'opsz' 36" }}
+        >
+          Six work surfaces — each a separate column in the paper. Move from discovery into compare,
+          basket, and intelligence as if turning a page.
+        </p>
+        <FeatureBento className="mt-7" items={workspace} />
+      </section>
     </div>
   )
 }

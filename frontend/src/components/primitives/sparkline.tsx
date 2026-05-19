@@ -11,7 +11,7 @@ type SparklineProps = {
 export function Sparkline({
   values,
   className,
-  strokeClassName = 'stroke-brand-500',
+  strokeClassName = 'stroke-[color:var(--chili-500)]',
   height = 32,
   width = 96,
 }: SparklineProps) {

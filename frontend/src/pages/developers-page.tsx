@@ -61,7 +61,7 @@ export function DevelopersPage() {
                   {card.endpoint}
                 </code>
               </div>
-              <p className="text-sm leading-7 text-[#737373]">{card.body}</p>
+              <p className="text-sm leading-7 text-muted-foreground">{card.body}</p>
             </motion.article>
           ))}
         </div>
@@ -77,11 +77,11 @@ export function DevelopersPage() {
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20">
               <Terminal className="h-4 w-4 text-orange-400" />
             </div>
-            <h3 className="text-base font-semibold text-[#f5f5f5]">Use cases</h3>
+            <h3 className="text-base font-semibold text-foreground">Use cases</h3>
           </div>
           <ul className="space-y-3">
             {useCases.map((item) => (
-              <li key={item} className="flex items-start gap-3 text-sm text-[#a3a3a3]">
+              <li key={item} className="flex items-start gap-3 text-sm text-secondary-foreground">
                 <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-orange-500" />
                 {item}
               </li>
@@ -99,10 +99,10 @@ export function DevelopersPage() {
           </div>
           <div className="rounded-card overflow-hidden bg-[#0a0a0a] border border-white/[0.07]">
             <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06]">
-              <p className="text-xs text-[#737373]">fetch example</p>
+              <p className="text-xs text-muted-foreground">fetch example</p>
               <Badge variant="neutral">JavaScript</Badge>
             </div>
-            <pre className="p-4 text-xs leading-6 text-[#a3a3a3] overflow-x-auto">
+            <pre className="p-4 text-xs leading-6 text-secondary-foreground overflow-x-auto">
               <code>{`const res = await fetch('/api/v1/home/summary')
 const data = await res.json()
 

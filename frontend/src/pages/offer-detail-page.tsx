@@ -76,7 +76,7 @@ export function OfferDetailPage() {
       <div className="flex items-center justify-between gap-3">
         <Link
           to="/retail"
-          className="inline-flex items-center gap-2 text-sm text-[#737373] transition hover:text-[#f5f5f5]"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to retail
@@ -121,38 +121,38 @@ export function OfferDetailPage() {
         <div className="relative">
           <p className="eyebrow-accent">{offer.source}</p>
           <h1
-            className="mt-3 text-balance text-[#f5f5f5]"
+            className="mt-3 text-balance text-foreground"
             style={{ fontFamily: '"DM Serif Display", serif', fontSize: 'clamp(1.75rem, 4vw, 2.75rem)', letterSpacing: '-0.035em' }}
           >
             {offer.display_name}
           </h1>
-          <p className="mt-2 text-[#737373]">{offer.brand || 'Generic'} · {offer.category}</p>
+          <p className="mt-2 text-muted-foreground">{offer.brand || 'Generic'} · {offer.category}</p>
 
           {/* KPI strip */}
           <div className="mt-6 hairline-grid rounded-lg overflow-hidden grid-cols-2 lg:grid-cols-4">
-            <div className="bg-[#0d0d0d] p-4">
+            <div className="bg-surface-soft p-4">
               <p className="eyebrow-label">Current price</p>
               <p className="num mt-2 text-2xl font-semibold text-orange-400">
                 Rs {formatCurrency(offer.price_lkr)}
               </p>
               {delta !== null && (
-                <p className={`num mt-1 flex items-center gap-1 text-xs font-semibold ${isCheap ? 'text-emerald-400' : isExpensive ? 'text-red-400' : 'text-[#737373]'}`}>
+                <p className={`num mt-1 flex items-center gap-1 text-xs font-semibold ${isCheap ? 'text-emerald-400' : isExpensive ? 'text-red-400' : 'text-muted-foreground'}`}>
                   {isCheap ? <TrendingDown className="h-3 w-3" /> : isExpensive ? <TrendingUp className="h-3 w-3" /> : null}
                   {delta > 0 ? '+' : ''}{delta.toFixed(1)}% vs median
                 </p>
               )}
             </div>
-            <div className="bg-[#0d0d0d] p-4">
+            <div className="bg-surface-soft p-4">
               <p className="eyebrow-label">Price band</p>
-              <p className="mt-2 text-lg font-semibold text-[#f5f5f5]">{offer.price_band || 'Pending'}</p>
+              <p className="mt-2 text-lg font-semibold text-foreground">{offer.price_band || 'Pending'}</p>
             </div>
-            <div className="bg-[#0d0d0d] p-4">
+            <div className="bg-surface-soft p-4">
               <p className="eyebrow-label">Brand</p>
-              <p className="mt-2 text-base font-semibold text-[#f5f5f5]">{offer.brand || 'Unspecified'}</p>
+              <p className="mt-2 text-base font-semibold text-foreground">{offer.brand || 'Unspecified'}</p>
             </div>
-            <div className="bg-[#0d0d0d] p-4">
+            <div className="bg-surface-soft p-4">
               <p className="eyebrow-label">Unit</p>
-              <p className="mt-2 text-base font-semibold text-[#f5f5f5]">
+              <p className="mt-2 text-base font-semibold text-foreground">
                 {offer.unit_amount ? `${offer.unit_amount} ${offer.unit || ''}` : offer.unit || '—'}
               </p>
             </div>
@@ -164,7 +164,7 @@ export function OfferDetailPage() {
       <RevealSection>
         <div className="fp-panel space-y-4">
           <p className="eyebrow-label">Market price history</p>
-          <p className="text-sm text-[#737373]">
+          <p className="text-sm text-muted-foreground">
             Official wet-market quotes matched to {offer.canonical_name}.
           </p>
           {marketTrendQuery.isLoading ? (
@@ -201,7 +201,7 @@ export function OfferDetailPage() {
                   />
                 </AreaChart>
               </ResponsiveContainer>
-              <p className="mt-2 text-xs text-[#737373]">
+              <p className="mt-2 text-xs text-muted-foreground">
                 {marketTrendQuery.data?.total_data_points ?? 0} indexed market quotes
               </p>
             </motion.div>
@@ -222,13 +222,13 @@ export function OfferDetailPage() {
         <div className="grid gap-4 md:grid-cols-2">
           <div className="fp-soft-card space-y-2">
             <p className="eyebrow-label">Per unit price</p>
-            <p className="num text-xl font-semibold text-[#f5f5f5]">
+            <p className="num text-xl font-semibold text-foreground">
               {offer.price_per_unit_lkr ? `Rs ${formatCurrency(offer.price_per_unit_lkr)}` : '—'}
             </p>
           </div>
           <div className="fp-soft-card space-y-2">
             <p className="eyebrow-label">Median delta</p>
-            <p className={`num text-xl font-semibold ${isCheap ? 'text-emerald-400' : isExpensive ? 'text-red-400' : 'text-[#f5f5f5]'}`}>
+            <p className={`num text-xl font-semibold ${isCheap ? 'text-emerald-400' : isExpensive ? 'text-red-400' : 'text-foreground'}`}>
               {delta == null ? 'Pending' : `${delta > 0 ? '+' : ''}${delta.toFixed(2)}%`}
             </p>
           </div>
@@ -242,7 +242,7 @@ export function OfferDetailPage() {
           style={{ borderColor: 'rgba(249,115,22,0.15)', background: 'rgba(249,115,22,0.05)' }}
         >
           <p className="eyebrow-accent mb-3">Decision support</p>
-          <p className="text-sm leading-7 text-[#a3a3a3]">
+          <p className="text-sm leading-7 text-secondary-foreground">
             This offer is normalised into a comparable cluster so the platform can score it against
             nearby market signals rather than showing a raw product card in isolation.
           </p>

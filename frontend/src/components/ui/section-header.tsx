@@ -10,6 +10,7 @@ type SectionHeaderProps = {
   titleClassName?: string
 }
 
+/** Newspaper section opener — kicker, Fraunces title, italic deck, double rule. */
 export function SectionHeader({
   eyebrow,
   title,
@@ -19,27 +20,35 @@ export function SectionHeader({
   titleClassName,
 }: SectionHeaderProps) {
   return (
-    <div className={cn('flex items-end justify-between gap-6', className)}>
-      <div className="max-w-3xl">
-        <p className="eyebrow-accent">{eyebrow}</p>
-        <h2
-          className={cn(
-            'mt-3 leading-tight text-[#f5f5f5]',
-            titleClassName
+    <header className={cn('space-y-4', className)}>
+      <div className="flex items-end justify-between gap-6">
+        <div className="max-w-3xl">
+          <span className="text-kicker">§ {eyebrow}</span>
+          <h2
+            className={cn(
+              'mt-3 font-display leading-[0.95] text-[color:var(--color-text-primary)]',
+              titleClassName,
+            )}
+            style={{
+              fontSize: 'clamp(1.75rem, 3.4vw, 2.75rem)',
+              letterSpacing: '-0.035em',
+              fontVariationSettings: "'opsz' 96, 'SOFT' 30, 'wght' 600",
+            }}
+          >
+            {title}
+          </h2>
+          {description && (
+            <p
+              className="mt-4 max-w-[64ch] font-display text-[16px] italic leading-[1.5] text-[color:var(--color-text-secondary)]"
+              style={{ fontVariationSettings: "'opsz' 36, 'wght' 400" }}
+            >
+              {description}
+            </p>
           )}
-          style={{
-            fontFamily: '"DM Serif Display", serif',
-            fontSize: 'clamp(1.5rem, 3vw, 2.25rem)',
-            letterSpacing: '-0.03em',
-          }}
-        >
-          {title}
-        </h2>
-        {description && (
-          <p className="mt-3 text-base leading-7 text-[#737373]">{description}</p>
-        )}
+        </div>
+        {action && <div className="shrink-0">{action}</div>}
       </div>
-      {action && <div className="shrink-0">{action}</div>}
-    </div>
+      <div className="rule-double h-1.5 w-full" aria-hidden="true" />
+    </header>
   )
 }

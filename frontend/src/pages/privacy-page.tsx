@@ -44,8 +44,8 @@ export function PrivacyPage() {
               <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20">
                 <Icon className="h-5 w-5 text-orange-400" />
               </div>
-              <h3 className="text-base font-semibold text-[#f5f5f5]">{title}</h3>
-              <p className="mt-3 text-sm leading-7 text-[#737373]">{body}</p>
+              <h3 className="text-base font-semibold text-foreground">{title}</h3>
+              <p className="mt-3 text-sm leading-7 text-muted-foreground">{body}</p>
             </motion.article>
           ))}
         </div>
@@ -54,10 +54,10 @@ export function PrivacyPage() {
       <RevealSection delay={80}>
         <div className="fp-panel max-w-2xl">
           <p className="eyebrow-accent mb-4">Summary</p>
-          <p className="text-sm leading-7 text-[#a3a3a3]">
+          <p className="text-sm leading-7 text-secondary-foreground">
             The Food Platform is a read-only intelligence layer over public Sri Lankan grocery and market data. No personal information is collected, processed, or stored on our servers beyond standard deployment logs.
           </p>
-          <p className="mt-4 text-sm leading-7 text-[#737373]">
+          <p className="mt-4 text-sm leading-7 text-muted-foreground">
             Last updated: {new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>

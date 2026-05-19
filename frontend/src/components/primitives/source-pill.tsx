@@ -15,16 +15,19 @@ export function SourcePill({ source, active, onClick, count }: SourcePillProps) 
       type={onClick ? 'button' : undefined}
       onClick={onClick}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-xs font-semibold capitalize transition-all',
+        'inline-flex items-center gap-1.5 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.18em] transition-all',
         active
-          ? 'bg-brand-500/15 text-brand-400 ring-1 ring-brand-500/25'
-          : 'border border-border text-muted-foreground hover:border-border-hover hover:text-foreground',
+          ? 'bg-[color:var(--color-text-primary)] text-[color:var(--paper-50)]'
+          : 'border border-[color:var(--color-border-hover)] text-[color:var(--color-text-secondary)] hover:border-[color:var(--color-text-primary)] hover:text-[color:var(--color-text-primary)]',
       )}
     >
       {source}
       {count !== undefined && (
-        <span className="num rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] text-foreground">
-          {count}
+        <span className={cn(
+          'num text-[10px] font-bold',
+          active ? 'text-[color:var(--paper-300)]' : 'text-[color:var(--color-text-muted)]',
+        )}>
+          /{count}
         </span>
       )}
     </Tag>

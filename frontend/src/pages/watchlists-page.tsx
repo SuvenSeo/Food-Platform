@@ -45,12 +45,12 @@ export function WatchlistsPage() {
             <Bookmark className="h-7 w-7 text-orange-400" />
           </div>
           <h3
-            className="text-[#f5f5f5]"
+            className="text-foreground"
             style={{ fontFamily: '"DM Serif Display", serif', fontSize: '1.5rem', letterSpacing: '-0.03em' }}
           >
             No saved views yet
           </h3>
-          <p className="mt-2 max-w-sm text-sm text-[#737373]">
+          <p className="mt-2 max-w-sm text-sm text-muted-foreground">
             Save a basket preset, compare pair, or offer detail and it will appear here.
           </p>
           <div className="mt-8 flex gap-3">
@@ -65,7 +65,7 @@ export function WatchlistsPage() {
             <label className="space-y-2">
               <span className="eyebrow-label">Search saved views</span>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#737373]" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -110,10 +110,10 @@ export function WatchlistsPage() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <Badge variant={kindVariant[entry.kind] ?? 'neutral'}>{entry.kind}</Badge>
-                      <Bookmark className="h-4 w-4 text-[#404040] group-hover:text-orange-400 transition-colors" />
+                      <Bookmark className="h-4 w-4 text-ink-faint group-hover:text-orange-400 transition-colors" />
                     </div>
-                    <h3 className="mt-3 text-base font-semibold text-[#f5f5f5]">{entry.title}</h3>
-                    <p className="mt-1 text-sm text-[#737373]">{entry.summary}</p>
+                    <h3 className="mt-3 text-base font-semibold text-foreground">{entry.title}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{entry.summary}</p>
                     <div className="mt-5 border-t pt-4" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
                       <Link
                         to={entry.href}

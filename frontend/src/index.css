@@ -2,45 +2,70 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─────────────────────────────────────────────
-   1. DESIGN TOKENS — PropertyLK-level system
-───────────────────────────────────────────── */
-:root {
-  /* Palette — OLED dark */
-  --color-bg-primary: #000000;
-  --color-bg-secondary: #0a0a0a;
-  --color-bg-card: #111111;
-  --color-bg-card-hover: #181818;
-  --color-bg-elevated: #161616;
-  --color-bg-subtle: #1a1a1a;
+/* ═════════════════════════════════════════════════════════════════════
+   MANDIYA — Food Platform design system
+   Newspaper × wholesale market × terminal. Paper + ink + chili red.
+   Every legacy variable is remapped — old .fp-* classes still compile.
+═════════════════════════════════════════════════════════════════════ */
 
-  /* Borders */
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-hover: rgba(255, 255, 255, 0.14);
-  --color-border-strong: rgba(255, 255, 255, 0.20);
+:root,
+[data-theme="paper"] {
+  /* — PAPER palette (default) — */
+  --paper-50:  #FFFBF1;
+  --paper-100: #FBF7EE;
+  --paper-200: #F4EDE0;
+  --paper-300: #EBE3D2;
+  --paper-400: #E3DAC4;
+  --paper-500: #D6CAAE;
 
-  /* Accent — brand orange */
-  --color-accent: #f97316;
-  --color-accent-light: #fb923c;
-  --color-accent-glow: rgba(249, 115, 22, 0.15);
-  --color-accent-dim: rgba(249, 115, 22, 0.10);
+  --ink-900: #0E0E0C;
+  --ink-700: #2A2820;
+  --ink-500: #3A372F;
+  --ink-400: #6B6657;
+  --ink-300: #9C967F;
+  --ink-200: #C6BFA5;
 
-  /* Semantic */
-  --color-accent-warm: #f59e0b;
-  --color-success: #34d399;
-  --color-warning: #fbbf24;
-  --color-danger: #f87171;
+  --chili-500: #C8321E;
+  --chili-400: #D5563D;
+  --chili-600: #A82716;
+  --chili-700: #841C0F;
+  --turmeric: #E8A317;
+  --turmeric-deep: #C58B0E;
+  --curry-leaf: #2C4A22;
+  --curry-light: #3F6431;
+  --saffron: #D77A0F;
+  --rupee-red: #B41F0E;
 
-  /* Text */
-  --color-text-primary: #f5f5f5;
-  --color-text-secondary: #a3a3a3;
-  --color-text-muted: #737373;
-  --color-text-faint: #404040;
+  /* — Legacy aliases (so every existing .fp-* / Tailwind class keeps working) — */
+  --color-bg-primary:     var(--paper-200);
+  --color-bg-secondary:   var(--paper-300);
+  --color-bg-card:        var(--paper-100);
+  --color-bg-card-hover:  var(--paper-50);
+  --color-bg-elevated:    var(--paper-50);
+  --color-bg-subtle:      var(--paper-400);
 
-  /* Shadows */
-  --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.50);
-  --shadow-elevated: 0 8px 48px rgba(0, 0, 0, 0.65);
-  --shadow-glow: 0 0 24px rgba(249, 115, 22, 0.18);
+  --color-border:         rgba(14, 14, 12, 0.10);
+  --color-border-hover:   rgba(14, 14, 12, 0.20);
+  --color-border-strong:  rgba(14, 14, 12, 0.36);
+
+  --color-accent:         var(--chili-500);
+  --color-accent-light:   var(--chili-400);
+  --color-accent-glow:    rgba(200, 50, 30, 0.16);
+  --color-accent-dim:     rgba(200, 50, 30, 0.10);
+
+  --color-accent-warm:    var(--turmeric);
+  --color-success:        var(--curry-leaf);
+  --color-warning:        var(--turmeric-deep);
+  --color-danger:         var(--chili-700);
+
+  --color-text-primary:   var(--ink-900);
+  --color-text-secondary: var(--ink-500);
+  --color-text-muted:     var(--ink-400);
+  --color-text-faint:     var(--ink-300);
+
+  --shadow-soft:     0 1px 0 rgba(14,14,12,0.06), 0 8px 24px -12px rgba(14,14,12,0.20);
+  --shadow-elevated: 0 2px 0 rgba(14,14,12,0.08), 0 18px 50px -16px rgba(14,14,12,0.28);
+  --shadow-glow:     0 0 0 1px rgba(200,50,30,0.30), 0 8px 28px -8px rgba(200,50,30,0.30);
 
   /* 8pt spacing grid */
   --space-1: 0.25rem;
@@ -81,26 +106,77 @@
   --motion-medium: 280ms;
   --motion-slow: 480ms;
 
-  /* Shadcn semantic tokens (HSL triplets) */
-  --background: 0 0% 0%;
-  --foreground: 0 0% 96%;
-  --card: 0 0% 7%;
-  --card-foreground: 0 0% 96%;
-  --popover: 0 0% 7%;
-  --popover-foreground: 0 0% 96%;
-  --primary: 24 94% 53%;
-  --primary-foreground: 0 0% 4%;
-  --secondary: 0 0% 10%;
-  --secondary-foreground: 0 0% 80%;
-  --muted: 0 0% 10%;
-  --muted-foreground: 0 0% 64%;
-  --accent: 24 94% 53%;
-  --accent-foreground: 0 0% 4%;
-  --destructive: 0 72% 51%;
-  --destructive-foreground: 0 0% 96%;
-  --border: 0 0% 100% / 0.08;
-  --input: 0 0% 100% / 0.08;
-  --ring: 24 94% 53%;
+  /* Shadcn semantic tokens (HSL triplets) — Mandiya paper */
+  --background:           42 60% 92%;   /* paper-200 */
+  --foreground:           48 8% 5%;     /* ink */
+  --card:                 42 67% 96%;   /* paper-100 */
+  --card-foreground:      48 8% 5%;
+  --popover:              42 70% 98%;
+  --popover-foreground:   48 8% 5%;
+  --primary:              9 75% 45%;    /* chili-500 */
+  --primary-foreground:   42 67% 96%;
+  --secondary:            42 36% 84%;   /* paper-400 */
+  --secondary-foreground: 48 8% 14%;
+  --muted:                42 36% 84%;
+  --muted-foreground:     45 11% 38%;   /* ink-400 */
+  --accent:               9 75% 45%;
+  --accent-foreground:    42 67% 96%;
+  --destructive:          5 84% 38%;
+  --destructive-foreground: 42 67% 96%;
+  --border:               48 8% 5% / 0.10;
+  --input:                48 8% 5% / 0.10;
+  --ring:                 9 75% 45%;
+}
+
+/* — NIGHT TERMINAL — opt-in on /intelligence, /pipeline, /changes — */
+[data-theme="night"] {
+  --color-bg-primary:     #0B0B09;
+  --color-bg-secondary:   #131210;
+  --color-bg-card:        #181614;
+  --color-bg-card-hover:  #1F1C19;
+  --color-bg-elevated:    #1B1916;
+  --color-bg-subtle:      #221F1B;
+
+  --color-border:         rgba(248, 240, 220, 0.10);
+  --color-border-hover:   rgba(248, 240, 220, 0.20);
+  --color-border-strong:  rgba(248, 240, 220, 0.36);
+
+  --color-accent:         #FF6B3D;   /* hotter — readable on black */
+  --color-accent-light:   #FF8A60;
+  --color-accent-glow:    rgba(255, 107, 61, 0.22);
+  --color-accent-warm:    var(--turmeric);
+  --color-success:        #6FB45E;
+  --color-warning:        var(--turmeric);
+  --color-danger:         #E25A45;
+
+  --color-text-primary:   #F4EDE0;
+  --color-text-secondary: #C6BFA5;
+  --color-text-muted:     #8B8576;
+  --color-text-faint:     #5A554A;
+
+  --shadow-soft:     0 1px 0 rgba(0,0,0,0.6), 0 8px 24px -8px rgba(0,0,0,0.6);
+  --shadow-elevated: 0 2px 0 rgba(0,0,0,0.8), 0 22px 60px -16px rgba(0,0,0,0.8);
+  --shadow-glow:     0 0 0 1px rgba(255,107,61,0.30), 0 8px 28px -6px rgba(255,107,61,0.35);
+
+  --background:           48 12% 4%;
+  --foreground:           42 60% 92%;
+  --card:                 48 10% 9%;
+  --card-foreground:      42 60% 92%;
+  --popover:              48 10% 9%;
+  --popover-foreground:   42 60% 92%;
+  --primary:              14 100% 62%;
+  --primary-foreground:   48 12% 4%;
+  --secondary:            48 10% 12%;
+  --secondary-foreground: 42 60% 92%;
+  --muted:                48 10% 12%;
+  --muted-foreground:     43 10% 56%;
+  --accent:               14 100% 62%;
+  --accent-foreground:    48 12% 4%;
+  --destructive:          5 70% 56%;
+  --destructive-foreground: 42 60% 92%;
+  --border:               42 60% 92% / 0.10;
+  --input:                42 60% 92% / 0.10;
+  --ring:                 14 100% 62%;
 }
 
 /* ─────────────────────────────────────────────
@@ -113,8 +189,11 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
   scroll-behavior: smooth;
+}
+html[data-theme="night"] {
+  color-scheme: dark;
 }
 
 html,
@@ -126,26 +205,44 @@ body,
 
 body {
   margin: 0;
-  background-color: var(--color-bg-primary);
-  color: var(--color-text-primary);
-  font-family: 'Instrument Sans', 'Geist', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  font-size: var(--text-body);
-  line-height: 1.65;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
   font-weight: 400;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.016em;
-  /* Subtle radial orange warmth from top-left */
+  letter-spacing: -0.011em;
+  font-variant-numeric: tabular-nums;
+  /* Paper warmth — soft wash, not glow */
   background-image:
-    radial-gradient(ellipse 70% 50% at 15% 0%, rgba(249, 115, 22, 0.06) 0%, transparent 55%),
-    radial-gradient(ellipse 50% 35% at 85% 5%, rgba(249, 115, 22, 0.03) 0%, transparent 45%);
+    radial-gradient(ellipse 60% 40% at 0% 0%, rgba(216, 122, 15, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 50% at 100% 100%, rgba(200, 50, 30, 0.04) 0%, transparent 60%);
 }
 
+[data-theme="night"] body {
+  background-image:
+    radial-gradient(ellipse 70% 50% at 15% 0%, rgba(255, 107, 61, 0.06) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 35% at 85% 5%, rgba(255, 107, 61, 0.03) 0%, transparent 45%);
+}
+
+.premium-surface {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-elevated);
+}
+
+
 h1, h2, h3, h4, h5, h6 {
-  letter-spacing: -0.03em;
-  line-height: 1.15;
+  font-family: 'Fraunces', Georgia, serif;
+  font-variation-settings: 'opsz' 96, 'SOFT' 30;
+  letter-spacing: -0.025em;
+  line-height: 1.08;
+  font-weight: 600;
+  color: var(--color-text-primary);
 }
 
 a {
@@ -171,12 +268,10 @@ a {
    4. SURFACE CLASSES
 ───────────────────────────────────────────── */
 .surface-shell {
-  background: rgba(10, 10, 10, 0.92);
+  background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-soft);
-  backdrop-filter: blur(20px) saturate(120%);
-  -webkit-backdrop-filter: blur(20px) saturate(120%);
 }
 
 .surface-panel {
@@ -187,7 +282,7 @@ a {
 }
 
 .glass {
-  background: rgba(17, 17, 17, 0.88);
+  background: color-mix(in oklab, var(--color-bg-card) 80%, transparent);
   backdrop-filter: blur(16px) saturate(120%);
   -webkit-backdrop-filter: blur(16px) saturate(120%);
   border: 1px solid var(--color-border);
@@ -198,18 +293,21 @@ a {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-panel, 20px);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
     var(--shadow-soft);
   transition: border-color var(--motion-fast) var(--ease-apple),
               transform var(--motion-fast) var(--ease-spring),
               box-shadow var(--motion-fast) var(--ease-apple);
+}
+[data-theme="night"] .premium-card {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), var(--shadow-soft);
 }
 
 .premium-card:hover {
   border-color: var(--color-border-hover);
   transform: translateY(-2px);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
     var(--shadow-elevated);
 }
 
@@ -217,169 +315,543 @@ a {
    5. TYPOGRAPHY UTILITIES
 ───────────────────────────────────────────── */
 .text-display {
-  font-family: 'DM Serif Display', serif;
+  font-family: 'Fraunces', Georgia, serif;
+  font-variation-settings: 'opsz' 144, 'SOFT' 30, 'wght' 600;
   font-size: var(--text-display);
-  line-height: 1.05;
-  letter-spacing: -0.04em;
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+  color: var(--color-text-primary);
 }
 
 .text-headline {
-  font-family: 'DM Serif Display', serif;
+  font-family: 'Fraunces', Georgia, serif;
+  font-variation-settings: 'opsz' 96, 'SOFT' 30, 'wght' 600;
   font-size: var(--text-headline);
-  line-height: 1.1;
+  line-height: 1.05;
   letter-spacing: -0.03em;
+  color: var(--color-text-primary);
 }
 
 .text-title {
+  font-family: 'Fraunces', Georgia, serif;
+  font-variation-settings: 'opsz' 36, 'wght' 600;
   font-size: var(--text-title);
-  font-weight: 600;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
 }
 
 .eyebrow-label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.2em;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--color-text-muted);
 }
 
 .eyebrow-accent {
-  font-size: 0.7rem;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--color-accent);
 }
 
 .num {
-  font-family: 'Geist Mono', monospace;
+  font-family: 'JetBrains Mono', 'Geist Mono', ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  font-feature-settings: 'tnum' 1, 'lnum' 1, 'ss01' 1;
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, var(--color-text-primary) 0%, var(--color-accent-light) 100%);
+  background: linear-gradient(135deg, var(--color-text-primary) 0%, var(--chili-500) 80%, var(--turmeric) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.text-masthead {
+  font-family: 'Fraunces', Georgia, serif;
+  font-variation-settings: 'opsz' 144, 'SOFT' 30, 'wght' 700;
+  font-size: clamp(3.25rem, 9vw, 8.5rem);
+  line-height: 0.88;
+  letter-spacing: -0.05em;
+  color: var(--color-text-primary);
+}
+
+.text-lede {
+  font-family: 'Fraunces', Georgia, serif;
+  font-variation-settings: 'opsz' 36, 'wght' 400;
+  font-style: italic;
+  font-size: clamp(1.125rem, 1.6vw, 1.5rem);
+  line-height: 1.4;
+  letter-spacing: -0.012em;
+  color: var(--color-text-secondary);
+}
+
+.text-kicker {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--chili-500);
+}
+
+.text-rupee::before {
+  content: 'රු';
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 0.7em;
+  margin-right: 0.18em;
+  color: var(--color-text-muted);
+  vertical-align: 0.1em;
 }
 
 /* ─────────────────────────────────────────────
    6. COMPONENT UTILITY CLASSES
 ───────────────────────────────────────────── */
 @layer components {
-  /* Panel & card */
+  /* Panel & card — paper feel */
   .fp-panel {
-    @apply rounded-shell border border-border bg-surface p-6 shadow-elevated;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-elevated);
   }
 
   .fp-card {
-    @apply rounded-card border border-border bg-surface p-4;
-    transition: border-color 160ms var(--ease-apple), transform 160ms var(--ease-spring);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    transition: border-color 160ms var(--ease-apple), transform 160ms var(--ease-spring),
+                box-shadow 200ms var(--ease-apple);
   }
 
   .fp-card:hover {
-    border-color: rgba(255, 255, 255, 0.14);
+    border-color: var(--color-border-hover);
     transform: translateY(-1px);
+    box-shadow: var(--shadow-soft);
   }
 
   .fp-soft-card {
-    @apply rounded-card bg-[#161616] p-4;
+    background: var(--color-bg-elevated);
+    border-radius: var(--radius-md);
+    padding: 1rem;
   }
 
   /* Toolbar */
   .fp-toolbar {
-    @apply grid gap-3 rounded-card border border-white/[0.08] bg-[#0a0a0a] p-4 md:grid-cols-2 lg:grid-cols-4;
+    display: grid;
+    gap: 0.75rem;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1rem;
   }
+  @media (min-width: 768px)  { .fp-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 1024px) { .fp-toolbar { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 
   /* Form elements */
-  .fp-input {
-    @apply w-full rounded-md border border-white/[0.10] bg-[#161616] px-4 py-2.5 text-sm text-[#f5f5f5] placeholder:text-[#737373]
-           focus:border-orange-500/50 focus:outline-none focus:ring-2 focus:ring-orange-500/20
-           font-ui transition-all;
-  }
-
+  .fp-input,
   .fp-select {
-    @apply w-full rounded-md border border-white/[0.10] bg-[#161616] px-4 py-2.5 text-sm text-[#f5f5f5]
-           focus:border-orange-500/50 focus:outline-none focus:ring-2 focus:ring-orange-500/20
-           font-ui transition-all;
+    width: 100%;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-primary);
+    padding: 0.65rem 1rem;
+    font-size: 0.875rem;
+    font-family: 'Inter', sans-serif;
+    transition: border-color 160ms var(--ease-apple), box-shadow 160ms var(--ease-apple);
+  }
+  .fp-input::placeholder { color: var(--color-text-muted); }
+  .fp-input:focus,
+  .fp-select:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-glow);
   }
 
-  /* Buttons */
+  /* Buttons — newspaper press feel */
   .fp-button-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-pill bg-[#f97316] px-5 py-2.5 text-sm font-semibold text-black
-           transition-all hover:bg-[#fb923c] focus:outline-none focus:ring-2 focus:ring-orange-500/40 active:scale-[0.98];
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: var(--color-text-primary);
+    color: var(--paper-50);
+    border: 1px solid var(--color-text-primary);
+    border-radius: 9999px;
+    padding: 0.6rem 1.15rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.005em;
+    transition: transform 120ms var(--ease-spring), box-shadow 160ms var(--ease-apple), background 160ms var(--ease-apple);
     position: relative;
     overflow: hidden;
+    box-shadow: var(--shadow-ink, 0 2px 0 var(--color-text-primary));
   }
+  .fp-button-primary:hover { transform: translateY(-1px); background: var(--chili-500); border-color: var(--chili-500); }
+  .fp-button-primary:active { transform: translateY(0); box-shadow: none; }
+  .fp-button-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-accent-glow); }
 
   .fp-button-primary::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.3) 55%, transparent 70%);
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.18) 55%, transparent 70%);
     transform: translateX(-100%);
     transition: transform 600ms var(--ease-apple);
   }
-
-  .fp-button-primary:hover::after {
-    transform: translateX(100%);
-  }
+  .fp-button-primary:hover::after { transform: translateX(100%); }
 
   .fp-button-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-pill border border-white/[0.12] bg-transparent px-5 py-2.5 text-sm font-semibold text-[#f5f5f5]
-           transition-all hover:border-white/[0.20] hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-white/20 active:scale-[0.98];
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: transparent;
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border-hover);
+    border-radius: 9999px;
+    padding: 0.6rem 1.15rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    transition: background 160ms var(--ease-apple), border-color 160ms var(--ease-apple);
   }
+  .fp-button-secondary:hover { background: var(--color-bg-card-hover); border-color: var(--color-border-strong); }
 
   /* KPI tile */
   .fp-kpi {
-    @apply rounded-card bg-[#111111] p-5 border border-white/[0.08];
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
   }
 
   /* Empty state */
   .fp-empty {
-    @apply rounded-card border border-dashed border-white/[0.10] bg-[#0a0a0a] p-6 text-sm text-[#737373];
+    background: var(--color-bg-secondary);
+    border: 1px dashed var(--color-border-hover);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
   }
 
-  /* Badge */
+  /* Badge — sticker / stamp style */
   .fp-badge {
-    @apply inline-flex items-center gap-1.5 rounded-pill px-3 py-1 text-xs font-semibold uppercase tracking-wide;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.18rem 0.6rem;
+    border-radius: 9999px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
   }
 
-  .fp-badge-orange {
-    @apply fp-badge bg-orange-500/15 text-orange-400 ring-1 ring-orange-500/25;
+  .fp-badge-orange { background: rgba(216, 122, 15, 0.14); color: var(--saffron); box-shadow: inset 0 0 0 1px rgba(216, 122, 15, 0.35); }
+  .fp-badge-green  { background: rgba(44, 74, 34, 0.14);  color: var(--curry-leaf); box-shadow: inset 0 0 0 1px rgba(44, 74, 34, 0.35); }
+  .fp-badge-amber  { background: rgba(232, 163, 23, 0.16); color: var(--turmeric-deep); box-shadow: inset 0 0 0 1px rgba(232, 163, 23, 0.40); }
+  .fp-badge-red    { background: rgba(200, 50, 30, 0.14); color: var(--chili-600); box-shadow: inset 0 0 0 1px rgba(200, 50, 30, 0.38); }
+  .fp-badge-neutral { background: rgba(14,14,12,0.06); color: var(--color-text-secondary); box-shadow: inset 0 0 0 1px var(--color-border); }
+  [data-theme="night"] .fp-badge-neutral { background: rgba(255,255,255,0.06); }
+
+  /* ── Mandiya-only components ─────────────────── */
+
+  /* Hairline rule — newspaper column divider */
+  .rule-ink { background: var(--color-text-primary); }
+  .rule-hair { background: var(--color-border); }
+  .rule-double {
+    background-image: linear-gradient(to bottom,
+      var(--color-text-primary) 0 2px,
+      transparent 2px 5px,
+      var(--color-text-primary) 5px 6px);
+  }
+  .rule-dotted {
+    background-image: radial-gradient(circle, var(--color-text-primary) 1px, transparent 1.4px);
+    background-size: 6px 2px;
+    background-repeat: repeat-x;
+    background-position: center;
   }
 
-  .fp-badge-green {
-    @apply fp-badge bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/25;
+  /* Dateline strip */
+  .dateline {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+    border-top: 1px solid var(--color-border-hover);
+    border-bottom: 1px solid var(--color-border-hover);
+    padding: 0.5rem 0;
+  }
+  .dateline > * { white-space: nowrap; }
+  .dateline-sep::before { content: '·'; color: var(--color-text-faint); margin-right: 1rem; }
+
+  /* Stall card — image left, big mono price right */
+  .stall-card {
+    position: relative;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1.1rem;
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 1rem;
+    transition: transform 200ms var(--ease-spring), border-color 160ms var(--ease-apple), box-shadow 220ms var(--ease-apple);
+  }
+  .stall-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image: linear-gradient(to right, var(--color-border) 1px, transparent 1px);
+    background-size: 24px 100%;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+  .stall-card:hover { transform: translateY(-2px); border-color: var(--color-border-strong); box-shadow: var(--shadow-paper, var(--shadow-elevated)); }
+
+  .stall-sticker {
+    position: absolute;
+    top: -8px;
+    right: 14px;
+    background: var(--color-text-primary);
+    color: var(--paper-50);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 0.22rem 0.55rem;
+    transform: rotate(-2.5deg);
+    box-shadow: 2px 2px 0 var(--color-border-strong);
+    z-index: 2;
   }
 
-  .fp-badge-amber {
-    @apply fp-badge bg-amber-500/15 text-amber-400 ring-1 ring-amber-500/25;
+  /* Stamp — rotated red ink */
+  .stamp {
+    display: inline-block;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--chili-500);
+    border: 2px solid var(--chili-500);
+    padding: 0.3rem 0.65rem;
+    transform: rotate(-4deg);
+    background: rgba(200, 50, 30, 0.04);
+  }
+  .stamp::before, .stamp::after {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--chili-500);
+    vertical-align: middle;
+    margin: 0 0.4em;
+    opacity: 0.6;
   }
 
-  .fp-badge-red {
-    @apply fp-badge bg-red-500/15 text-red-400 ring-1 ring-red-500/25;
+  /* Receipt — used on /compare */
+  .receipt {
+    background: var(--paper-50);
+    color: var(--ink-900);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    padding: 2rem 1.5rem;
+    box-shadow:
+      0 1px 0 rgba(14,14,12,0.06),
+      0 22px 50px -20px rgba(14,14,12,0.30);
+    position: relative;
+    max-width: 480px;
+  }
+  .receipt::before,
+  .receipt::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 12px;
+    background-image:
+      radial-gradient(circle at 6px 6px, var(--paper-200) 6px, transparent 7px);
+    background-size: 14px 12px;
+    background-repeat: repeat-x;
+  }
+  .receipt::before { top: -1px; }
+  .receipt::after  { bottom: -1px; transform: scaleY(-1); }
+  .receipt .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0.35rem 0;
+    border-bottom: 1px dotted rgba(14,14,12,0.20);
+    font-size: 0.85rem;
+  }
+  .receipt .row.total {
+    border-top: 2px solid var(--ink-900);
+    border-bottom: 2px solid var(--ink-900);
+    margin-top: 0.5rem;
+    padding: 0.6rem 0;
+    font-weight: 700;
   }
 
-  .fp-badge-neutral {
-    @apply fp-badge bg-white/[0.08] text-[#a3a3a3] ring-1 ring-white/[0.10];
+  /* Flip-board cell — used on /changes */
+  .flip-cell {
+    display: inline-block;
+    background: var(--ink-900);
+    color: var(--paper-100);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-weight: 700;
+    padding: 0.45rem 0.55rem;
+    min-width: 1.4ch;
+    text-align: center;
+    border-radius: 3px;
+    box-shadow: inset 0 -1px 0 rgba(255,255,255,0.08), inset 0 1px 0 rgba(255,255,255,0.04);
+    position: relative;
+    perspective: 200px;
+  }
+  .flip-cell::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; top: 50%;
+    height: 1px;
+    background: rgba(0,0,0,0.6);
+  }
+  .flip-cell-changed {
+    animation: flip-up 0.7s cubic-bezier(0.45, 0, 0.15, 1);
+  }
+
+  /* Price tape — vertical sticky rail */
+  .price-tape {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    position: relative;
+  }
+  .price-tape::before,
+  .price-tape::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    height: 32px;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .price-tape::before {
+    top: 0;
+    background: linear-gradient(to bottom, var(--color-bg-card) 0%, transparent 100%);
+  }
+  .price-tape::after {
+    bottom: 0;
+    background: linear-gradient(to top, var(--color-bg-card) 0%, transparent 100%);
+  }
+  .price-tape-track {
+    animation: tape-vertical 38s linear infinite;
+  }
+  .price-tape:hover .price-tape-track { animation-play-state: paused; }
+
+  /* Newspaper column index nav */
+  .index-nav {
+    font-family: 'Fraunces', Georgia, serif;
+    font-variation-settings: 'opsz' 24, 'wght' 500;
+  }
+  .index-nav a {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    transition: color 160ms var(--ease-apple), padding 200ms var(--ease-spring);
+    position: relative;
+  }
+  .index-nav a:hover {
+    color: var(--color-text-primary);
+    padding-left: 0.5rem;
+  }
+  .index-nav a.active {
+    color: var(--chili-500);
+    padding-left: 0.5rem;
+  }
+  .index-nav a.active::before {
+    content: '§';
+    position: absolute;
+    left: -0.6rem;
+    color: var(--chili-500);
+  }
+  .index-nav .num-tag {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    color: var(--color-text-faint);
+  }
+
+  /* Pull quote — editorial */
+  .pull-quote {
+    font-family: 'Fraunces', Georgia, serif;
+    font-variation-settings: 'opsz' 144, 'wght' 400;
+    font-style: italic;
+    font-size: clamp(1.5rem, 2.6vw, 2.2rem);
+    line-height: 1.2;
+    color: var(--color-text-primary);
+    border-left: 3px solid var(--chili-500);
+    padding-left: 1.5rem;
+    margin: 1.5rem 0;
+  }
+
+  /* Section marker — § § § */
+  .section-mark {
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    color: var(--chili-500);
+    margin-right: 0.4em;
+    font-weight: 400;
+  }
+
+  /* Sparkline scrub (hover) */
+  .sparkline-scrub path {
+    stroke-dasharray: 6 4;
+    stroke-dashoffset: 0;
+  }
+  .sparkline-scrub:hover path {
+    animation: scrub 0.6s linear infinite;
   }
 }
 
 /* ─────────────────────────────────────────────
    7. NOISE OVERLAY
 ───────────────────────────────────────────── */
+/* Paper grain — visible on cream, used as newsprint texture */
 .noise-overlay {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 9999;
-  opacity: 0.028;
-  mix-blend-mode: overlay;
+  opacity: 0.10;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.055  0 0 0 0 0.055  0 0 0 0 0.047  0 0 0 0.6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
+}
+[data-theme="night"] .noise-overlay {
+  opacity: 0.04;
+  mix-blend-mode: screen;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 256px 256px;
 }
 
 /* ─────────────────────────────────────────────
@@ -392,7 +864,7 @@ a {
   right: 0;
   height: 2px;
   z-index: 1000;
-  background: linear-gradient(90deg, #f97316, #fb923c, #f59e0b);
+  background: linear-gradient(90deg, var(--chili-500) 0%, var(--turmeric) 60%, var(--curry-leaf) 100%);
   transform-origin: left;
 }
 
@@ -427,7 +899,7 @@ a {
 }
 
 .hairline-grid > * {
-  background: var(--color-bg-primary);
+  background: var(--color-bg-card);
 }
 
 /* ─────────────────────────────────────────────
@@ -453,7 +925,7 @@ a {
   background: linear-gradient(
     90deg,
     var(--color-bg-card) 25%,
-    rgba(255, 255, 255, 0.06) 50%,
+    var(--color-bg-card-hover) 50%,
     var(--color-bg-card) 75%
   );
   background-size: 200% 100%;
@@ -473,7 +945,7 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #3a3a3a;
+  background: var(--color-border-strong);
   border-radius: var(--radius-pill);
 }
 

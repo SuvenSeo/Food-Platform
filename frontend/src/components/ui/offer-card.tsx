@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { ArrowUpRight, TrendingDown, TrendingUp, ImageOff } from 'lucide-react'
+import { ImageOff } from 'lucide-react'
 
 import { formatCurrency } from '../../lib/format'
 import type { OfferItem } from '../../types'
-import { Badge } from './badge'
+import { cn } from '../../lib/utils'
 
 const SOURCE_LABELS: Record<string, string> = {
   spar2u: 'Spar',
@@ -14,133 +14,155 @@ const SOURCE_LABELS: Record<string, string> = {
   cargills: 'Cargills',
 }
 
-function ProductImage({ src, alt }: { src: string; alt: string }) {
-  const [errored, setErrored] = useState(false)
+const SOURCE_TILT: Record<string, number> = {
+  spar2u: -2.5,
+  glomark: 2,
+  keells: -3.2,
+  cargills: 1.5,
+}
 
-  if (errored) {
+/* — Mandiya Stall Card — image left, big mono price right, rotated source sticker — */
+
+function StallThumb({ src, alt, label }: { src?: string | null; alt: string; label: string }) {
+  const [errored, setErrored] = useState(false)
+  const initials = label.slice(0, 2).toUpperCase()
+
+  if (!src || errored) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-[#161616]">
-        <ImageOff className="h-6 w-6 text-[#404040]" aria-hidden="true" />
+      <div className="relative flex h-full w-full flex-col items-center justify-center bg-[color:var(--paper-200)] text-[color:var(--ink-400)]">
+        <ImageOff className="h-5 w-5 opacity-50" aria-hidden="true" />
+        <span className="mt-1 font-mono text-[9px] font-bold uppercase tracking-[0.22em]">{initials}</span>
       </div>
     )
   }
 
   return (
-    <img
-      src={src}
-      alt={alt}
-      className="h-full w-full object-contain p-2 transition-transform duration-300 group-hover:scale-105"
-      loading="lazy"
-      decoding="async"
-      onError={() => setErrored(true)}
-    />
+    <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-[color:var(--paper-200)]">
+      <div className="absolute inset-0 bg-halftone bg-halftone-md opacity-[0.07]" aria-hidden="true" />
+      <img
+        src={src}
+        alt={alt}
+        className="relative z-10 h-full w-full object-contain p-2 transition-transform duration-500 ease-out group-hover:scale-[1.06]"
+        loading="lazy"
+        decoding="async"
+        onError={() => setErrored(true)}
+      />
+    </div>
+  )
+}
+
+function DeltaMark({ delta }: { delta: number | null }) {
+  if (delta === null) {
+    return (
+      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--color-text-faint)]">
+        calibrating
+      </span>
+    )
+  }
+
+  const isCheap = delta < -5
+  const isExpensive = delta > 5
+  const color =
+    isCheap ? 'var(--curry-leaf)' : isExpensive ? 'var(--chili-600)' : 'var(--color-text-muted)'
+  const arrow = isCheap ? '↘' : isExpensive ? '↗' : '→'
+
+  return (
+    <span
+      className="inline-flex items-baseline gap-1 font-mono text-[12px] font-bold"
+      style={{ color }}
+      aria-label={`Price delta versus median ${delta.toFixed(1)} percent`}
+    >
+      <span aria-hidden="true">{arrow}</span>
+      <span className="num">{delta > 0 ? '+' : ''}{delta.toFixed(1)}%</span>
+    </span>
   )
 }
 
 export function OfferCard({ offer }: { offer: OfferItem }) {
   const delta = offer.delta_vs_median_pct
-  const confidenceVariant =
-    delta === null ? 'neutral' : Math.abs(delta) <= 8 ? 'green' : Math.abs(delta) <= 15 ? 'amber' : 'red'
-  const confidenceLabel =
-    delta === null ? 'Calibrating' : Math.abs(delta) <= 8 ? 'High confidence' : Math.abs(delta) <= 15 ? 'Medium' : 'Low confidence'
-
-  const isCheap = delta !== null && delta < -5
-  const isExpensive = delta !== null && delta > 5
-  const hasImage = Boolean(offer.image_url)
   const sourceLabel = SOURCE_LABELS[offer.source] ?? offer.source
+  const tilt = SOURCE_TILT[offer.source] ?? -2.5
+  const unitLabel = offer.unit_amount ? `${offer.unit_amount} ${offer.unit ?? ''}`.trim() : offer.unit ?? '—'
 
   return (
     <motion.article
-      className="premium-card group overflow-hidden"
-      whileHover={{ y: -3, transition: { duration: 0.15, ease: 'easeOut' } }}
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
-    >
-      {/* Product image strip — only when image is available */}
-      {hasImage && (
-        <div
-          className="relative h-40 w-full overflow-hidden border-b"
-          style={{ borderColor: 'rgba(255,255,255,0.06)', backgroundColor: '#0d0d0d' }}
-        >
-          <ProductImage src={offer.image_url!} alt={offer.display_name} />
-          {/* Source badge overlaid on image */}
-          <div className="absolute bottom-2 left-3">
-            <span className="rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#a3a3a3] backdrop-blur-sm">
-              {sourceLabel}
-            </span>
-          </div>
-        </div>
+      whileHover={{ y: -3 }}
+      transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+      className={cn(
+        'group relative grid grid-cols-[88px_1fr] gap-0 overflow-hidden',
+        'bg-[color:var(--color-bg-card)] text-[color:var(--color-text-primary)]',
+        'border border-[color:var(--color-border)]',
+        'transition-colors duration-200 hover:border-[color:var(--color-border-strong)]',
       )}
+    >
+      {/* Source sticker — top-right, rotated */}
+      <div
+        className="absolute right-3 top-3 z-20 font-mono text-[9px] font-bold uppercase tracking-[0.22em]"
+        style={{ transform: `rotate(${tilt}deg)` }}
+      >
+        <span className="inline-block bg-[color:var(--ink-900)] px-2 py-0.5 text-[color:var(--paper-100)] shadow-[2px_2px_0_var(--color-border-strong)]">
+          {sourceLabel}
+        </span>
+      </div>
 
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            {!hasImage && (
-              <p className="eyebrow-label mb-1.5">{sourceLabel}</p>
-            )}
-            <h3 className="text-base font-semibold leading-snug tracking-tight text-[#f5f5f5]">
-              {offer.display_name}
-            </h3>
-            <p className="mt-0.5 text-sm text-[#737373]">
-              {offer.brand || 'Generic'} · {offer.category}
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-col items-end gap-1.5">
-            {offer.price_band && (
-              <Badge variant="green">{offer.price_band}</Badge>
-            )}
-            <Badge variant={confidenceVariant}>{confidenceLabel}</Badge>
-          </div>
+      {/* Thumbnail */}
+      <Link
+        to={`/offers/${offer.id}`}
+        className="relative block aspect-square min-h-[88px] border-r border-[color:var(--color-border)]"
+        aria-label={`Open ${offer.display_name} detail`}
+      >
+        <StallThumb src={offer.image_url} alt={offer.display_name} label={sourceLabel} />
+      </Link>
+
+      {/* Body */}
+      <div className="flex min-w-0 flex-col justify-between gap-2 p-3 pr-4">
+        <div className="min-w-0">
+          <h3
+            className="font-display text-[15px] leading-[1.18] tracking-[-0.012em] text-[color:var(--color-text-primary)] line-clamp-2"
+            style={{ fontVariationSettings: "'opsz' 36, 'wght' 600" }}
+          >
+            {offer.display_name}
+          </h3>
+          <p className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--color-text-muted)]">
+            {(offer.brand || 'generic')} <span className="mx-1 opacity-60">·</span> {offer.category}
+          </p>
         </div>
 
-        {/* Price strip */}
-        <div
-          className="mt-4 flex items-end justify-between gap-4 border-t pt-4"
-          style={{ borderColor: 'rgba(255,255,255,0.07)' }}
-        >
-          <div>
-            <p className="mb-1 text-xs text-[#737373]">Current price</p>
-            <div className="flex items-baseline gap-2">
-              <p className="num text-2xl font-semibold text-[#f5f5f5]">
-                Rs {formatCurrency(offer.price_lkr)}
-              </p>
-              {delta !== null && (
-                <span
-                  className={`flex items-center gap-0.5 text-xs font-semibold num ${
-                    isCheap ? 'text-emerald-400' : isExpensive ? 'text-red-400' : 'text-[#737373]'
-                  }`}
-                >
-                  {isCheap ? (
-                    <TrendingDown className="h-3 w-3" aria-hidden="true" />
-                  ) : isExpensive ? (
-                    <TrendingUp className="h-3 w-3" aria-hidden="true" />
-                  ) : null}
-                  {delta > 0 ? '+' : ''}{delta.toFixed(1)}%
+        <div className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="num flex items-baseline gap-1 text-[26px] font-bold leading-none tracking-[-0.02em] text-[color:var(--color-text-primary)]">
+              <span className="text-[12px] font-semibold text-[color:var(--color-text-muted)]">රු</span>
+              {formatCurrency(offer.price_lkr)}
+            </p>
+            <div className="mt-1.5 flex items-baseline gap-2">
+              <DeltaMark delta={delta} />
+              {offer.price_band && (
+                <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--color-text-faint)]">
+                  · {offer.price_band}
                 </span>
               )}
             </div>
           </div>
-          <p className="text-right text-sm text-[#737373]">
-            {offer.unit_amount ? `${offer.unit_amount}${offer.unit || ''}` : '—'}
-          </p>
+
+          <div className="shrink-0 text-right">
+            <p className="num font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-text-secondary)]">
+              {unitLabel}
+            </p>
+            <Link
+              to={`/offers/${offer.id}`}
+              className="mt-1 inline-flex items-center gap-1 font-display text-[12px] italic text-[color:var(--color-text-primary)] underline decoration-1 underline-offset-[5px] transition-colors hover:text-[color:var(--chili-500)] hover:decoration-[color:var(--chili-500)]"
+            >
+              read
+              <span className="transition-transform group-hover:translate-x-0.5">→</span>
+            </Link>
+          </div>
         </div>
       </div>
 
-      {/* Footer action */}
-      <div
-        className="flex items-center justify-between px-5 py-3 border-t"
-        style={{ borderColor: 'rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
-      >
-        <p className="font-mono text-xs text-[#404040]">{sourceLabel}</p>
-        <Link
-          to={`/offers/${offer.id}`}
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-orange-400 transition-colors hover:bg-orange-500/10 hover:text-orange-300"
-        >
-          View offer
-          <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
-        </Link>
-      </div>
+      {/* dotted baseline */}
+      <div className="col-span-2 h-px w-full rule-dotted" aria-hidden="true" />
     </motion.article>
   )
 }

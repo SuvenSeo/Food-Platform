@@ -14,21 +14,40 @@ export function Metric({ label, value, helper, highlight, className }: MetricPro
   return (
     <div
       className={cn(
-        'rounded-card border border-border bg-surface p-5 transition-colors',
-        highlight && 'border-brand-500/25 ring-1 ring-brand-500/15',
+        'relative flex flex-col gap-3 border p-5 transition-colors',
+        highlight
+          ? 'border-[color:var(--color-text-primary)] bg-[color:var(--color-text-primary)] text-[color:var(--paper-50)]'
+          : 'border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] text-[color:var(--color-text-primary)]',
         className,
       )}
     >
-      <p className="eyebrow-label">{label}</p>
       <p
         className={cn(
-          'num mt-2 text-3xl font-semibold tracking-tight text-foreground',
-          highlight && 'text-brand-400',
+          'font-mono text-[10px] font-bold uppercase tracking-[0.22em]',
+          highlight ? 'text-[color:var(--paper-300)]' : 'text-[color:var(--color-text-muted)]',
+        )}
+      >
+        {label}
+      </p>
+      <p
+        className={cn(
+          'num text-[40px] font-bold leading-[0.95] tracking-[-0.025em]',
+          highlight ? 'text-[color:var(--paper-50)]' : 'text-[color:var(--color-text-primary)]',
         )}
       >
         {value}
       </p>
-      {helper ? <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{helper}</p> : null}
+      {helper ? (
+        <p
+          className={cn(
+            'font-display text-[13px] italic leading-[1.4]',
+            highlight ? 'text-[color:var(--paper-300)]' : 'text-[color:var(--color-text-secondary)]',
+          )}
+          style={{ fontVariationSettings: "'opsz' 24" }}
+        >
+          {helper}
+        </p>
+      ) : null}
     </div>
   )
 }

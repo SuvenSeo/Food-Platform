@@ -25,12 +25,11 @@ export function Panel({
   return (
     <section
       className={cn(
-        'rounded-shell border shadow-soft',
+        'relative border shadow-paper',
         paddingMap[padding],
-        variant === 'default' && 'border-border bg-surface text-foreground',
-        variant === 'accent' &&
-          'border-brand-500/20 bg-gradient-to-br from-brand-500/[0.07] to-transparent',
-        variant === 'ghost' && 'border-transparent bg-surface-elevated/60',
+        variant === 'default' && 'border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] text-[color:var(--color-text-primary)]',
+        variant === 'accent' && 'border-[color:var(--color-text-primary)] bg-[color:var(--paper-50)] text-[color:var(--color-text-primary)]',
+        variant === 'ghost' && 'border-[color:var(--color-border)] bg-[color:var(--color-bg-secondary)]',
         className,
       )}
       {...props}

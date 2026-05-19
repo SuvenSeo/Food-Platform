@@ -6,15 +6,28 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 
-import { Panel } from '../components/primitives/panel'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { SectionHeader } from '../components/ui/section-header'
-import { RevealSection } from '../components/ui/reveal-section'
 import { Badge } from '../components/ui/badge'
 import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
 import { useWatchlists } from '../hooks/use-watchlists'
 import { api } from '../lib/api'
 import { formatCurrency } from '../lib/format'
+
+const springTransition = { type: 'spring' as const, stiffness: 300, damping: 30 }
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+}
+
+const staggerItem = {
+  hidden: { opacity: 0, y: 15 },
+  visible: { opacity: 1, y: 0, transition: springTransition }
+}
 
 export function ComparePage() {
   const marketsQuery = useQuery({
@@ -82,12 +95,16 @@ export function ComparePage() {
         />
       )}
 
-      <Panel className="space-y-6">
+      <motion.div 
+        className="space-y-6"
+        variants={staggerContainer}
+        initial="hidden"
+        animate="visible"
+      >
         {/* District selector */}
-        <div className="grid items-end gap-3 rounded-card border p-4 md:grid-cols-[1fr_auto_1fr]"
-          style={{ borderColor: 'rgba(255,255,255,0.08)', backgroundColor: '#0a0a0a' }}>
+        <motion.div variants={staggerItem} className="premium-surface grid items-end gap-3 rounded-card p-4 md:grid-cols-[1fr_auto_1fr]">
           <label className="space-y-2">
-            <span className="eyebrow-label">Left district</span>
+            <span className="eyebrow-label tracking-tight">Left district</span>
             <select
               aria-label="Left district"
               value={leftDistrict}
@@ -101,14 +118,14 @@ export function ComparePage() {
           <button
             type="button"
             onClick={() => { setLeftDistrict(rightDistrict); setRightDistrict(leftDistrict) }}
-            className="mb-0.5 inline-flex items-center gap-2 rounded-pill border border-white/[0.10] px-4 py-2.5 text-sm text-[#a3a3a3] transition hover:text-[#f5f5f5] hover:border-white/[0.18]"
+            className="mb-0.5 inline-flex items-center justify-center gap-2 rounded-pill border border-white/10 px-4 py-2.5 text-sm text-secondary-foreground transition hover:text-foreground hover:border-white/20 hover:bg-white/5"
           >
             <ArrowLeftRight className="h-4 w-4" />
             <span className="hidden sm:inline">Swap</span>
           </button>
 
           <label className="space-y-2">
-            <span className="eyebrow-label">Right district</span>
+            <span className="eyebrow-label tracking-tight">Right district</span>
             <select
               aria-label="Right district"
               value={rightDistrict}
@@ -118,16 +135,13 @@ export function ComparePage() {
               {districtOptions.map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
           </label>
-        </div>
+        </motion.div>
 
         {/* Headline + save */}
         {data && (
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3
-              className="text-[#f5f5f5]"
-              style={{ fontFamily: '"DM Serif Display", serif', fontSize: 'clamp(1.25rem, 2.5vw, 1.75rem)', letterSpacing: '-0.025em' }}
-            >
-              {data.left} <span className="text-[#737373]">vs</span> {data.right}
+          <motion.div variants={staggerItem} className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-foreground font-display tracking-tight" style={{ fontSize: 'clamp(1.5rem, 3vw, 2.25rem)' }}>
+              {data.left} <span className="text-muted-foreground">vs</span> {data.right}
             </h3>
             <button
               type="button"
@@ -138,28 +152,27 @@ export function ComparePage() {
                 href: '/compare',
                 summary: `${data.items.length ?? 0} shared produce items`,
               })}
-              className="inline-flex items-center gap-2 rounded-pill bg-orange-500/10 px-4 py-2 text-sm font-semibold text-orange-400 ring-1 ring-orange-500/20 transition hover:bg-orange-500/15"
+              className="inline-flex items-center gap-2 rounded-pill bg-orange-500/10 px-4 py-2 text-sm font-semibold text-orange-400 ring-1 ring-orange-500/20 transition hover:bg-orange-500/20 hover:text-orange-300 tracking-tight"
             >
               <Bookmark className="h-4 w-4" />
               Save view
             </button>
-          </div>
+          </motion.div>
         )}
 
         {/* Bar chart */}
         {!isLoading && chartData.length > 1 && (
-          <RevealSection>
-            <div className="rounded-card border p-4"
-              style={{ borderColor: 'rgba(255,255,255,0.07)', backgroundColor: '#0a0a0a' }}>
-              <p className="eyebrow-label mb-4">Price comparison — top 8 items</p>
+          <motion.div variants={staggerItem}>
+            <div className="premium-surface rounded-card p-4">
+              <p className="eyebrow-label tracking-tight mb-4">Price comparison — top 8 items</p>
               <div className="h-52 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                    <XAxis dataKey="name" tick={{ fill: '#737373', fontSize: 10 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: '#737373', fontSize: 10 }} axisLine={false} tickLine={false} width={55} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.4} />
+                    <XAxis dataKey="name" tick={{ fill: 'var(--muted-foreground)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: 'var(--muted-foreground)', fontSize: 10 }} axisLine={false} tickLine={false} width={55} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#161616', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, color: '#f5f5f5', fontSize: 12 }}
+                      contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, color: 'var(--foreground)', fontSize: 12 }}
                       formatter={(v) => [`Rs ${Number(v).toLocaleString()}`]}
                     />
                     <Bar dataKey="left" fill="#f97316" radius={[4, 4, 0, 0]} opacity={0.85} name={leftDistrict} />
@@ -167,20 +180,20 @@ export function ComparePage() {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-              <div className="mt-3 flex gap-5 text-xs text-[#737373]">
+              <div className="mt-3 flex gap-5 text-xs text-muted-foreground tracking-tight">
                 <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-orange-500" />{leftDistrict}</span>
-                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-[#737373]" />{rightDistrict}</span>
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-neutral-500" />{rightDistrict}</span>
               </div>
             </div>
-          </RevealSection>
+          </motion.div>
         )}
 
         {/* Filters */}
-        <div className="fp-toolbar md:grid-cols-[1.4fr_1fr] lg:grid-cols-[1.4fr_1fr]">
+        <motion.div variants={staggerItem} className="fp-toolbar md:grid-cols-[1.4fr_1fr] lg:grid-cols-[1.4fr_1fr]">
           <label className="space-y-2">
-            <span className="eyebrow-label">Search compared items</span>
+            <span className="eyebrow-label tracking-tight">Search compared items</span>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#737373]" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -190,17 +203,17 @@ export function ComparePage() {
             </div>
           </label>
           <label className="space-y-2">
-            <span className="eyebrow-label">Sort</span>
+            <span className="eyebrow-label tracking-tight">Sort</span>
             <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="fp-select">
               <option value="delta-high">Largest delta first</option>
               <option value="delta-low">Smallest delta first</option>
               <option value="item">Item name A-Z</option>
             </select>
           </label>
-        </div>
+        </motion.div>
 
         {/* Results */}
-        <div className="space-y-3">
+        <motion.div variants={staggerItem} className="space-y-3">
           {isLoading ? <SectionSkeleton cards={4} /> : null}
           {!isLoading && !visibleItems.length && (
             <EmptyState
@@ -213,20 +226,21 @@ export function ComparePage() {
               secondaryActionTo="/markets"
             />
           )}
-          {visibleItems.map((item, i) => {
+          {visibleItems.map((item) => {
             const isLeft = item.cheaper_side === data?.left
             return (
               <motion.article
                 key={item.item_name}
-                className="fp-soft-card"
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.03, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                className="fp-soft-card premium-surface border-transparent"
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "0px 0px -40px 0px" }}
+                variants={staggerItem}
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <h4 className="text-base font-semibold text-[#f5f5f5]">{item.item_name}</h4>
-                    <p className="text-sm capitalize text-[#737373]">{item.category}</p>
+                    <h4 className="text-base font-semibold text-foreground tracking-tight">{item.item_name}</h4>
+                    <p className="text-sm capitalize text-muted-foreground">{item.category}</p>
                   </div>
                   <Badge variant="green">
                     {item.cheaper_side} cheaper by Rs {formatCurrency(Math.abs(item.delta_lkr))}
@@ -235,19 +249,19 @@ export function ComparePage() {
 
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
                   <div
-                    className={`rounded-md p-3 border ${isLeft ? 'border-orange-500/20 bg-orange-500/[0.05]' : 'border-white/[0.07] bg-[#111111]'}`}
+                    className={`rounded-md p-3 border ${isLeft ? 'border-orange-500/20 bg-orange-500/5' : 'border-white/5 bg-white/5'}`}
                   >
-                    <p className="text-xs font-semibold text-[#a3a3a3]">{data?.left}</p>
-                    <p className="num mt-1.5 text-lg font-semibold text-[#f5f5f5]">
+                    <p className="text-xs font-semibold text-secondary-foreground tracking-tight">{data?.left}</p>
+                    <p className="num mt-1.5 text-lg font-semibold text-foreground tracking-tight">
                       Rs {formatCurrency(item.left_price_lkr)}
                     </p>
                     {isLeft && <Badge variant="green" className="mt-2">Cheaper</Badge>}
                   </div>
                   <div
-                    className={`rounded-md p-3 border ${!isLeft ? 'border-orange-500/20 bg-orange-500/[0.05]' : 'border-white/[0.07] bg-[#111111]'}`}
+                    className={`rounded-md p-3 border ${!isLeft ? 'border-orange-500/20 bg-orange-500/5' : 'border-white/5 bg-white/5'}`}
                   >
-                    <p className="text-xs font-semibold text-[#a3a3a3]">{data?.right}</p>
-                    <p className="num mt-1.5 text-lg font-semibold text-[#f5f5f5]">
+                    <p className="text-xs font-semibold text-secondary-foreground tracking-tight">{data?.right}</p>
+                    <p className="num mt-1.5 text-lg font-semibold text-foreground tracking-tight">
                       Rs {formatCurrency(item.right_price_lkr)}
                     </p>
                     {!isLeft && <Badge variant="green" className="mt-2">Cheaper</Badge>}
@@ -256,17 +270,19 @@ export function ComparePage() {
               </motion.article>
             )
           })}
-        </div>
+        </motion.div>
 
-        <NextActionLinks
-          title="Next actions"
-          links={[
-            { label: 'Build basket', to: '/basket' },
-            { label: 'Review watchlists', to: '/watchlists' },
-            { label: 'Open markets', to: '/markets' },
-          ]}
-        />
-      </Panel>
+        <motion.div variants={staggerItem}>
+          <NextActionLinks
+            title="Next actions"
+            links={[
+              { label: 'Build basket', to: '/basket' },
+              { label: 'Review watchlists', to: '/watchlists' },
+              { label: 'Open markets', to: '/markets' },
+            ]}
+          />
+        </motion.div>
+      </motion.div>
     </section>
   )
 }

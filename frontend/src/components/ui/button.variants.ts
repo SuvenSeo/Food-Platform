@@ -9,11 +9,11 @@ export const buttonVariants = cva(
           'bg-[#f97316] text-black hover:bg-[#fb923c] relative overflow-hidden after:absolute after:inset-0 after:bg-gradient-to-r after:from-transparent after:via-white/25 after:to-transparent after:translate-x-[-100%] hover:after:translate-x-[100%] after:transition-transform after:duration-500',
         destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/80',
         outline:
-          'border border-white/[0.12] bg-transparent text-[#f5f5f5] hover:border-white/[0.20] hover:bg-white/[0.06]',
-        secondary: 'bg-[#161616] text-[#f5f5f5] border border-white/[0.08] hover:bg-[#1f1f1f]',
-        ghost: 'text-[#a3a3a3] hover:bg-white/[0.06] hover:text-[#f5f5f5]',
+          'border border-white/[0.12] bg-transparent text-foreground hover:border-white/[0.20] hover:bg-white/[0.06]',
+        secondary: 'bg-surface-elevated text-foreground border border-border/50 hover:bg-[#1f1f1f]',
+        ghost: 'text-secondary-foreground hover:bg-white/[0.06] hover:text-foreground',
         link: 'text-[#f97316] underline-offset-4 hover:underline p-0 h-auto',
-        muted: 'bg-white/[0.06] text-[#a3a3a3] hover:bg-white/[0.10] hover:text-[#f5f5f5]',
+        muted: 'bg-white/[0.06] text-secondary-foreground hover:bg-white/[0.10] hover:text-foreground',
       },
       size: {
         default: 'h-10 px-5 py-2',

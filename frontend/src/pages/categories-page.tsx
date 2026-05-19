@@ -53,11 +53,11 @@ export function CategoriesPage() {
           <label className="space-y-2">
             <span className="eyebrow-label">Search category</span>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#737373]" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="fp-input pl-10"
+                className="fp-input pl-10 bg-black/50 border-border/50 focus:bg-black/80 transition-colors"
                 placeholder="grocery, vegetables, dairy..."
               />
             </div>
@@ -88,17 +88,17 @@ export function CategoriesPage() {
                 return (
                   <motion.article
                     key={cat.category}
-                    className="premium-card p-5 group"
-                    initial={{ opacity: 0, y: 12 }}
+                    className="premium-surface p-5 group relative overflow-hidden flex flex-col"
+                    initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.04, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                    whileHover={{ y: -3 }}
+                    transition={{ delay: i * 0.06, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                    whileHover={{ y: -4 }}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <p className="eyebrow-label">Category</p>
-                      <Badge variant="neutral">{totalCoverage} signals</Badge>
+                      <Badge variant="neutral" className="bg-black/40 text-muted-foreground">{totalCoverage} signals</Badge>
                     </div>
-                    <h3 className="mt-3 text-lg font-semibold capitalize text-[#f5f5f5]"
+                    <h3 className="mt-3 text-lg font-semibold capitalize text-foreground"
                       style={{ letterSpacing: '-0.02em' }}>
                       {cat.category}
                     </h3>
@@ -108,33 +108,35 @@ export function CategoriesPage() {
                       style={{ borderColor: 'rgba(255,255,255,0.07)' }}
                     >
                       <div>
-                        <p className="text-xs text-[#737373]">Retail offers</p>
-                        <p className="num mt-1 text-lg font-semibold text-[#f5f5f5]">{cat.retail_offers_count}</p>
+                        <p className="text-xs font-medium text-muted-foreground">Retail offers</p>
+                        <p className="tabular-nums mt-1 text-lg font-semibold text-foreground/90">{cat.retail_offers_count}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-[#737373]">Market quotes</p>
-                        <p className="num mt-1 text-lg font-semibold text-[#f5f5f5]">{cat.market_quotes_count}</p>
+                        <p className="text-xs font-medium text-muted-foreground">Market quotes</p>
+                        <p className="tabular-nums mt-1 text-lg font-semibold text-foreground/90">{cat.market_quotes_count}</p>
                       </div>
                     </div>
 
                     {(cat.retail_median_lkr || cat.market_average_lkr) && (
-                      <div className="mt-3 space-y-1.5">
+                      <div className="mt-4 flex flex-col gap-2 rounded-lg bg-black/30 p-3 ring-1 ring-white/5">
                         {cat.retail_median_lkr && (
-                          <p className="text-xs text-[#737373]">
-                            Retail median <span className="num text-[#a3a3a3]">Rs {formatCurrency(cat.retail_median_lkr)}</span>
-                          </p>
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-muted-foreground font-medium">Retail median</span>
+                            <span className="tabular-nums font-semibold tracking-tight text-primary/90">Rs {formatCurrency(cat.retail_median_lkr)}</span>
+                          </div>
                         )}
                         {cat.market_average_lkr && (
-                          <p className="text-xs text-[#737373]">
-                            Market avg <span className="num text-[#a3a3a3]">Rs {formatCurrency(cat.market_average_lkr)}</span>
-                          </p>
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-muted-foreground font-medium">Market avg</span>
+                            <span className="tabular-nums font-semibold tracking-tight text-primary/90">Rs {formatCurrency(cat.market_average_lkr)}</span>
+                          </div>
                         )}
                       </div>
                     )}
 
                     {/* Coverage bar */}
                     <div className="mt-4">
-                      <div className="h-1 w-full rounded-full bg-[#1a1a1a] overflow-hidden">
+                      <div className="h-1 w-full rounded-full bg-surface-elevated overflow-hidden">
                         <div
                           className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-400 transition-all duration-700"
                           style={{ width: `${Math.min((totalCoverage / 50) * 100, 100)}%` }}

@@ -61,8 +61,8 @@ export function MethodsPage() {
               <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20">
                 <Icon className="h-5 w-5 text-orange-400" />
               </div>
-              <h3 className="text-base font-semibold text-[#f5f5f5]">{title}</h3>
-              <p className="mt-3 text-sm leading-7 text-[#737373]">{body}</p>
+              <h3 className="text-base font-semibold text-foreground">{title}</h3>
+              <p className="mt-3 text-sm leading-7 text-muted-foreground">{body}</p>
             </motion.article>
           ))}
         </div>
@@ -81,8 +81,8 @@ export function MethodsPage() {
               <article key={`${item.source}-${item.finished_at}`} className="fp-soft-card">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-base font-semibold text-[#f5f5f5]">{item.source}</h3>
-                    <p className="mt-1 text-xs text-[#737373]">
+                    <h3 className="text-base font-semibold text-foreground">{item.source}</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {item.items_stored.toLocaleString()} stored from {item.items_seen.toLocaleString()} seen
                     </p>
                   </div>
@@ -90,7 +90,7 @@ export function MethodsPage() {
                     {item.status}
                   </Badge>
                 </div>
-                <p className="mt-2 text-xs text-[#404040]">Updated {formatCompactDate(item.finished_at)}</p>
+                <p className="mt-2 text-xs text-ink-faint">Updated {formatCompactDate(item.finished_at)}</p>
               </article>
             ))}
           </div>
@@ -112,9 +112,9 @@ export function MethodsPage() {
                 { label: 'Sources', value: formatCurrency(stats?.sources_count) },
                 { label: 'Categories', value: formatCurrency(stats?.categories_count) },
               ].map(({ label, value }) => (
-                <div key={label} className="bg-[#0d0d0d] p-4">
+                <div key={label} className="bg-surface-soft p-4">
                   <p className="eyebrow-label">{label}</p>
-                  <p className="num mt-2 text-xl font-semibold text-[#f5f5f5]">{value}</p>
+                  <p className="num mt-2 text-xl font-semibold text-foreground">{value}</p>
                 </div>
               ))}
             </div>
@@ -123,7 +123,7 @@ export function MethodsPage() {
               style={{ borderColor: 'rgba(249,115,22,0.15)', background: 'rgba(249,115,22,0.05)' }}
             >
               <p className="eyebrow-accent mb-3">Public citation</p>
-              <p className="text-sm leading-7 text-[#a3a3a3]">
+              <p className="text-sm leading-7 text-secondary-foreground">
                 Sri Lanka Food Intelligence aggregates retail listings and public market quotes into normalised product surfaces. Always verify final price and availability at the original source before purchasing.
               </p>
             </div>
@@ -149,7 +149,7 @@ export function MethodsPage() {
                 'Legal and privacy pages clarify what is local-only and what is public data.',
                 'Developer-facing routes prepare the platform for future federation and embeds.',
               ].map((item) => (
-                <li key={item} className="flex items-start gap-2 text-sm text-[#737373]">
+                <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
                   <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-orange-500" />
                   {item}
                 </li>

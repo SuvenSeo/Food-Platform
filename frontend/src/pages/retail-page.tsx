@@ -2,12 +2,10 @@ import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
 
-import { Panel } from '../components/primitives/panel'
 import { SourcePill } from '../components/primitives/source-pill'
 import { OfferCard } from '../components/ui/offer-card'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { SectionHeader } from '../components/ui/section-header'
-import { RevealSection } from '../components/ui/reveal-section'
 import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
 import { api } from '../lib/api'
 
@@ -18,7 +16,7 @@ export function RetailPage() {
 
   const offersQuery = useQuery({
     queryKey: ['offers', 'retail-page'],
-    queryFn: () => api.getOffers('?limit=12'),
+    queryFn: () => api.getOffers('?limit=24'),
   })
   const offers = useMemo(() => offersQuery.data?.items ?? [], [offersQuery.data?.items])
   const sources = useMemo(
@@ -42,115 +40,114 @@ export function RetailPage() {
   }, [offers, search, sortBy, sourceFilter])
 
   return (
-    <section className="space-y-8">
+    <section className="space-y-10">
       <SectionHeader
-        eyebrow="Discovery"
-        title="Supermarket and grocery intelligence"
-        description="Discovery surface for active retail offers with source provenance and value confidence hints."
+        eyebrow="Retail Floor"
+        title="Stalls of the supermarket aisles"
+        description="Every offer normalised to a per-unit basis, stamped with its source and a delta from the seven-day median. Browse like classifieds, click into a stall card for the full ledger."
       />
 
       {offersQuery.isError && (
         <ErrorState
-          title="Retail discovery feed unavailable"
+          title="Retail floor went dark"
           message="Retail offers could not be loaded right now."
           helper="You can continue with public-market discovery while this source reconnects."
           onRetry={() => offersQuery.refetch()}
-          links={[
-            { label: 'Open markets', to: '/markets' },
-            { label: 'Open compare', to: '/compare' },
-          ]}
+          links={[{ label: 'Open markets', to: '/markets' }, { label: 'Open compare', to: '/compare' }]}
         />
       )}
 
-      <Panel className="space-y-6">
-        <div className="flex flex-wrap gap-2">
-          <SourcePill source="all" active={sourceFilter === 'all'} onClick={() => setSourceFilter('all')} count={offers.length} />
-          {sources.map((s) => (
-            <SourcePill
-              key={s}
-              source={s}
-              active={sourceFilter === s}
-              onClick={() => setSourceFilter(s)}
-              count={offers.filter((o) => o.source === s).length}
+      {/* — Source bar — */}
+      <div className="flex flex-wrap items-center gap-2 border-y-2 border-[color:var(--color-text-primary)] bg-[color:var(--color-bg-card)] px-4 py-3">
+        <span className="text-kicker mr-2">§ Source</span>
+        <SourcePill source="all" active={sourceFilter === 'all'} onClick={() => setSourceFilter('all')} count={offers.length} />
+        {sources.map((s) => (
+          <SourcePill
+            key={s}
+            source={s}
+            active={sourceFilter === s}
+            onClick={() => setSourceFilter(s)}
+            count={offers.filter((o) => o.source === s).length}
+          />
+        ))}
+      </div>
+
+      {/* — Toolbar — */}
+      <div className="grid gap-4 border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4 md:grid-cols-[2fr_1fr_1fr]">
+        <label className="space-y-2">
+          <span className="text-kicker">Search the floor</span>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--color-text-muted)]" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="fp-input pl-10"
+              placeholder="Item, brand, source, category…"
             />
-          ))}
-        </div>
-        <div className="fp-toolbar">
-          <label className="space-y-2 md:col-span-2">
-            <span className="eyebrow-label">Search offers</span>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#737373]" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="fp-input pl-10"
-                placeholder="Search by item, brand, source, or category"
-              />
-            </div>
-          </label>
-          <label className="space-y-2">
-            <span className="eyebrow-label">Source</span>
-            <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className="fp-select">
-              <option value="all">All sources</option>
-              {sources.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </label>
-          <label className="space-y-2">
-            <span className="eyebrow-label">Sort</span>
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="fp-select">
-              <option value="price-low">Price: low → high</option>
-              <option value="price-high">Price: high → low</option>
-              <option value="name">Name: A–Z</option>
-            </select>
-          </label>
-        </div>
+          </div>
+        </label>
+        <label className="space-y-2">
+          <span className="text-kicker">Source</span>
+          <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className="fp-select">
+            <option value="all">All sources</option>
+            {sources.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </label>
+        <label className="space-y-2">
+          <span className="text-kicker">Order by</span>
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="fp-select">
+            <option value="price-low">Price ↗ low to high</option>
+            <option value="price-high">Price ↘ high to low</option>
+            <option value="name">Name A–Z</option>
+          </select>
+        </label>
+      </div>
 
-        {/* Meta strip */}
-        <div className="hairline-grid rounded-lg overflow-hidden grid-cols-3">
-          {[
-            { label: 'Visible offers', value: visibleOffers.length },
-            { label: 'Sources in view', value: new Set(visibleOffers.map((o) => o.source)).size || 0 },
-            { label: 'Catalog size', value: offersQuery.data?.total ?? offers.length },
-          ].map(({ label, value }) => (
-            <div key={label} className="bg-[#0a0a0a] px-4 py-3">
-              <p className="eyebrow-label">{label}</p>
-              <p className="num mt-1.5 text-xl font-semibold text-[#f5f5f5]">{value.toLocaleString()}</p>
-            </div>
-          ))}
-        </div>
+      {/* — Meter strip — */}
+      <div className="grid grid-cols-3 gap-[1px] bg-[color:var(--color-border)]">
+        {[
+          { label: 'Stalls visible', value: visibleOffers.length },
+          { label: 'Sources in view', value: new Set(visibleOffers.map((o) => o.source)).size || 0 },
+          { label: 'Catalog size', value: offersQuery.data?.total ?? offers.length },
+        ].map(({ label, value }) => (
+          <div key={label} className="bg-[color:var(--color-bg-card)] px-5 py-4">
+            <p className="text-kicker">{label}</p>
+            <p className="num mt-2 text-[28px] font-bold leading-none tracking-[-0.025em] text-[color:var(--color-text-primary)]">
+              {value.toLocaleString()}
+            </p>
+          </div>
+        ))}
+      </div>
 
-        {/* Results */}
-        <RevealSection>
-          {offersQuery.isLoading ? (
-            <SectionSkeleton cards={4} />
-          ) : !visibleOffers.length ? (
-            <EmptyState
-              title="No retail offers match these filters"
-              description="Adjust your search, reset source filters, or switch discovery surfaces."
-              hint="Next action: continue in markets or compare."
-              actionLabel="Open markets discovery"
-              actionTo="/markets"
-              secondaryActionLabel="Open compare"
-              secondaryActionTo="/compare"
-            />
-          ) : (
-            <div className="grid gap-4 lg:grid-cols-2">
-              {visibleOffers.map((offer) => (
-                <OfferCard key={offer.id} offer={offer} />
-              ))}
-            </div>
-          )}
-        </RevealSection>
-
-        <NextActionLinks
-          title="Next actions"
-          links={[
-            { label: 'Compare districts', to: '/compare' },
-            { label: 'Build basket', to: '/basket' },
-            { label: 'Review watchlists', to: '/watchlists' },
-          ]}
+      {/* — Results — */}
+      {offersQuery.isLoading ? (
+        <SectionSkeleton cards={6} />
+      ) : !visibleOffers.length ? (
+        <EmptyState
+          title="No stalls match this filter"
+          description="Adjust your search, reset source filters, or switch discovery surfaces."
+          hint="Next action: try wet markets or compare."
+          actionLabel="Open markets"
+          actionTo="/markets"
+          secondaryActionLabel="Open compare"
+          secondaryActionTo="/compare"
         />
-      </Panel>
+      ) : (
+        <div className="grid gap-[1px] bg-[color:var(--color-border)] sm:grid-cols-2">
+          {visibleOffers.map((offer) => (
+            <OfferCard key={offer.id} offer={offer} />
+          ))}
+        </div>
+      )}
+
+      <NextActionLinks
+        title="Next column"
+        links={[
+          { label: 'Compare districts', to: '/compare' },
+          { label: 'Build basket', to: '/basket' },
+          { label: 'Open intelligence', to: '/intelligence' },
+        ]}
+      />
     </section>
   )
 }

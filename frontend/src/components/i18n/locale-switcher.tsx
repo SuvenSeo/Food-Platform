@@ -12,7 +12,7 @@ export function LocaleSwitcher() {
       <select
         value={locale}
         onChange={(e) => setLocale(e.target.value as Locale)}
-        className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#c8c8c8]"
+        className="rounded-full border border-border bg-white/5 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-secondary-foreground"
         aria-label="Select language"
       >
         {OPTIONS.map((code) => (

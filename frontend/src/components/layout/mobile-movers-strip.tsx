@@ -10,23 +10,23 @@ export function MobileMoversStrip() {
   if (!top) return null
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between gap-3 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-md sm:hidden">
+    <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between gap-3 border-t-2 border-[color:var(--color-text-primary)] bg-[color:var(--paper-50)] px-4 py-3 sm:hidden">
       <div className="min-w-0">
-        <p className="eyebrow-label">Top value now</p>
-        <p className="truncate text-sm font-semibold text-foreground">{top.display_name}</p>
-        <p className="num text-lg font-bold text-brand-400">
-          Rs {formatCurrency(top.price_lkr)}
+        <p className="text-kicker">§ Top value</p>
+        <p className="truncate font-display text-[15px] font-semibold text-[color:var(--color-text-primary)]">{top.display_name}</p>
+        <p className="num text-[20px] font-bold text-[color:var(--color-text-primary)]">
+          <span className="text-[12px] font-semibold text-[color:var(--color-text-muted)]">රු </span>{formatCurrency(top.price_lkr)}
         </p>
       </div>
-      <div className="flex shrink-0 gap-2">
-        <Link to="/retail" className="rounded-pill bg-brand-500 px-3 py-2 text-xs font-semibold text-black">
-          Retail
+      <div className="flex shrink-0 flex-col gap-1.5">
+        <Link to="/retail" className="bg-[color:var(--color-text-primary)] px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--paper-50)]">
+          Retail →
         </Link>
         <Link
           to="/intelligence"
-          className="rounded-pill border border-border px-3 py-2 text-xs font-semibold text-foreground"
+          className="border border-[color:var(--color-border-hover)] px-3 py-1.5 text-center font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--color-text-primary)]"
         >
-          Intel
+          Intel →
         </Link>
       </div>
     </div>

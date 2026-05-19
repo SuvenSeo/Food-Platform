@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { TrendingDown, TrendingUp } from 'lucide-react'
 
 import type { OfferItem } from '../../types'
 import { formatCurrency } from '../../lib/format'
@@ -10,61 +9,89 @@ type LiveTickerProps = {
   className?: string
 }
 
+/** Today's Tape — horizontal newspaper ticker. */
 export function LiveTicker({ offers, className }: LiveTickerProps) {
   if (!offers.length) return null
 
-  const items = offers.slice(0, 6)
+  const items = offers.slice(0, 10)
   const loop = [...items, ...items]
 
   return (
-    <div
+    <section
       className={cn(
-        'relative overflow-hidden rounded-card border border-border bg-surface-elevated/60',
+        'group relative grid grid-cols-[auto_1fr] overflow-hidden border-y-2 border-[color:var(--color-text-primary)] bg-[color:var(--color-bg-card)]',
         className,
       )}
-      aria-label="Today's price movers"
+      aria-label="Today's price tape"
     >
-      <div className="flex items-center gap-3 border-b border-border px-4 py-2.5">
-        <span className="live-dot-orange" aria-hidden="true" />
-        <p className="eyebrow-accent">Today&apos;s movers</p>
+      {/* Vertical TAPE label */}
+      <div className="flex items-center justify-center bg-[color:var(--color-text-primary)] px-3 py-3">
+        <p
+          className="font-mono text-[10px] font-bold uppercase tracking-[0.32em] text-[color:var(--paper-50)]"
+          style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+        >
+          § Today’s Tape
+        </p>
       </div>
-      <div className="ticker-track flex">
-        {loop.map((offer, i) => (
-          <Link
-            key={`${offer.id}-${i}`}
-            to={`/offers/${offer.id}`}
-            className="ticker-item flex min-w-[220px] shrink-0 items-center gap-3 border-r border-border px-4 py-3 transition hover:bg-white/[0.04]"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-medium text-foreground">{offer.display_name}</p>
-              <p className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-                {offer.source}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="num text-sm font-semibold text-brand-400">
-                Rs {formatCurrency(offer.price_lkr)}
-              </p>
-              {offer.delta_vs_median_pct !== null && (
-                <span
-                  className={cn(
-                    'inline-flex items-center gap-0.5 text-[10px] font-semibold',
-                    offer.delta_vs_median_pct < 0 ? 'text-emerald-400' : 'text-amber-400',
-                  )}
-                >
-                  {offer.delta_vs_median_pct < 0 ? (
-                    <TrendingDown className="h-2.5 w-2.5" aria-hidden="true" />
-                  ) : (
-                    <TrendingUp className="h-2.5 w-2.5" aria-hidden="true" />
-                  )}
-                  {Math.abs(offer.delta_vs_median_pct).toFixed(1)}%
+
+      {/* Scrolling rail */}
+      <div className="relative overflow-hidden py-3">
+        {/* fade edges */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12"
+          style={{ background: 'linear-gradient(to right, var(--color-bg-card) 0%, transparent 100%)' }}
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12"
+          style={{ background: 'linear-gradient(to left, var(--color-bg-card) 0%, transparent 100%)' }}
+        />
+
+        <div className="flex w-max animate-tape-horizontal items-center gap-0 group-hover:[animation-play-state:paused]">
+          {loop.map((offer, i) => {
+            const delta = offer.delta_vs_median_pct
+            const isUp = (delta ?? 0) > 0
+            const isDown = (delta ?? 0) < 0
+            return (
+              <Link
+                key={`${offer.id}-${i}`}
+                to={`/offers/${offer.id}`}
+                className="flex shrink-0 items-baseline gap-3 whitespace-nowrap px-5 transition-colors hover:bg-[color:var(--paper-200)]"
+              >
+                <span className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[color:var(--color-text-muted)]">
+                  {offer.source}
                 </span>
-              )}
-            </div>
-          </Link>
-        ))}
+                <span
+                  className="font-display text-[14px] text-[color:var(--color-text-primary)]"
+                  style={{ fontVariationSettings: "'opsz' 36, 'wght' 500" }}
+                >
+                  {offer.display_name}
+                </span>
+                <span className="num font-mono text-[14px] font-bold text-[color:var(--chili-500)]">
+                  <span className="text-[10px] font-semibold text-[color:var(--color-text-muted)]">රු </span>
+                  {formatCurrency(offer.price_lkr)}
+                </span>
+                {delta !== null && (
+                  <span
+                    className={cn(
+                      'num font-mono text-[12px] font-bold',
+                      isDown && 'text-[color:var(--curry-leaf)]',
+                      isUp && 'text-[color:var(--chili-600)]',
+                    )}
+                  >
+                    {isDown ? '↘' : isUp ? '↗' : '→'} {Math.abs(delta).toFixed(1)}%
+                  </span>
+                )}
+                <span className="ml-4 text-[color:var(--color-border-strong)]" aria-hidden="true">
+                  ‖
+                </span>
+              </Link>
+            )
+          })}
+        </div>
       </div>
-    </div>
+    </section>
   )
 }
 

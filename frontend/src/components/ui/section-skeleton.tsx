@@ -22,8 +22,8 @@ export function SectionSkeleton({
         {Array.from({ length: cards }).map((_, i) => (
           <article
             key={`sk-${i}`}
-            className="rounded-card border p-5 space-y-4"
-            style={{ borderColor: 'rgba(255,255,255,0.07)', backgroundColor: '#111111' }}
+            className="border p-5 space-y-4"
+            style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-card)' }}
           >
             <div className="shimmer h-3 w-24 rounded" />
             <div className="shimmer h-5 w-3/4 rounded" />

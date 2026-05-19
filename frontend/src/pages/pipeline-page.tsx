@@ -48,7 +48,7 @@ export function PipelinePage() {
           ].map(({ label, value, variant }) => (
             <div key={label} className="bg-[#0a0a0a] p-5">
               <p className="eyebrow-label">{label}</p>
-              <p className="num mt-2 text-3xl font-semibold text-[#f5f5f5]">{value}</p>
+              <p className="num mt-2 text-3xl font-semibold text-foreground">{value}</p>
               <Badge variant={variant} className="mt-2">{variant}</Badge>
             </div>
           ))}
@@ -75,7 +75,7 @@ export function PipelinePage() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex gap-5 text-xs text-[#737373]">
+            <div className="flex gap-5 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-orange-500" />Seen</span>
               <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-emerald-400" />Stored</span>
             </div>

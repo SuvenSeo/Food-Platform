@@ -1,4 +1,5 @@
 import { ResponsiveContainer, LineChart, Line } from 'recharts'
+import { motion } from 'framer-motion'
 import { cn } from '../../lib/utils'
 
 interface StatCardProps {
@@ -13,18 +14,32 @@ export function StatCard({ label, value, helper, trend, accent = false }: StatCa
   const sparkData = trend?.map((v, i) => ({ v, i }))
 
   return (
-    <article
+    <motion.article
+      initial={{ opacity: 0, y: 5 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
       className={cn(
-        'fp-kpi flex flex-col justify-between gap-4 transition-all',
-        accent && 'border-orange-500/20 bg-orange-500/[0.04]'
+        'flex flex-col justify-between gap-4 border p-5 transition-colors',
+        accent
+          ? 'border-[color:var(--color-text-primary)] bg-[color:var(--color-text-primary)] text-[color:var(--paper-50)]'
+          : 'border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] text-[color:var(--color-text-primary)]',
       )}
     >
       <div>
-        <p className="eyebrow-label">{label}</p>
-        <p className={cn('num mt-3 text-3xl font-semibold tracking-tight', accent ? 'text-orange-400' : 'text-[#f5f5f5]')}>
+        <p className={cn(
+          'font-mono text-[10px] font-bold uppercase tracking-[0.22em]',
+          accent ? 'text-[color:var(--paper-300)]' : 'text-[color:var(--color-text-muted)]',
+        )}>{label}</p>
+        <p className={cn(
+          'num mt-3 text-[36px] font-bold leading-[0.95] tracking-[-0.025em]',
+          accent ? 'text-[color:var(--paper-50)]' : 'text-[color:var(--color-text-primary)]',
+        )}>
           {value}
         </p>
-        <p className="mt-2 text-sm leading-6 text-[#737373]">{helper}</p>
+        <p className={cn(
+          'mt-2 font-display text-[13px] italic leading-[1.4]',
+          accent ? 'text-[color:var(--paper-300)]' : 'text-[color:var(--color-text-secondary)]',
+        )} style={{ fontVariationSettings: "'opsz' 24" }}>{helper}</p>
       </div>
 
       {sparkData && sparkData.length > 1 && (
@@ -34,8 +49,8 @@ export function StatCard({ label, value, helper, trend, accent = false }: StatCa
               <Line
                 type="monotone"
                 dataKey="v"
-                stroke={accent ? '#f97316' : '#4a4a4a'}
-                strokeWidth={1.5}
+                stroke={accent ? '#E8A317' : '#C8321E'}
+                strokeWidth={1.6}
                 dot={false}
                 isAnimationActive={false}
               />
@@ -43,6 +58,6 @@ export function StatCard({ label, value, helper, trend, accent = false }: StatCa
           </ResponsiveContainer>
         </div>
       )}
-    </article>
+    </motion.article>
   )
 }

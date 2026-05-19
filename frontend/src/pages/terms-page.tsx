@@ -44,8 +44,8 @@ export function TermsPage() {
               <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10 ring-1 ring-orange-500/20">
                 <Icon className="h-5 w-5 text-orange-400" />
               </div>
-              <h3 className="text-base font-semibold text-[#f5f5f5]">{title}</h3>
-              <p className="mt-3 text-sm leading-7 text-[#737373]">{body}</p>
+              <h3 className="text-base font-semibold text-foreground">{title}</h3>
+              <p className="mt-3 text-sm leading-7 text-muted-foreground">{body}</p>
             </motion.article>
           ))}
         </div>
@@ -54,13 +54,13 @@ export function TermsPage() {
       <RevealSection delay={80}>
         <div className="fp-panel max-w-2xl space-y-4">
           <p className="eyebrow-accent">Limitations</p>
-          <p className="text-sm leading-7 text-[#a3a3a3]">
+          <p className="text-sm leading-7 text-secondary-foreground">
             The platform is a research and discovery tool. Pricing data may be delayed or incomplete. Always verify prices and availability directly with the source retailer before making purchasing decisions.
           </p>
-          <p className="text-sm leading-7 text-[#a3a3a3]">
+          <p className="text-sm leading-7 text-secondary-foreground">
             Data collected is limited to publicly available retail listings and government/public market quotations. The platform does not scrape or store private pricing information.
           </p>
-          <p className="text-xs text-[#404040]">
+          <p className="text-xs text-ink-faint">
             Last updated: {new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
