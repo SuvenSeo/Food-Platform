@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from sqlalchemy.engine import make_url
 
 from app.core.config import Settings
+from app.db.sequences import sync_postgres_id_sequence
 from app.db import session as session_module
 
 
@@ -38,6 +39,11 @@ def test_staging_env_accepts_postgres_database_url() -> None:
     )
 
     assert settings.resolved_database_url.startswith("postgresql+psycopg://")
+
+
+def test_sequence_sync_is_noop_for_sqlite() -> None:
+    with session_module.SessionLocal() as db:
+        sync_postgres_id_sequence(db, "scrape_runs")
 
 
 def test_market_quote_sync_config_fields_are_readable_from_env() -> None:

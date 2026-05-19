@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
+from app.db.sequences import sync_postgres_id_sequence
 from app.models.tables import FairPriceScoreRecord, FoodOfferRecord, PriceAggregateRecord, RawOfferRecord, ScrapeRun
 from app.schemas.domain import RawOffer
 from app.services.aggregator import aggregate_offer_clusters
@@ -15,6 +16,7 @@ def utc_now() -> datetime:
 
 
 def start_scrape_run(db: Session, source: str) -> ScrapeRun:
+    sync_postgres_id_sequence(db, ScrapeRun.__tablename__)
     run = ScrapeRun(source=source, status="running", started_at=utc_now())
     db.add(run)
     db.flush()
@@ -30,6 +32,8 @@ def finish_scrape_run(db: Session, run: ScrapeRun, *, items_seen: int, items_sto
 
 
 def store_raw_offers(db: Session, source: str, raw_offers: list[RawOffer], run: ScrapeRun | None = None) -> list[RawOfferRecord]:
+    if raw_offers:
+        sync_postgres_id_sequence(db, RawOfferRecord.__tablename__)
     now = utc_now()
     records: list[RawOfferRecord] = []
     for offer in raw_offers:
@@ -92,6 +96,7 @@ def _latest_raw_offer_rows(db: Session) -> list[RawOfferRecord]:
 
 def rebuild_normalized_views(db: Session) -> None:
     """Upsert food offers from latest raw snapshots; rebuild derived aggregates and scores."""
+    sync_postgres_id_sequence(db, FoodOfferRecord.__tablename__)
     db.execute(delete(FairPriceScoreRecord))
     db.execute(delete(PriceAggregateRecord))
     db.flush()
@@ -185,6 +190,7 @@ def rebuild_normalized_views(db: Session) -> None:
     db.flush()
 
     aggregates = aggregate_offer_clusters(normalized_domain)
+    sync_postgres_id_sequence(db, PriceAggregateRecord.__tablename__)
     db.add_all(
         [
             PriceAggregateRecord(
@@ -209,6 +215,7 @@ def rebuild_normalized_views(db: Session) -> None:
         (item.source, item.source_item_id): row for item, row in zip(normalized_domain, normalized_rows, strict=False)
     }
     scores = score_offers_by_cluster(normalized_domain)
+    sync_postgres_id_sequence(db, FairPriceScoreRecord.__tablename__)
     db.add_all(
         [
             FairPriceScoreRecord(

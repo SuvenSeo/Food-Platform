@@ -7,6 +7,7 @@ import httpx
 from sqlalchemy import delete, func, select
 
 from app.db.session import SessionLocal
+from app.db.sequences import sync_postgres_id_sequence
 from app.models.tables import MarketQuoteRecord
 
 logger = logging.getLogger(__name__)
@@ -67,6 +68,8 @@ def _replace_market_quotes(quotes: list[dict[str, object]]) -> dict[str, int]:
 
     with SessionLocal() as db:
         db.execute(delete(MarketQuoteRecord))
+        if records:
+            sync_postgres_id_sequence(db, MarketQuoteRecord.__tablename__)
         db.add_all(records)
         db.commit()
         return {
@@ -86,6 +89,8 @@ def _upsert_source_quotes(source: str, quotes: list[dict[str, object]]) -> dict[
         db.execute(
             delete(MarketQuoteRecord).where(MarketQuoteRecord.source == source)
         )
+        if records:
+            sync_postgres_id_sequence(db, MarketQuoteRecord.__tablename__)
         db.add_all(records)
         db.commit()
         return {
