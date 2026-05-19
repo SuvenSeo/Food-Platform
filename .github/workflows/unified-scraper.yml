@@ -1,7 +1,7 @@
 name: FoodLK — Unified Data Scraper
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Runs every 6 hours (00:10, 06:10, 12:10, 18:10 Sri Lanka Standard Time).
+# Runs production-safe sources every 6 hours (00:10, 06:10, 12:10, 18:10 Sri Lanka Standard Time).
 # Can also be triggered manually via GitHub Actions → "Run workflow".
 #
 # Retail scrapers run directly in CI against DATABASE_URL (Supabase Postgres).
@@ -35,6 +35,7 @@ on:
           - wfp
           - cbsl
           - dcs
+          - doa
       max_items:
         description: "Max offers per retail source (default 500)"
         required: false
@@ -58,11 +59,11 @@ jobs:
 
           if [ -z "$SOURCE" ]; then
             echo 'retail=["spar2u","glomark","keells","cargills"]' >> "$GITHUB_OUTPUT"
-            echo 'market=["wfp","cbsl","dcs"]'                     >> "$GITHUB_OUTPUT"
+            echo 'market=["wfp","cbsl","dcs","doa"]' >> "$GITHUB_OUTPUT"
           elif [[ "$SOURCE" == spar2u || "$SOURCE" == glomark || "$SOURCE" == keells || "$SOURCE" == cargills ]]; then
             echo "retail=[\"$SOURCE\"]" >> "$GITHUB_OUTPUT"
             echo 'market=[]'           >> "$GITHUB_OUTPUT"
-          elif [[ "$SOURCE" == wfp || "$SOURCE" == cbsl || "$SOURCE" == dcs ]]; then
+          elif [[ "$SOURCE" == wfp || "$SOURCE" == cbsl || "$SOURCE" == dcs || "$SOURCE" == doa ]]; then
             echo 'retail=[]'           >> "$GITHUB_OUTPUT"
             echo "market=[\"$SOURCE\"]" >> "$GITHUB_OUTPUT"
           else
@@ -92,7 +93,7 @@ jobs:
         working-directory: backend
         run: |
           pip install -r requirements.txt
-          playwright install chromium --with-deps
+          playwright install chromium chromium-headless-shell --with-deps
 
       - name: Run ${{ matrix.source }} scrape
         working-directory: backend
@@ -140,3 +141,11 @@ jobs:
           ALLOW_SQLITE_FALLBACK: "false"
           APP_ENV: production
         run: python run_official_market_sync.py --sources ${{ matrix.source }}
+
+      - name: Verify ${{ matrix.source }} market rows
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+          APP_ENV: production
+        run: python scripts/verify_market_source.py --source ${{ matrix.source }} --min-rows 1

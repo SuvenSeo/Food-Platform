@@ -117,7 +117,7 @@ export type DistrictCompareItem = {
 }
 
 export type DistrictCompareSummary = {
-  mode: 'district'
+  mode: 'district' | 'source'
   left: string
   right: string
   items: DistrictCompareItem[]

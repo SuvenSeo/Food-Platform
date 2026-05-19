@@ -214,6 +214,18 @@ def compute_platform_trust_snapshot(db: Session) -> dict[str, object]:
         "categories_count": db.scalar(select(func.count(distinct(PriceAggregateRecord.category)))) or 0,
     }
 
+    dataset_rows = [offers_dataset, market_dataset, aggregates_dataset]
+    if any(row.get("freshness_status") in {"stale", "missing"} for row in dataset_rows):
+        confidence_score -= 15
+    min_dataset_score = min(
+        (int(row.get("reliability", {}).get("score", 100)) for row in dataset_rows),
+        default=100,
+    )
+    if min_dataset_score < 80:
+        confidence_score -= 10
+    confidence_score = max(0, min(confidence_score, 100))
+    confidence_grade = _grade(confidence_score)
+
     return {
         "generated_at": _to_iso(datetime.now(timezone.utc)),
         "freshness": {

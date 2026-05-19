@@ -124,16 +124,18 @@ def ingest_official_market_quotes(
     Run one or more official data source scrapers and upsert their quotes.
 
     sources: list of source names to run, or None / ["all"] to run all.
-    Supported sources: "wfp", "dcs", "cbsl"
+    Supported sources: "wfp", "dcs", "cbsl", "doa"
     """
     from app.scrapers.cbsl import fetch_cbsl_market_quotes
     from app.scrapers.dcs import fetch_dcs_market_quotes
+    from app.scrapers.doa import fetch_doa_market_quotes
     from app.scrapers.wfp import fetch_wfp_market_quotes
 
     available: dict[str, object] = {
         "wfp": fetch_wfp_market_quotes,
         "dcs": fetch_dcs_market_quotes,
         "cbsl": fetch_cbsl_market_quotes,
+        "doa": fetch_doa_market_quotes,
     }
 
     run_all = sources is None or sources == ["all"] or "all" in sources

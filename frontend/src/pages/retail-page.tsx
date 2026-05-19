@@ -12,7 +12,9 @@ import { api } from '../lib/api'
 export function RetailPage() {
   const [search, setSearch] = useState('')
   const [sourceFilter, setSourceFilter] = useState('all')
-  const [sortBy, setSortBy] = useState<'price-low' | 'price-high' | 'name'>('price-low')
+  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [unitFilter, setUnitFilter] = useState('all')
+  const [sortBy, setSortBy] = useState<'unit-low' | 'unit-high' | 'price-low' | 'price-high' | 'name'>('unit-low')
 
   const offersQuery = useQuery({
     queryKey: ['offers', 'retail-page'],
@@ -23,28 +25,42 @@ export function RetailPage() {
     () => Array.from(new Set(offers.map((o) => o.source))).sort(),
     [offers]
   )
+  const categories = useMemo(
+    () => Array.from(new Set(offers.map((o) => o.category))).sort(),
+    [offers],
+  )
+  const units = useMemo(
+    () => Array.from(new Set(offers.map((o) => o.unit).filter(Boolean) as string[])).sort(),
+    [offers],
+  )
   const visibleOffers = useMemo(() => {
     const needle = search.trim().toLowerCase()
     return offers
       .filter((o) => (sourceFilter === 'all' ? true : o.source === sourceFilter))
+      .filter((o) => (categoryFilter === 'all' ? true : o.category === categoryFilter))
+      .filter((o) => (unitFilter === 'all' ? true : o.unit === unitFilter))
       .filter((o) => {
         if (!needle) return true
         return [o.display_name, o.canonical_name, o.brand, o.category, o.source]
           .filter(Boolean).join(' ').toLowerCase().includes(needle)
       })
       .sort((a, b) => {
+        const aUnit = a.price_per_unit_lkr ?? a.price_lkr
+        const bUnit = b.price_per_unit_lkr ?? b.price_lkr
+        if (sortBy === 'unit-high') return bUnit - aUnit
+        if (sortBy === 'unit-low') return aUnit - bUnit
         if (sortBy === 'price-high') return b.price_lkr - a.price_lkr
         if (sortBy === 'name') return a.display_name.localeCompare(b.display_name)
         return a.price_lkr - b.price_lkr
       })
-  }, [offers, search, sortBy, sourceFilter])
+  }, [categoryFilter, offers, search, sortBy, sourceFilter, unitFilter])
 
   return (
     <section className="space-y-10">
       <SectionHeader
         eyebrow="Retail Floor"
-        title="Stalls of the supermarket aisles"
-        description="Every offer normalised to a per-unit basis, stamped with its source and a delta from the seven-day median. Browse like classifieds, click into a stall card for the full ledger."
+        title="Retail price board"
+        description="Every supermarket offer is normalized to a comparable unit, stamped with source, category, and delta from the seven-day median."
       />
 
       {offersQuery.isError && (
@@ -73,7 +89,7 @@ export function RetailPage() {
       </div>
 
       {/* — Toolbar — */}
-      <div className="grid gap-4 border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4 md:grid-cols-[2fr_1fr_1fr]">
+      <div className="grid gap-4 border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4 md:grid-cols-2 lg:grid-cols-[1.6fr_0.9fr_0.9fr_0.8fr_0.9fr]">
         <label className="space-y-2">
           <span className="text-kicker">Search the floor</span>
           <div className="relative">
@@ -87,6 +103,13 @@ export function RetailPage() {
           </div>
         </label>
         <label className="space-y-2">
+          <span className="text-kicker">Category</span>
+          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="fp-select">
+            <option value="all">All categories</option>
+            {categories.map((category) => <option key={category} value={category}>{category}</option>)}
+          </select>
+        </label>
+        <label className="space-y-2">
           <span className="text-kicker">Source</span>
           <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className="fp-select">
             <option value="all">All sources</option>
@@ -94,8 +117,17 @@ export function RetailPage() {
           </select>
         </label>
         <label className="space-y-2">
+          <span className="text-kicker">Unit</span>
+          <select value={unitFilter} onChange={(e) => setUnitFilter(e.target.value)} className="fp-select">
+            <option value="all">All units</option>
+            {units.map((unit) => <option key={unit} value={unit}>per {unit}</option>)}
+          </select>
+        </label>
+        <label className="space-y-2">
           <span className="text-kicker">Order by</span>
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="fp-select">
+            <option value="unit-low">Unit price low to high</option>
+            <option value="unit-high">Unit price high to low</option>
             <option value="price-low">Price ↗ low to high</option>
             <option value="price-high">Price ↘ high to low</option>
             <option value="name">Name A–Z</option>

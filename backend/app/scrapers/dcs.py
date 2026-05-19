@@ -4,10 +4,10 @@ DCS (Department of Census and Statistics, Sri Lanka) weekly retail price scraper
 Data source:
   https://www.statistics.gov.lk/InflationAndPrices/StaticalInformation/RetailPrices
 
-The DCS publishes weekly Excel files with retail prices of selected consumer
-items for the Colombo District. We:
+The DCS currently publishes weekly PDF reports with retail prices of selected
+consumer items for the Colombo District. Older archives include Excel files. We:
   1. Scrape the index page to find the most recent weekly report link.
-  2. Download the Excel file.
+  2. Resolve the report wrapper to its PDF/Excel resource.
   3. Parse item names and prices into MarketQuote records.
 
 Typical items in the DCS weekly report:
@@ -25,6 +25,7 @@ import io
 import logging
 import re
 from datetime import datetime, timezone
+from urllib.parse import urljoin
 
 import httpx
 from bs4 import BeautifulSoup
@@ -35,7 +36,7 @@ DCS_INDEX_URL = (
     "https://www.statistics.gov.lk/InflationAndPrices/StaticalInformation/RetailPrices"
 )
 DCS_BASE_URL = "https://www.statistics.gov.lk"
-DCS_RESOURCE_BASE = "https://www.statistics.gov.lk/Resource/en/InflationAndPrices/RetailPrices"
+DCS_RESOURCE_BASE = "https://www.statistics.gov.lk/Resource/en/InflationAndPrices/retail"
 
 # Month name mapping for DCS filename patterns
 MONTH_NAMES = {
@@ -53,9 +54,13 @@ def _current_week_of_month(day: int) -> int:
 
 def _dcs_candidate_urls() -> list[str]:
     """
-    Generate a list of candidate DCS Excel file URLs for the current and previous weeks.
-    DCS uses the pattern:
-      RetailPrices{N}weekMMMYYYY.xlsx  or  Retailprices{N}stweekMMMYYYY.xlsx
+    Generate current/recent DCS weekly report candidates.
+
+    Recent DCS reports use:
+      /InflationAndPrices/StaticalInformation/retail/DCSB-WRP-YYYY-MM-WN
+      /Resource/en/InflationAndPrices/retail/DCSB-WRP-YYYY-MM-WN.pdf
+
+    Older Excel file patterns are retained as a fallback.
     """
     from datetime import date, timedelta
     urls: list[str] = []
@@ -68,6 +73,11 @@ def _dcs_candidate_urls() -> list[str]:
         month = MONTH_NAMES[check_date.month]
         year = check_date.year
         suffix = WEEK_SUFFIXES.get(week_num, "1st")
+        month_number = f"{check_date.month:02d}"
+
+        report_stem = f"DCSB-WRP-{year}-{month_number}-W{week_num}"
+        urls.append(f"{DCS_BASE_URL}/InflationAndPrices/StaticalInformation/retail/{report_stem}")
+        urls.append(f"{DCS_RESOURCE_BASE}/{report_stem}.pdf")
 
         # Try multiple filename capitalisation variants observed on DCS
         stems = [
@@ -101,6 +111,21 @@ DCS_ITEM_CATEGORIES: dict[str, str] = {
     "carrot": "vegetables",
     "garlic": "vegetables",
     "coconut": "vegetables",
+    "plantain": "vegetables",
+    "pumpkin": "vegetables",
+    "bandakka": "vegetables",
+    "brinjal": "vegetables",
+    "bitter guard": "vegetables",
+    "bitter gourd": "vegetables",
+    "cucumber": "vegetables",
+    "gourd": "vegetables",
+    "capsicum": "vegetables",
+    "vetakolu": "vegetables",
+    "lime": "fruits",
+    "gotukola": "vegetables",
+    "kankun": "vegetables",
+    "kohila": "vegetables",
+    "murunga": "vegetables",
     "sugar": "grocery",
     "milk": "dairy",
     "eggs": "meat & fish",
@@ -119,20 +144,87 @@ def _infer_category(item_name: str) -> str:
     return "grocery"
 
 
-def _find_latest_excel_url(html: str) -> str | None:
-    """Find the first Excel/PDF file link on the DCS retail prices index page."""
+def _find_latest_report_url(html: str) -> str | None:
+    """Find the first current weekly report link on the DCS retail prices index page."""
     soup = BeautifulSoup(html, "lxml")
 
-    # Look for links ending in .xlsx, .xls, or .pdf (in order of preference)
-    for ext in (".xlsx", ".xls", ".pdf"):
-        for link in soup.find_all("a", href=True):
-            href = str(link["href"])
-            if ext in href.lower():
-                if href.startswith("http"):
-                    return href
-                if href.startswith("/"):
-                    return f"{DCS_BASE_URL}{href}"
+    for link in soup.find_all("a", href=True):
+        href = str(link["href"]).strip()
+        lower = href.lower()
+        if "dcsb-wrp" in lower or lower.endswith((".xlsx", ".xls", ".pdf")):
+            return urljoin(DCS_BASE_URL, href)
     return None
+
+
+def _quoted_at_from_url(url: str, fallback: datetime) -> datetime:
+    match = re.search(r"DCSB-WRP-(\d{4})-(\d{2})-W(\d)", url, re.IGNORECASE)
+    if not match:
+        return fallback
+    year = int(match.group(1))
+    month = int(match.group(2))
+    week = int(match.group(3))
+    day = min(max(week, 1) * 7, 28)
+    return datetime(year, month, day, tzinfo=timezone.utc)
+
+
+def _normalize_unit(raw_unit: object) -> str:
+    value = re.sub(r"\s+", " ", str(raw_unit or "")).strip().lower().rstrip(".")
+    if "kg" in value:
+        return "kg"
+    if value in {"bunch", "bundle"}:
+        return value
+    if value in {"no", "nos", "unit", "piece", "pieces", "each"}:
+        return "piece"
+    if "lit" in value or value in {"l", "ltr"}:
+        return "l"
+    return value or "kg"
+
+
+def _numbers_from_cell(value: object) -> list[float]:
+    return [
+        float(match.group(1).replace(",", ""))
+        for match in re.finditer(r"(-?\d+(?:,\d{3})*(?:\.\d+)?)", str(value or ""))
+    ]
+
+
+def _current_price_from_average_cell(value: object) -> float | None:
+    numbers = [number for number in _numbers_from_cell(value) if number > 0]
+    if len(numbers) >= 3:
+        return numbers[2]
+    if numbers:
+        return numbers[-1]
+    return None
+
+
+def _parse_dcs_table_rows(rows: list[list[object]], quoted_at: datetime) -> list[dict]:
+    quotes: list[dict] = []
+
+    for row in rows:
+        if len(row) < 3:
+            continue
+        item_name = str(row[0] or "").strip()
+        if not item_name or len(item_name) < 2:
+            continue
+        if re.search(r"item|avg\.?price|price range|main markets|open market", item_name, re.IGNORECASE):
+            continue
+
+        price = _current_price_from_average_cell(row[2])
+        if not price or price < 5 or price > 100_000:
+            continue
+
+        quotes.append({
+            "district": "Colombo",
+            "market_name": "Colombo District (DCS)",
+            "item_name": re.sub(r"\s+", " ", item_name).strip(" ,.-"),
+            "category": _infer_category(item_name),
+            "unit": _normalize_unit(row[1] if len(row) > 1 else None),
+            "price_lkr": price,
+            "source": "dcs",
+            "quoted_at": quoted_at.isoformat(),
+            "notes": "DCS weekly open market retail price survey, Colombo District.",
+        })
+
+    return quotes
 
 
 def _parse_dcs_excel(content: bytes, quoted_at: datetime) -> list[dict]:
@@ -197,6 +289,60 @@ def _parse_dcs_excel(content: bytes, quoted_at: datetime) -> list[dict]:
     return quotes
 
 
+def _parse_dcs_pdf(content: bytes, quoted_at: datetime) -> list[dict]:
+    """Parse the current DCS weekly retail price PDF format."""
+    try:
+        import pdfplumber  # type: ignore[import-untyped]
+    except ImportError:
+        logger.warning("DCS: pdfplumber not installed; cannot parse PDF files")
+        return []
+
+    quotes: list[dict] = []
+    with pdfplumber.open(io.BytesIO(content)) as pdf:
+        for page in pdf.pages:
+            for table in page.extract_tables() or []:
+                quotes.extend(_parse_dcs_table_rows(table, quoted_at))
+    return quotes
+
+
+def _resolve_report_file(client: httpx.Client, url: str) -> tuple[bytes, str, str] | None:
+    response = client.get(url)
+    if response.status_code != 200:
+        return None
+
+    content_type = response.headers.get("content-type", "").lower()
+    content = response.content
+    final_url = str(response.url)
+    if len(content) > 4096 and "html" not in content_type:
+        return content, content_type, final_url
+
+    soup = BeautifulSoup(response.text, "lxml")
+    for tag_name, attr in (("iframe", "src"), ("a", "href")):
+        for tag in soup.find_all(tag_name):
+            raw = tag.get(attr)
+            if not raw:
+                continue
+            candidate_url = urljoin(final_url, str(raw).strip())
+            if candidate_url.lower().endswith((".pdf", ".xlsx", ".xls")):
+                file_response = client.get(candidate_url)
+                if file_response.status_code == 200 and len(file_response.content) > 4096:
+                    return (
+                        file_response.content,
+                        file_response.headers.get("content-type", "").lower(),
+                        str(file_response.url),
+                    )
+
+    return None
+
+
+def _parse_report_content(content: bytes, content_type: str, url: str, fallback_quoted_at: datetime) -> list[dict]:
+    quoted_at = _quoted_at_from_url(url, fallback_quoted_at)
+    lower_url = url.lower()
+    if ".pdf" in lower_url or "pdf" in content_type:
+        return _parse_dcs_pdf(content, quoted_at)
+    return _parse_dcs_excel(content, quoted_at)
+
+
 def fetch_dcs_market_quotes(timeout: float = 30.0) -> list[dict]:
     """
     Download the DCS weekly retail prices Excel file and return market quote dicts.
@@ -216,19 +362,11 @@ def fetch_dcs_market_quotes(timeout: float = 30.0) -> list[dict]:
         # 1. Try date-based candidate URLs
         for url in _dcs_candidate_urls():
             try:
-                resp = client.get(url)
-                content = resp.content
-                # DCS returns HTML "page not found" as a 200 — detect by content-type and size
-                content_type = resp.headers.get("content-type", "").lower()
-                is_real_file = (
-                    resp.status_code == 200
-                    and len(content) > 4096  # real Excel files are >4KB
-                    and "html" not in content_type
-                    and not content.startswith(b"page not")  # "page not found pls check URL"
-                )
-                if is_real_file:
-                    logger.info("DCS: found report at %s (%d bytes)", url, len(content))
-                    quotes = _parse_dcs_excel(content, quoted_at)
+                resolved = _resolve_report_file(client, url)
+                if resolved:
+                    content, content_type, final_url = resolved
+                    logger.info("DCS: found report at %s (%d bytes)", final_url, len(content))
+                    quotes = _parse_report_content(content, content_type, final_url, quoted_at)
                     if quotes:
                         logger.info("DCS: parsed %d market quotes", len(quotes))
                         return quotes
@@ -244,18 +382,17 @@ def fetch_dcs_market_quotes(timeout: float = 30.0) -> list[dict]:
             logger.error("DCS: index page failed: %s", exc)
             return []
 
-        excel_url = _find_latest_excel_url(index_r.text)
-        if not excel_url:
+        report_url = _find_latest_report_url(index_r.text)
+        if not report_url:
             logger.warning("DCS: no file link found on index page (JS rendering may be required)")
             return []
 
-        try:
-            file_r = client.get(excel_url)
-            file_r.raise_for_status()
-        except Exception as exc:
-            logger.error("DCS: file download failed: %s", exc)
+        resolved = _resolve_report_file(client, report_url)
+        if not resolved:
+            logger.error("DCS: report download failed for %s", report_url)
             return []
 
-    quotes = _parse_dcs_excel(file_r.content, quoted_at)
+    content, content_type, final_url = resolved
+    quotes = _parse_report_content(content, content_type, final_url, quoted_at)
     logger.info("DCS: parsed %d market quotes from index", len(quotes))
     return quotes

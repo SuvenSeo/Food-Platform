@@ -52,6 +52,7 @@ jobs:
             app/scrapers/wfp.py \
             app/scrapers/cbsl.py \
             app/scrapers/dcs.py \
+            app/scrapers/doa.py \
             app/services/source_sync.py \
             app/services/pipeline.py \
             app/services/normalization.py \

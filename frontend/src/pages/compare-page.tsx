@@ -18,15 +18,22 @@ export function ComparePage() {
     queryKey: ['market-quotes'],
     queryFn: () => api.getMarketQuotes(),
   })
+  const [compareMode, setCompareMode] = useState<'district' | 'source'>('district')
   const [leftDistrict, setLeftDistrict] = useState('Colombo')
   const [rightDistrict, setRightDistrict] = useState('Kandy')
+  const [leftSource, setLeftSource] = useState('')
+  const [rightSource, setRightSource] = useState('')
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<'delta-high' | 'delta-low' | 'item'>('delta-high')
 
   const compareQuery = useQuery({
-    queryKey: ['district-compare', leftDistrict, rightDistrict],
-    queryFn: () => api.getDistrictCompare(leftDistrict, rightDistrict),
-    enabled: Boolean(leftDistrict && rightDistrict),
+    queryKey: ['compare', compareMode, leftDistrict, rightDistrict, leftSource, rightSource],
+    queryFn: () => compareMode === 'district'
+      ? api.getDistrictCompare(leftDistrict, rightDistrict)
+      : api.getSourceCompare(leftSource, rightSource),
+    enabled: compareMode === 'district'
+      ? Boolean(leftDistrict && rightDistrict)
+      : Boolean(leftSource && rightSource),
   })
   const { saveEntry } = useWatchlists()
 
@@ -34,8 +41,20 @@ export function ComparePage() {
     () => Array.from(new Set((marketsQuery.data?.items ?? []).map((item) => item.district))).sort(),
     [marketsQuery.data?.items],
   )
+  const sources = useMemo(
+    () => Array.from(new Set((marketsQuery.data?.items ?? []).map((item) => item.source))).sort(),
+    [marketsQuery.data?.items],
+  )
   const districtOptions = districts.length > 0 ? districts : [leftDistrict, rightDistrict]
+  const sourceOptions = sources.length > 0 ? sources : [leftSource, rightSource].filter(Boolean)
   const data = compareQuery.data
+  const leftValue = compareMode === 'district' ? leftDistrict : leftSource
+  const rightValue = compareMode === 'district' ? rightDistrict : rightSource
+  const leftOptions = compareMode === 'district' ? districtOptions : sourceOptions
+  const rightOptions = leftOptions
+  const setLeftValue = compareMode === 'district' ? setLeftDistrict : setLeftSource
+  const setRightValue = compareMode === 'district' ? setRightDistrict : setRightSource
+  const modeLabel = compareMode === 'district' ? 'district' : 'source'
 
   const visibleItems = useMemo(() => {
     const needle = search.trim().toLowerCase()
@@ -67,8 +86,8 @@ export function ComparePage() {
     <section className="space-y-8">
       <SectionHeader
         eyebrow="District receipt"
-        title="Compare district-vs-district"
-        description="A side-by-side receipt for public market quotes: choose two districts, scan the deltas, then clip the comparison into watchlists."
+        title="Compare prices side-by-side"
+        description="Choose district-vs-district or source-vs-source, scan normalized deltas, then clip the comparison into watchlists."
       />
 
       {(marketsQuery.isError || compareQuery.isError) && (
@@ -93,36 +112,63 @@ export function ComparePage() {
             </div>
 
             <div className="mt-5 grid gap-4">
+              <div className="grid grid-cols-2 gap-2" role="group" aria-label="Comparison mode">
+                {(['district', 'source'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => {
+                      setCompareMode(mode)
+                      if (mode === 'source' && !leftSource && sourceOptions.length > 0) {
+                        setLeftSource(sourceOptions[0] ?? '')
+                        setRightSource(sourceOptions[1] ?? sourceOptions[0] ?? '')
+                      }
+                    }}
+                    className={[
+                      'border px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--chili-500)]',
+                      compareMode === mode
+                        ? 'border-[color:var(--color-text-primary)] bg-[color:var(--color-text-primary)] text-[color:var(--paper-50)]'
+                        : 'border-[color:var(--color-border-hover)] bg-[color:var(--color-bg-card)] text-[color:var(--color-text-secondary)] hover:border-[color:var(--color-text-primary)]',
+                    ].join(' ')}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+
               <label className="space-y-2">
-                <span className="eyebrow-label">Left district</span>
+                <span className="eyebrow-label">Left {modeLabel}</span>
                 <select
-                  aria-label="Left district"
-                  value={leftDistrict}
-                  onChange={(event) => setLeftDistrict(event.target.value)}
+                  aria-label={`Left ${modeLabel}`}
+                  value={leftValue}
+                  onChange={(event) => setLeftValue(event.target.value)}
                   className="fp-select"
+                  disabled={leftOptions.length === 0}
                 >
-                  {districtOptions.map((district) => <option key={district} value={district}>{district}</option>)}
+                  {leftOptions.map((option) => <option key={option} value={option}>{option}</option>)}
                 </select>
               </label>
 
               <button
                 type="button"
-                onClick={() => { setLeftDistrict(rightDistrict); setRightDistrict(leftDistrict) }}
+                onClick={() => { setLeftValue(rightValue); setRightValue(leftValue) }}
                 className="fp-button-secondary w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--chili-500)]"
+                disabled={!leftValue || !rightValue}
               >
                 <ArrowLeftRight className="h-4 w-4" />
-                Swap districts
+                Swap {modeLabel}s
               </button>
 
               <label className="space-y-2">
-                <span className="eyebrow-label">Right district</span>
+                <span className="eyebrow-label">Right {modeLabel}</span>
                 <select
-                  aria-label="Right district"
-                  value={rightDistrict}
-                  onChange={(event) => setRightDistrict(event.target.value)}
+                  aria-label={`Right ${modeLabel}`}
+                  value={rightValue}
+                  onChange={(event) => setRightValue(event.target.value)}
                   className="fp-select"
+                  disabled={rightOptions.length === 0}
                 >
-                  {districtOptions.map((district) => <option key={district} value={district}>{district}</option>)}
+                  {rightOptions.map((option) => <option key={option} value={option}>{option}</option>)}
                 </select>
               </label>
             </div>
@@ -135,7 +181,7 @@ export function ComparePage() {
                   title: `${data.left} vs ${data.right}`,
                   kind: 'compare',
                   href: '/compare',
-                  summary: `${data.items.length ?? 0} shared produce items`,
+                  summary: `${data.mode} comparison · ${data.items.length ?? 0} shared produce items`,
                 })}
                 className="fp-button-primary mt-5 w-full"
               >
@@ -175,8 +221,8 @@ export function ComparePage() {
                       contentStyle={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderRadius: 0, color: 'var(--color-text-primary)', fontSize: 12 }}
                       formatter={(value) => [`Rs ${Number(value).toLocaleString()}`]}
                     />
-                    <Bar dataKey="left" fill="var(--chili-500)" name={leftDistrict} />
-                    <Bar dataKey="right" fill="var(--ink-400)" name={rightDistrict} />
+                    <Bar dataKey="left" fill="var(--chili-500)" name={leftValue} />
+                    <Bar dataKey="right" fill="var(--ink-400)" name={rightValue} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

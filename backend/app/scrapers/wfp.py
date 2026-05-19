@@ -19,6 +19,10 @@ from datetime import datetime, timezone
 import httpx
 
 logger = logging.getLogger(__name__)
+WFP_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible; FoodLensBot/1.0; +https://food.ardeno.studio)",
+    "Accept": "text/csv,application/json;q=0.9,*/*;q=0.8",
+}
 
 HDX_PACKAGE_URL = (
     "https://data.humdata.org/api/3/action/package_show"
@@ -47,7 +51,7 @@ CATEGORY_MAP: dict[str, str] = {
 def _get_csv_url(timeout: float) -> str:
     """Resolve latest CSV download URL from HDX API, fall back to direct URL."""
     try:
-        response = httpx.get(HDX_PACKAGE_URL, timeout=timeout)
+        response = httpx.get(HDX_PACKAGE_URL, timeout=timeout, headers=WFP_HEADERS)
         response.raise_for_status()
         pkg = response.json()
         resources = pkg.get("result", {}).get("resources", [])
@@ -84,7 +88,7 @@ def fetch_wfp_market_quotes(timeout: float = 60.0, max_rows: int = 50000, months
 
     csv_url = _get_csv_url(timeout)
 
-    with httpx.Client(follow_redirects=True, timeout=timeout) as client:
+    with httpx.Client(follow_redirects=True, timeout=timeout, headers=WFP_HEADERS) as client:
         response = client.get(csv_url)
         response.raise_for_status()
 

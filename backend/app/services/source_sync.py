@@ -39,11 +39,13 @@ def sync_sources(sources: list[str], max_items: int | None = None) -> dict[str, 
         return {
             "sources": [],
             "skipped_disabled": skipped,
+            "source_results": [],
             "offers_count": 0,
             "aggregates_count": 0,
         }
 
     with SessionLocal() as db:
+        source_results: list[dict[str, object]] = []
         for source in requested_sources:
             run = start_scrape_run(db, source)
             db.commit()
@@ -52,11 +54,36 @@ def sync_sources(sources: list[str], max_items: int | None = None) -> dict[str, 
                     max_items=max_items or settings.scrape_max_items_per_source,
                     user_agent=settings.scraper_user_agent,
                 )
+                zero_error = f"{source} returned 0 offers" if not raw_offers else None
                 store_raw_offers(db, source=source, raw_offers=raw_offers, run=run)
-                finish_scrape_run(db, run, items_seen=len(raw_offers), items_stored=len(raw_offers))
+                finish_scrape_run(
+                    db,
+                    run,
+                    items_seen=len(raw_offers),
+                    items_stored=len(raw_offers),
+                    error_message=zero_error,
+                )
+                source_results.append(
+                    {
+                        "source": source,
+                        "status": "failed" if zero_error else "completed",
+                        "items_seen": len(raw_offers),
+                        "items_stored": len(raw_offers),
+                        "error": zero_error,
+                    }
+                )
                 db.commit()
             except Exception as exc:  # pragma: no cover - network failures are environment specific
                 finish_scrape_run(db, run, items_seen=0, items_stored=0, error_message=str(exc))
+                source_results.append(
+                    {
+                        "source": source,
+                        "status": "failed",
+                        "items_seen": 0,
+                        "items_stored": 0,
+                        "error": str(exc),
+                    }
+                )
                 db.commit()
 
         rebuild_normalized_views(db)
@@ -65,6 +92,7 @@ def sync_sources(sources: list[str], max_items: int | None = None) -> dict[str, 
         return {
             "sources": requested_sources,
             "skipped_disabled": skipped,
+            "source_results": source_results,
             "offers_count": db.scalar(select(func.count(FoodOfferRecord.id))) or 0,
             "aggregates_count": db.scalar(select(func.count(PriceAggregateRecord.id))) or 0,
         }

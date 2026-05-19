@@ -50,6 +50,8 @@ export const api = {
   getCategoriesSummary: () => fetchJson<{ items: CategorySummaryItem[] }>('/categories/summary'),
   getDistrictCompare: (left: string, right: string) =>
     fetchJson<DistrictCompareSummary>(`/compare/districts?left=${encodeURIComponent(left)}&right=${encodeURIComponent(right)}`),
+  getSourceCompare: (left: string, right: string) =>
+    fetchJson<DistrictCompareSummary>(`/compare/sources?left=${encodeURIComponent(left)}&right=${encodeURIComponent(right)}`),
   getBasketEstimate: (preset = 'essentials') =>
     fetchJson<BasketEstimateResponse>(`/basket/estimate?preset=${encodeURIComponent(preset)}`),
   getStats: () => fetchJson<StatsSummary>('/stats/summary'),

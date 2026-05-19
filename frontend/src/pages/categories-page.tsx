@@ -57,7 +57,7 @@ export function CategoriesPage() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="fp-input pl-10 bg-black/50 border-border/50 focus:bg-black/80 transition-colors"
+                className="fp-input pl-10"
                 placeholder="grocery, vegetables, dairy..."
               />
             </div>
@@ -82,13 +82,14 @@ export function CategoriesPage() {
               actionTo="/markets"
             />
           ) : (
-            <div className="grid gap-3 lg:grid-cols-3">
+            <div className="grid gap-[1px] bg-[color:var(--color-border)] md:grid-cols-2 lg:grid-cols-3">
               {visibleCategories.map((cat, i) => {
                 const totalCoverage = cat.retail_offers_count + cat.market_quotes_count
+                const maxCoverage = Math.max(...visibleCategories.map((item) => item.retail_offers_count + item.market_quotes_count), 1)
                 return (
                   <motion.article
                     key={cat.category}
-                    className="premium-surface p-5 group relative overflow-hidden flex flex-col"
+                    className="group relative flex flex-col overflow-hidden bg-[color:var(--color-bg-card)] p-5 transition-colors hover:bg-[color:var(--color-bg-card-hover)]"
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.06, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -96,39 +97,37 @@ export function CategoriesPage() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <p className="eyebrow-label">Category</p>
-                      <Badge variant="neutral" className="bg-black/40 text-muted-foreground">{totalCoverage} signals</Badge>
+                      <Badge variant="neutral">{totalCoverage} signals</Badge>
                     </div>
-                    <h3 className="mt-3 text-lg font-semibold capitalize text-foreground"
-                      style={{ letterSpacing: '-0.02em' }}>
+                    <h3 className="mt-3 font-display text-xl font-semibold capitalize text-[color:var(--color-text-primary)]">
                       {cat.category}
                     </h3>
 
                     <div
-                      className="mt-4 grid grid-cols-2 gap-2 border-t pt-4"
-                      style={{ borderColor: 'rgba(255,255,255,0.07)' }}
+                      className="mt-4 grid grid-cols-2 gap-[1px] bg-[color:var(--color-border)]"
                     >
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground">Retail offers</p>
-                        <p className="tabular-nums mt-1 text-lg font-semibold text-foreground/90">{cat.retail_offers_count}</p>
+                      <div className="bg-[color:var(--color-bg-secondary)] p-3">
+                        <p className="eyebrow-label">Retail offers</p>
+                        <p className="num mt-1 text-lg font-bold text-[color:var(--color-text-primary)]">{cat.retail_offers_count}</p>
                       </div>
-                      <div>
-                        <p className="text-xs font-medium text-muted-foreground">Market quotes</p>
-                        <p className="tabular-nums mt-1 text-lg font-semibold text-foreground/90">{cat.market_quotes_count}</p>
+                      <div className="bg-[color:var(--color-bg-secondary)] p-3">
+                        <p className="eyebrow-label">Market quotes</p>
+                        <p className="num mt-1 text-lg font-bold text-[color:var(--color-text-primary)]">{cat.market_quotes_count}</p>
                       </div>
                     </div>
 
                     {(cat.retail_median_lkr || cat.market_average_lkr) && (
-                      <div className="mt-4 flex flex-col gap-2 rounded-lg bg-black/30 p-3 ring-1 ring-white/5">
+                      <div className="mt-4 flex flex-col gap-2 border border-[color:var(--color-border)] bg-[color:var(--color-bg-secondary)] p-3">
                         {cat.retail_median_lkr && (
-                          <div className="flex justify-between items-center text-xs">
-                            <span className="text-muted-foreground font-medium">Retail median</span>
-                            <span className="tabular-nums font-semibold tracking-tight text-primary/90">Rs {formatCurrency(cat.retail_median_lkr)}</span>
+                          <div className="flex items-center justify-between gap-3 text-xs">
+                            <span className="eyebrow-label">Retail median</span>
+                            <span className="num font-bold text-[color:var(--color-text-primary)]">Rs {formatCurrency(cat.retail_median_lkr)}</span>
                           </div>
                         )}
                         {cat.market_average_lkr && (
-                          <div className="flex justify-between items-center text-xs">
-                            <span className="text-muted-foreground font-medium">Market avg</span>
-                            <span className="tabular-nums font-semibold tracking-tight text-primary/90">Rs {formatCurrency(cat.market_average_lkr)}</span>
+                          <div className="flex items-center justify-between gap-3 text-xs">
+                            <span className="eyebrow-label">Market avg</span>
+                            <span className="num font-bold text-[color:var(--color-text-primary)]">Rs {formatCurrency(cat.market_average_lkr)}</span>
                           </div>
                         )}
                       </div>
@@ -136,10 +135,10 @@ export function CategoriesPage() {
 
                     {/* Coverage bar */}
                     <div className="mt-4">
-                      <div className="h-1 w-full rounded-full bg-surface-elevated overflow-hidden">
+                      <div className="h-1.5 w-full overflow-hidden bg-[color:var(--color-bg-secondary)]">
                         <div
-                          className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-400 transition-all duration-700"
-                          style={{ width: `${Math.min((totalCoverage / 50) * 100, 100)}%` }}
+                          className="h-full bg-[color:var(--chili-500)] transition-all duration-700"
+                          style={{ width: `${Math.min((totalCoverage / maxCoverage) * 100, 100)}%` }}
                         />
                       </div>
                     </div>

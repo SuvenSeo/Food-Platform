@@ -1,5 +1,7 @@
 from app.schemas.domain import ClusterAggregate, NormalizedOffer, RawOffer
+from app.scrapers.cargills import parse_cargills_dynamic_sections
 from app.scrapers.glomark import parse_glomark_category
+from app.scrapers.keells import parse_keells_initial_data, parse_keells_page
 from app.scrapers.spar2u import parse_spar2u_catalog
 from app.services.aggregator import aggregate_offer_clusters
 from app.services.fair_price import score_offers_by_cluster
@@ -115,6 +117,125 @@ def test_parse_glomark_category_extracts_titles_prices_and_links() -> None:
     ]
 
 
+def test_parse_cargills_dynamic_sections_extracts_product_modules() -> None:
+    payload = [
+        {
+            "SectionName": "Best Of Fruit & Veg",
+            "DataType": "Product",
+            "Data": [
+                {
+                    "Id": 1225,
+                    "SKUCODE": "VGE0197",
+                    "ItemName": "Good Harvest Spine Gourd",
+                    "Price": 144.0,
+                    "Mrp": 150.0,
+                    "UnitSize": 300.0,
+                    "UOM": "g",
+                    "WebImage": "/VendorItems/MenuItems/VGE0197_2.jpg",
+                    "CategoryCode": "VGE",
+                    "IsSaleable": "1",
+                }
+            ],
+        }
+    ]
+
+    offers = parse_cargills_dynamic_sections(payload)
+
+    assert offers == [
+        RawOffer(
+            source="cargills",
+            source_item_id="1225",
+            source_group_id="1225",
+            category="Vegetables",
+            title="Good Harvest Spine Gourd",
+            variant_title="Per 300g",
+            price_lkr=144.0,
+            currency="LKR",
+            available=True,
+            sku="VGE0197",
+            url="https://cargillsonline.com/Product?productID=1225",
+            image_url="https://cargillsonline.com/VendorItems/MenuItems/VGE0197_2.jpg",
+        )
+    ]
+
+
+def test_parse_keells_initial_data_extracts_api_product_lists() -> None:
+    payload = {
+        "result": {
+            "departmentList": [
+                {"departmentCode": "V", "departmentName": "Vegetables"},
+            ],
+            "categoryList": [
+                {"categoryCode": "VWB66", "categoryName": "Onions"},
+            ],
+            "bestSellersList": [
+                {
+                    "itemID": 40549,
+                    "itemCode": "914006",
+                    "name": "Big Onions",
+                    "amount": 270.0,
+                    "imageUrl": "https://essstr.blob.core.windows.net/essimg/350x/Small/Pic914006.jpg",
+                    "uom": "KG",
+                    "isAvailable": True,
+                    "isSellingToday": True,
+                    "departmentCode": "V",
+                    "categoryCode": "VWB66",
+                }
+            ],
+        }
+    }
+
+    offers = parse_keells_initial_data(payload)
+
+    assert offers == [
+        RawOffer(
+            source="keells",
+            source_item_id="40549",
+            source_group_id="40549",
+            category="Onions",
+            title="Big Onions",
+            variant_title="Per 1kg",
+            price_lkr=270.0,
+            currency="LKR",
+            available=True,
+            sku="914006",
+            url="https://keellssuper.com/productDetail?itemId=40549",
+            image_url="https://essstr.blob.core.windows.net/essimg/350x/Small/Pic914006.jpg",
+        )
+    ]
+
+
+def test_parse_keells_page_fallback_extracts_rendered_product_cards() -> None:
+    html = """
+    <article class="product-card">
+      <a href="/product/samba-rice">
+        <h3 class="product-title">Samba Rice 1Kg</h3>
+        <span class="price">Rs. 420.00</span>
+        <img src="/images/samba.jpg" />
+      </a>
+    </article>
+    """
+
+    offers = parse_keells_page(html, category="Rice & Grains")
+
+    assert offers == [
+        RawOffer(
+            source="keells",
+            source_item_id="samba-rice",
+            source_group_id="samba-rice",
+            category="Rice & Grains",
+            title="Samba Rice 1Kg",
+            variant_title=None,
+            price_lkr=420.0,
+            currency="LKR",
+            available=True,
+            sku=None,
+            url="https://keellssuper.com/product/samba-rice",
+            image_url="https://keellssuper.com/images/samba.jpg",
+        )
+    ]
+
+
 def test_normalize_offer_extracts_brand_measurement_and_cluster_key() -> None:
     normalized = normalize_offer(
         RawOffer(
@@ -151,6 +272,56 @@ def test_normalize_offer_extracts_brand_measurement_and_cluster_key() -> None:
         url="https://spar2u.lk/products/spar-local-coconut-oil-1l",
         cluster_key="spar|local coconut oil|l|1.000",
     )
+
+
+def test_normalize_offer_handles_fresh_produce_per_100g() -> None:
+    normalized = normalize_offer(
+        RawOffer(
+            source="glomark",
+            source_item_id="9001",
+            source_group_id="9001",
+            category="Vegetables",
+            title="Chinese Cabbage Per 100g(s)",
+            variant_title=None,
+            price_lkr=72.0,
+            currency="LKR",
+            available=True,
+            sku=None,
+            url="https://glomark.lk/chinese-cabbage/p/9001",
+        )
+    )
+
+    assert normalized.brand is None
+    assert normalized.canonical_name == "chinese cabbage"
+    assert normalized.display_name == "Chinese Cabbage"
+    assert normalized.unit == "kg"
+    assert normalized.unit_amount == 0.1
+    assert normalized.price_per_unit_lkr == 720.0
+    assert normalized.cluster_key == "generic|chinese cabbage|kg|0.100"
+
+
+def test_normalize_offer_handles_glomark_unit_variant_without_polluting_name() -> None:
+    normalized = normalize_offer(
+        RawOffer(
+            source="glomark",
+            source_item_id="11305",
+            source_group_id="11305",
+            category="Grocery",
+            title="Vichy Biscuit Butter Cookies Tin 240G",
+            variant_title="Per 1unit(s)",
+            price_lkr=875.0,
+            currency="LKR",
+            available=True,
+            sku=None,
+            url="https://glomark.lk/vichy-biscuit-butter-cookies-tin-240g/p/11305",
+        )
+    )
+
+    assert normalized.brand == "Vichy"
+    assert normalized.canonical_name == "biscuit butter cookies tin"
+    assert normalized.unit == "unit"
+    assert normalized.unit_amount == 1.0
+    assert normalized.price_per_unit_lkr == 875.0
 
 
 def test_aggregate_offer_clusters_builds_summary_stats() -> None:

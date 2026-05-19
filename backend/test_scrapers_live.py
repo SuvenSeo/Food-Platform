@@ -72,11 +72,36 @@ def test_dcs():
     except Exception as exc:
         print(f"  FAILED: {exc}")
 
+def test_doa():
+    print("=== DOA SHEP Vegetable Prices ===")
+    try:
+        from app.scrapers.doa import fetch_doa_market_quotes
+        quotes = fetch_doa_market_quotes(timeout=25.0)
+        print(f"  OK — {len(quotes)} market quotes")
+        for q in quotes[-3:]:
+            print(f"  {q['item_name'][:30]:30s} | {q['market_name'][:25]:25s} | Rs {q['price_lkr']}/{q['unit']} | {q['quoted_at'][:10]}")
+        if not quotes:
+            print("  (0 quotes — DOA endpoint may have changed)")
+    except Exception as exc:
+        print(f"  FAILED: {exc}")
+
 def test_keells():
-    print("=== Keells (HTML scrape) ===")
+    print("=== Keells (guest API scrape) ===")
     try:
         from app.scrapers.keells import fetch_keells_catalog
         offers = fetch_keells_catalog(max_items=10, user_agent=UA)
+        print(f"  {len(offers)} offers (0 = site structure changed or auth required)")
+        if offers:
+            o = offers[0]
+            print(f"  Sample: {o.title[:60]} | Rs {o.price_lkr}")
+    except Exception as exc:
+        print(f"  FAILED: {exc}")
+
+def test_cargills():
+    print("=== Cargills (JSON/browser scrape) ===")
+    try:
+        from app.scrapers.cargills import fetch_cargills_catalog
+        offers = fetch_cargills_catalog(max_items=10, user_agent=UA)
         print(f"  {len(offers)} offers (0 = site structure changed or auth required)")
         if offers:
             o = offers[0]
@@ -95,4 +120,8 @@ if __name__ == "__main__":
     print()
     test_dcs()
     print()
+    test_doa()
+    print()
     test_keells()
+    print()
+    test_cargills()
