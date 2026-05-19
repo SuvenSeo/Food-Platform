@@ -54,6 +54,7 @@ jobs:
             app/scrapers/dcs.py \
             app/scrapers/doa.py \
             app/scrapers/harti.py \
+            app/scrapers/fisheries.py \
             app/services/source_sync.py \
             app/services/pipeline.py \
             app/services/normalization.py \

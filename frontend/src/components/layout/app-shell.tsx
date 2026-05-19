@@ -1,8 +1,5 @@
 import { type ReactNode, useEffect, useState } from 'react'
-import {
-  BarChart3, BookOpenText, Bookmark, DatabaseZap, History,
-  LayoutGrid, Scale, Search, ShoppingBasket, Soup, Store, Waves, Menu, X,
-} from 'lucide-react'
+import { Menu, Search, X } from 'lucide-react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -17,55 +14,12 @@ import { SiteFooter } from './site-footer'
 import { TrustCommandRail } from './trust-command-rail'
 import { cn } from '../../lib/utils'
 import type { PlatformFreshnessSummary } from '../../types'
+import { drawerNavGroups, primaryNavItems, type NavigationItem } from '../../config/navigation'
 
 /** Routes that flip the entire app to night-terminal mode. */
 const NIGHT_ROUTES = new Set(['/intelligence', '/pipeline', '/changes'])
 
-const navGroups = [
-  {
-    label: 'Discover',
-    items: [
-      { to: '/', label: 'Home', icon: LayoutGrid, end: true },
-      { to: '/retail', label: 'Retail', icon: Store, end: false },
-      { to: '/items', label: 'Items', icon: Search, end: false },
-      { to: '/markets', label: 'Markets', icon: Waves, end: false },
-      { to: '/categories', label: 'Categories', icon: Soup, end: false },
-    ],
-  },
-  {
-    label: 'Intelligence',
-    items: [
-      { to: '/intelligence', label: 'Intelligence', icon: BarChart3, end: false },
-      { to: '/changes', label: 'Changes', icon: History, end: false },
-    ],
-  },
-  {
-    label: 'Tools',
-    items: [
-      { to: '/compare', label: 'Compare', icon: Scale, end: false },
-      { to: '/basket', label: 'Basket', icon: ShoppingBasket, end: false },
-      { to: '/watchlists', label: 'Watchlists', icon: Bookmark, end: false },
-    ],
-  },
-  {
-    label: 'Trust',
-    items: [
-      { to: '/pipeline', label: 'Pipeline', icon: DatabaseZap, end: false },
-      { to: '/methods', label: 'Methods', icon: BookOpenText, end: false },
-    ],
-  },
-] as const
-
-type NavItem = {
-  to: string
-  label: string
-  icon: typeof LayoutGrid
-  end: boolean
-}
-
-const flatNav: NavItem[] = navGroups.flatMap((g) =>
-  g.items.map((item) => ({ ...item })),
-)
+const flatNav: NavigationItem[] = primaryNavItems.map((item) => ({ ...item }))
 
 /** Masthead glyph — a stylized scale / wet-market measure */
 function FoodLKIcon({ className }: { className?: string }) {
@@ -83,7 +37,7 @@ function FoodLKIcon({ className }: { className?: string }) {
   )
 }
 
-function NavPill({ to, label, end }: NavItem) {
+function NavPill({ to, label, end }: NavigationItem) {
   return (
     <NavLink
       to={to}
@@ -189,7 +143,7 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
               </button>
             </div>
             <nav className="flex flex-col gap-4 overflow-y-auto p-4" aria-label="Site navigation">
-              {navGroups.map((group) => (
+              {drawerNavGroups.map((group) => (
                 <div key={group.label}>
                   <p className="eyebrow-label mb-2 px-2">{group.label}</p>
                   <div className="flex flex-col gap-1">

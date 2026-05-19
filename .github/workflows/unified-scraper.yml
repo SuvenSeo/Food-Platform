@@ -40,6 +40,7 @@ on:
           - dcs
           - doa
           - harti
+          - fisheries
       max_items:
         description: "Max offers per retail source (default 500)"
         required: false
@@ -63,11 +64,11 @@ jobs:
 
           if [ -z "$SOURCE" ]; then
             echo 'retail=["spar2u","glomark","keells","cargills"]' >> "$GITHUB_OUTPUT"
-            echo 'market=["wfp","cbsl","dcs","doa","harti"]' >> "$GITHUB_OUTPUT"
+            echo 'market=["wfp","cbsl","dcs","doa","harti","fisheries"]' >> "$GITHUB_OUTPUT"
           elif [[ "$SOURCE" == spar2u || "$SOURCE" == glomark || "$SOURCE" == keells || "$SOURCE" == cargills ]]; then
             echo "retail=[\"$SOURCE\"]" >> "$GITHUB_OUTPUT"
             echo 'market=[]'           >> "$GITHUB_OUTPUT"
-          elif [[ "$SOURCE" == wfp || "$SOURCE" == cbsl || "$SOURCE" == dcs || "$SOURCE" == doa || "$SOURCE" == harti ]]; then
+          elif [[ "$SOURCE" == wfp || "$SOURCE" == cbsl || "$SOURCE" == dcs || "$SOURCE" == doa || "$SOURCE" == harti || "$SOURCE" == fisheries ]]; then
             echo 'retail=[]'           >> "$GITHUB_OUTPUT"
             echo "market=[\"$SOURCE\"]" >> "$GITHUB_OUTPUT"
           else

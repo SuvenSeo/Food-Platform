@@ -22,6 +22,8 @@ const PipelinePage = lazy(() => import('../pages/pipeline-page').then((module) =
 const OfferDetailPage = lazy(() => import('../pages/offer-detail-page').then((module) => ({ default: module.OfferDetailPage })))
 const ChangesPage = lazy(() => import('../pages/changes-page').then((module) => ({ default: module.ChangesPage })))
 const NotFoundPage = lazy(() => import('../pages/not-found-page').then((module) => ({ default: module.NotFoundPage })))
+const AlertConfirmPage = lazy(() => import('../pages/alert-confirm-page').then((module) => ({ default: module.AlertConfirmPage })))
+const AlertManagePage = lazy(() => import('../pages/alert-manage-page').then((module) => ({ default: module.AlertManagePage })))
 
 const routeMetadata: Record<string, { title: string; description: string }> = {
   '/': {
@@ -37,6 +39,10 @@ const routeMetadata: Record<string, { title: string; description: string }> = {
     description: 'Browse normalised supermarket and grocery offers with source-aware filters and transparent pricing.',
   },
   '/items': {
+    title: 'Price Catalog | FoodLK',
+    description: 'Browse grouped retail products and public-market items with photos, prices, sources, and item intelligence.',
+  },
+  '/prices': {
     title: 'Price Catalog | FoodLK',
     description: 'Browse grouped retail products and public-market items with photos, prices, sources, and item intelligence.',
   },
@@ -84,6 +90,14 @@ const routeMetadata: Record<string, { title: string; description: string }> = {
     title: 'Terms | FoodLK',
     description: 'Terms of use for FoodLK — informational pricing data, attribution, and platform evolution.',
   },
+  '/alerts/confirm': {
+    title: 'Confirm Alert | FoodLK',
+    description: 'Confirm a FoodLK price alert subscription from an email verification link.',
+  },
+  '/alerts/manage': {
+    title: 'Manage Alert | FoodLK',
+    description: 'Manage a FoodLK price alert subscription from a secure email link.',
+  },
 }
 
 function applyMeta(name: string, content: string) {
@@ -101,7 +115,8 @@ function RouteMetadata() {
   const location = useLocation()
 
   useEffect(() => {
-    const metadata = routeMetadata[location.pathname] ?? {
+    const metadata = routeMetadata[location.pathname] ??
+      (location.pathname.startsWith('/alerts/manage/') ? routeMetadata['/alerts/manage'] : undefined) ?? {
       title: 'FoodLK | Sri Lanka Food Price Intelligence',
       description: 'Sri Lanka food platform with balanced discovery and intelligence tooling for trusted pricing signals.',
     }
@@ -122,6 +137,7 @@ export function AppRoutes() {
           <Route path="/intelligence" element={<IntelligencePage />} />
           <Route path="/retail" element={<RetailPage />} />
           <Route path="/items" element={<ItemsPage />} />
+          <Route path="/prices" element={<ItemsPage />} />
           <Route path="/items/:slug" element={<ItemDetailPage />} />
           <Route path="/markets" element={<MarketsPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
@@ -135,6 +151,8 @@ export function AppRoutes() {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/pipeline" element={<PipelinePage />} />
           <Route path="/offers/:offerId" element={<OfferDetailPage />} />
+          <Route path="/alerts/confirm" element={<AlertConfirmPage />} />
+          <Route path="/alerts/manage/:token" element={<AlertManagePage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>

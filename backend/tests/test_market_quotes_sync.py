@@ -9,6 +9,7 @@ from app.models.tables import MarketQuoteRecord
 from app.services import market_quotes
 from app.scrapers.dcs import _parse_dcs_table_rows
 from app.scrapers.doa import parse_doa_item_rows
+from app.scrapers.fisheries import parse_fisheries_workbook
 from app.scrapers.harti import _parse_harti_price_tables, _parse_price_range
 
 
@@ -248,3 +249,37 @@ def test_parse_harti_price_tables_emits_market_quotes() -> None:
             "notes": "HARTI daily food commodities bulletin range: 20 - 29.",
         },
     ]
+
+
+def test_parse_fisheries_workbook_emits_wholesale_and_retail_quotes() -> None:
+    from io import BytesIO
+
+    from openpyxl import Workbook
+
+    workbook = Workbook()
+    wholesale = workbook.active
+    wholesale.title = "Wholesale"
+    wholesale.append(["Table 1 : Change in Wholesale Prices at Peliyagoda Fish Market (Rs/Kg)"])
+    wholesale.append(["Variety", None, None, 2025, 2026, None])
+    wholesale.append(["Sinhala Name", None, "Common Name", "2nd week of Apr.", "1st week of Apr.", "2nd week of Apr."])
+    wholesale.append([1, "seer-si", "Seer (Ni-L)", 1660, 2066.67, 2040])
+
+    retail = workbook.create_sheet("Retail")
+    retail.append(["Table 2: Change in Consumer Prices at Selected Markets - (Rs/Kg)"])
+    retail.append(["Variety", None, None, 2025, 2026, None])
+    retail.append(["Sinhala Name", None, "Common Name", "2nd week of Apr.", "1st week of Apr.", "2nd week of Apr."])
+    retail.append([1, "skipjack-si", "Skipjack tuna", 1510, 1890, 1843.3])
+
+    stream = BytesIO()
+    workbook.save(stream)
+
+    quotes = parse_fisheries_workbook(stream.getvalue(), label="2nd Week April 2026")
+
+    assert len(quotes) == 2
+    assert quotes[0]["source"] == "fisheries"
+    assert quotes[0]["market_name"] == "Peliyagoda Fish Market (Fisheries)"
+    assert quotes[0]["item_name"] == "Seer (Ni-L)"
+    assert quotes[0]["category"] == "fish"
+    assert quotes[0]["price_lkr"] == 2040.0
+    assert quotes[0]["quoted_at"].startswith("2026-04-08")
+    assert quotes[1]["market_name"] == "Selected Retail Markets (Fisheries)"

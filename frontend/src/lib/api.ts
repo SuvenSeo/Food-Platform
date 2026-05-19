@@ -101,6 +101,36 @@ export type AlertSubscribeResult = {
   message: string
 }
 
+export type AlertManageResult = {
+  ok: boolean
+  subscription: {
+    id: number
+    email: string
+    scope: string
+    scope_value: string | null
+    cadence: string
+    active: boolean
+    confirmed: boolean
+    created_at: string | null
+  }
+}
+
+export type AlertMutationResult = {
+  ok: boolean
+  id: number
+  active: boolean
+  confirmed?: boolean
+}
+
+async function mutateAlertToken(path: string): Promise<AlertMutationResult> {
+  const response = await fetch(`${API_BASE}${path}`, { method: 'POST' })
+  const payload = (await response.json()) as AlertMutationResult & { detail?: string }
+  if (!response.ok) {
+    throw new ApiError(response.status, payload.detail || 'Alert request failed')
+  }
+  return payload
+}
+
 export async function subscribeAlert(body: {
   email: string
   scope: string
@@ -117,4 +147,16 @@ export async function subscribeAlert(body: {
     throw new ApiError(response.status, payload.detail || 'Subscription failed')
   }
   return payload
+}
+
+export function confirmAlert(token: string): Promise<AlertMutationResult> {
+  return mutateAlertToken(`/alerts/confirm/${encodeURIComponent(token)}`)
+}
+
+export function unsubscribeAlert(token: string): Promise<AlertMutationResult> {
+  return mutateAlertToken(`/alerts/unsubscribe/${encodeURIComponent(token)}`)
+}
+
+export function manageAlert(token: string): Promise<AlertManageResult> {
+  return fetchJson<AlertManageResult>(`/alerts/manage/${encodeURIComponent(token)}`)
 }

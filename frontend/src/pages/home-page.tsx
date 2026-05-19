@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, BarChart3, Bookmark, Scale, ShoppingBasket, Store, Waves } from 'lucide-react'
+import { ArrowRight, BarChart3, Bookmark, Scale, Search, ShoppingBasket, Waves } from 'lucide-react'
 
 import { OfferCard } from '../components/ui/offer-card'
 import { LiveTicker } from '../components/marketing/live-ticker'
@@ -13,12 +13,12 @@ import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { ErrorState } from '../components/ui/workflow-helpers'
 
 const workspace = [
-  { title: 'Retail Floor', description: 'Stall-by-stall offers from Spar, Glomark, Keells, Cargills.', href: '/retail', icon: Store },
-  { title: 'Wet Markets', description: 'District quotes from official and field sources.', href: '/markets', icon: Waves },
-  { title: 'The Intelligence Desk', description: 'Rankings, trends and source health for the trader.', href: '/intelligence', icon: BarChart3, accent: true },
-  { title: 'Compare Districts', description: 'Side-by-side wet-market deltas saved as receipts.', href: '/compare', icon: Scale },
-  { title: 'Basket Workshop', description: 'Household preset baskets, availability-aware totals.', href: '/basket', icon: ShoppingBasket },
-  { title: 'Watchlists', description: 'Clip pairs, presets and offer views for later.', href: '/watchlists', icon: Bookmark },
+  { title: 'Price Catalog', description: 'Search items with photos, latest prices, sources, and history.', href: '/items', icon: Search, accent: true },
+  { title: 'Compare', description: 'Side-by-side district and source deltas for quick decisions.', href: '/compare', icon: Scale },
+  { title: 'Basket', description: 'Household preset baskets with availability-aware totals.', href: '/basket', icon: ShoppingBasket },
+  { title: 'Saved', description: 'Clip pairs, presets, and offer views for later.', href: '/watchlists', icon: Bookmark },
+  { title: 'Markets', description: 'Official wet-market quotes and district coverage.', href: '/markets', icon: Waves },
+  { title: 'Insights', description: 'Rankings, trends, and source health for analysts.', href: '/intelligence', icon: BarChart3 },
 ]
 
 export function HomePage() {

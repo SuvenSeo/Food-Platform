@@ -268,7 +268,7 @@ export function OfferDetailPage() {
         links={[
           { label: 'Build basket', to: '/basket' },
           { label: 'Review watchlists', to: '/watchlists' },
-          { label: 'Open categories', to: '/categories' },
+          { label: 'Open catalog', to: '/items' },
         ]}
       />
 
@@ -291,8 +291,8 @@ export function OfferDetailPage() {
             <EmptyState
               title="No related offers yet"
               description="Explore category summaries and markets to continue price discovery."
-              actionLabel="Open categories"
-              actionTo="/categories"
+              actionLabel="Open catalog"
+              actionTo="/items"
             />
           )}
         </section>

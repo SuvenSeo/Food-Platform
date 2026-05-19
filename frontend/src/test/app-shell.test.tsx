@@ -38,10 +38,11 @@ describe('AppShell', () => {
     // so several link labels appear twice in the DOM. We just assert presence.
     expect(await screen.findByRole('link', { name: /foodlk home/i })).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: /^home$/i }).length).toBeGreaterThan(0)
-    expect(screen.getAllByRole('link', { name: /^retail$/i }).length).toBeGreaterThan(0)
-    expect(screen.getAllByRole('link', { name: /^markets$/i }).length).toBeGreaterThan(0)
-    expect(screen.getAllByRole('link', { name: /^intelligence$/i }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('link', { name: /^prices$/i }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('link', { name: /^compare$/i }).length).toBeGreaterThan(0)
     expect(screen.getAllByRole('link', { name: /^basket$/i }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('link', { name: /^saved$/i }).length).toBeGreaterThan(0)
+    expect(screen.queryAllByRole('link', { name: /^categories$/i })).toHaveLength(0)
   })
 
   it('renders its children', async () => {

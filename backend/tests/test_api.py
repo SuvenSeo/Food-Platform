@@ -153,7 +153,18 @@ def test_platform_freshness_exposes_confidence_and_provenance() -> None:
     assert payload["coverage"]["market_quotes_count"] == 2
     assert payload["pipeline"]["healthy_sources"] >= 1
     assert payload["pipeline"]["total_sources"] >= 8
-    assert {source["source"] for source in payload["pipeline"]["sources"]} >= {"spar2u", "glomark", "keells", "cargills", "wfp", "cbsl", "dcs", "doa", "harti"}
+    assert {source["source"] for source in payload["pipeline"]["sources"]} >= {
+        "spar2u",
+        "glomark",
+        "keells",
+        "cargills",
+        "wfp",
+        "cbsl",
+        "dcs",
+        "doa",
+        "harti",
+        "fisheries",
+    }
     assert payload["pipeline"]["blocking_warnings"]
     assert payload["confidence"]["score"] >= 0
     assert payload["confidence"]["grade"] in {"high", "medium", "low"}
@@ -221,7 +232,7 @@ def test_trends_and_pipeline_status() -> None:
     assert pipeline.json()["items"][0]["source"] == "spar2u"
     assert pipeline.json()["items"][0]["source_type"] == "retail"
     assert pipeline.json()["items"][0]["health"] == "healthy"
-    assert pipeline.json()["summary"]["total_sources"] >= 8
+    assert pipeline.json()["summary"]["total_sources"] >= 10
     assert runs.status_code == 200
     assert runs.json()["total"] == 1
     assert runs.json()["items"][0]["status"] == "completed"

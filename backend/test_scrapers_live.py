@@ -112,6 +112,21 @@ def test_harti():
         print(f"  FAILED: {exc}")
         return False
 
+def test_fisheries():
+    print("=== Fisheries Weekly Fish Prices ===")
+    try:
+        from app.scrapers.fisheries import fetch_fisheries_market_quotes
+        quotes = fetch_fisheries_market_quotes(timeout=30.0)
+        print(f"  OK — {len(quotes)} fish market quotes")
+        for q in quotes[:3]:
+            print(f"  {q['item_name'][:30]:30s} | {q['market_name'][:25]:25s} | Rs {q['price_lkr']}/{q['unit']} | {q['quoted_at'][:10]}")
+        if not quotes:
+            print("  (0 quotes — Fisheries weekly report structure may have changed)")
+        return len(quotes) > 0
+    except Exception as exc:
+        print(f"  FAILED: {exc}")
+        return False
+
 def test_keells():
     print("=== Keells (guest API scrape) ===")
     try:
@@ -155,6 +170,8 @@ if __name__ == "__main__":
     results.append(test_doa())
     print()
     results.append(test_harti())
+    print()
+    results.append(test_fisheries())
     print()
     results.append(test_keells())
     print()

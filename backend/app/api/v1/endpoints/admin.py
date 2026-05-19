@@ -115,7 +115,7 @@ def trigger_market_sync(
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
     """
-    Queue official market scrapers (WFP, DCS, CBSL, DOA, HARTI) as background tasks.
+    Queue official market scrapers (WFP, DCS, CBSL, DOA, HARTI, Fisheries) as background tasks.
 
     Query params (optional):
       sources=wfp&sources=cbsl

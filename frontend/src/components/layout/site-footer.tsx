@@ -1,29 +1,6 @@
 import { Link } from 'react-router-dom'
 
-const sections: Record<string, { label: string; to: string }[]> = {
-  'Front Page': [
-    { label: 'Today', to: '/' },
-    { label: 'Retail Floor', to: '/retail' },
-    { label: 'Wet Markets', to: '/markets' },
-    { label: 'Categories', to: '/categories' },
-  ],
-  'Desk': [
-    { label: 'Intelligence', to: '/intelligence' },
-    { label: 'Changes', to: '/changes' },
-    { label: 'Pipeline', to: '/pipeline' },
-  ],
-  'Workshop': [
-    { label: 'Compare', to: '/compare' },
-    { label: 'Basket', to: '/basket' },
-    { label: 'Watchlists', to: '/watchlists' },
-  ],
-  'Colophon': [
-    { label: 'Methods', to: '/methods' },
-    { label: 'Developers', to: '/developers' },
-    { label: 'Privacy', to: '/privacy' },
-    { label: 'Terms', to: '/terms' },
-  ],
-}
+import { footerSections } from '../../config/navigation'
 
 export function SiteFooter() {
   const year = new Date().getFullYear()
@@ -104,16 +81,16 @@ export function SiteFooter() {
 
           {/* Section index — 4 columns */}
           <div className="grid grid-cols-2 gap-x-8 gap-y-8 sm:grid-cols-4">
-            {Object.entries(sections).map(([title, links]) => (
+            {Object.entries(footerSections).map(([title, links]) => (
               <div key={title}>
                 <p className="text-kicker mb-3">§ {title}</p>
                 <ul className="index-nav text-[15px]">
-                  {links.map((l) => (
+                  {links.map((l, index) => (
                     <li key={l.to}>
                       <Link to={l.to}>
                         <span>{l.label}</span>
                         <span className="num-tag">
-                          {String(links.indexOf(l) + 1).padStart(2, '0')}
+                          {String(index + 1).padStart(2, '0')}
                         </span>
                       </Link>
                     </li>

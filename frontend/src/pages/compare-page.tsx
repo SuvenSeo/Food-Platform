@@ -259,8 +259,8 @@ export function ComparePage() {
                 title="No overlapping produce items found"
                 description="Try a different district pair or continue through adjacent discovery flows."
                 hint="Next action: continue in markets or categories."
-                actionLabel="Open categories"
-                actionTo="/categories"
+                actionLabel="Open price catalog"
+                actionTo="/items"
                 secondaryActionLabel="Open markets"
                 secondaryActionTo="/markets"
               />

@@ -77,7 +77,9 @@ def _send_confirmation_email(email: str, token: str) -> bool:
     try:
         import httpx
 
-        confirm_url = f"{settings.site_url.rstrip('/')}/alerts/confirm?token={token}"
+        site_url = settings.site_url.rstrip("/")
+        confirm_url = f"{site_url}/alerts/confirm?token={token}"
+        manage_url = f"{site_url}/alerts/manage/{token}"
         response = httpx.post(
             "https://api.resend.com/emails",
             headers={
@@ -91,6 +93,7 @@ def _send_confirmation_email(email: str, token: str) -> bool:
                 "html": (
                     f"<p>Confirm your FoodLK alert subscription:</p>"
                     f'<p><a href="{confirm_url}">Confirm alert</a></p>'
+                    f'<p style="font-size:12px;color:#666">Manage or unsubscribe: <a href="{manage_url}">{manage_url}</a></p>'
                 ),
             },
             timeout=15.0,

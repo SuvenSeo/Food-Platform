@@ -242,7 +242,7 @@ export function MarketsPage() {
         title="Next column"
         links={[
           { label: 'Compare districts', to: '/compare' },
-          { label: 'Category overview', to: '/categories' },
+          { label: 'Price catalog', to: '/items' },
           { label: 'Build basket', to: '/basket' },
         ]}
       />

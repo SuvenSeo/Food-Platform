@@ -44,12 +44,19 @@ def _fetch_harti_market_quotes(*, timeout: float = 30.0) -> list[dict[str, objec
     return fetch_harti_market_quotes(timeout=timeout)
 
 
+def _fetch_fisheries_market_quotes(*, timeout: float = 30.0) -> list[dict[str, object]]:
+    from app.scrapers.fisheries import fetch_fisheries_market_quotes
+
+    return fetch_fisheries_market_quotes(timeout=timeout)
+
+
 OFFICIAL_MARKET_FETCHERS = {
     "wfp": _fetch_wfp_market_quotes,
     "dcs": _fetch_dcs_market_quotes,
     "cbsl": _fetch_cbsl_market_quotes,
     "doa": _fetch_doa_market_quotes,
     "harti": _fetch_harti_market_quotes,
+    "fisheries": _fetch_fisheries_market_quotes,
 }
 
 
@@ -223,7 +230,7 @@ def ingest_official_market_quotes(
     Run one or more official data source scrapers and upsert their quotes.
 
     sources: list of source names to run, or None / ["all"] to run all.
-    Supported sources: "wfp", "dcs", "cbsl", "doa", "harti"
+    Supported sources: "wfp", "dcs", "cbsl", "doa", "harti", "fisheries"
     """
     run_all = sources is None or sources == ["all"] or "all" in sources
     to_run = list(OFFICIAL_MARKET_FETCHERS.keys()) if run_all else [s for s in (sources or []) if s in OFFICIAL_MARKET_FETCHERS]

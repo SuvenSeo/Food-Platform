@@ -37,6 +37,7 @@ See also: [`backend/README.md`](../backend/README.md) for sync commands and Dock
 - **DOA / SHEP** — Department of Agriculture InfoHub daily vegetable prices for Manning and Dambulla wholesale/retail series
 - **DCS** — Department of Census and Statistics weekly prices
 - **HARTI** — daily food commodities bulletin with multi-market vegetable and fruit tables
+- **Fisheries** — Ministry of Fisheries weekly fish-price Excel/PDF reports for wholesale and selected retail markets
 
 Synced via `run_official_market_sync.py` / `run_market_sync.py`. Remote override: `MARKET_QUOTES_URL`.
 
@@ -49,6 +50,7 @@ Synced via `run_official_market_sync.py` / `run_market_sync.py`. Remote override
 | `doa` | Active | WordPress JSON endpoint behind the public SHEP charts; vegetable-focused. |
 | `dcs` | Active | Weekly DCS wrapper/PDF discovery with table extraction for Colombo District open-market retail prices. |
 | `harti` | Active | Daily English HARTI food commodities bulletin PDF; strong multi-market vegetable and fruit coverage. |
+| `fisheries` | Active | Ministry weekly fish-price reports; parser handles current PDFs and archived Excel files. |
 
 ## Candidate sources to evaluate next
 
@@ -57,6 +59,8 @@ These are not wired into production sync yet. They need terms/robots review, sch
 | Source | Candidate value | Initial technical note |
 | --- | --- | --- |
 | `vegeservice.lk` | Daily vegetable prices and history | Has public `/api/prices?date=...`; current probe returned empty for today, so needs date-range probing. |
+| World Bank RTP | Monthly food price estimates across Sri Lankan markets | Strong historical coverage; likely best as a separate monthly context layer because values are model-assisted estimates. |
+| Coconut Development Authority | Coconut and coconut-oil market reports | PDF reports look relevant; needs parser and source-quality review. |
 | `thambuttegamadec.lk` / `app.thambuttegamadec.lk` | Official Thambuttegama Dedicated Economic Centre daily prices | Public site links to a digital price app; needs route/API discovery. |
 | `welandapola.com` | Retail and market price index across food categories | Next.js app exposes rendered current vegetable rows; verify data provenance before using. |
 | Other dedicated economic centres | Market-level wholesale quotes | The Thambuttegama site lists Dambulla, Nuwara Eliya, Narahenpita, Welisara, Veyangoda, Ratmalana, Meegoda, Kandehandiya, and Keppetipola contacts/links; each needs discovery. |

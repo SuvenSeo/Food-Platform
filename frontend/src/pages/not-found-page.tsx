@@ -1,12 +1,7 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, BarChart3, Scale, ShoppingBasket, Store } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 
-const recoveryLinks = [
-  { label: 'Retail', href: '/retail', icon: Store },
-  { label: 'Markets', href: '/markets', icon: BarChart3 },
-  { label: 'Compare', href: '/compare', icon: Scale },
-  { label: 'Basket', href: '/basket', icon: ShoppingBasket },
-]
+import { notFoundRecoveryLinks } from '../config/navigation'
 
 export function NotFoundPage() {
   return (
@@ -34,10 +29,10 @@ export function NotFoundPage() {
         </div>
 
         <nav className="mt-10 grid gap-[1px] bg-[color:var(--color-border)] sm:grid-cols-2 lg:grid-cols-4" aria-label="404 recovery">
-          {recoveryLinks.map(({ label, href, icon: Icon }) => (
+          {notFoundRecoveryLinks.map(({ label, to, icon: Icon }) => (
             <Link
-              key={href}
-              to={href}
+              key={to}
+              to={to}
               className="group flex min-h-28 flex-col justify-between bg-[color:var(--color-bg-card)] p-4 transition-colors hover:bg-[color:var(--color-bg-card-hover)]"
             >
               <Icon className="h-5 w-5 text-[color:var(--chili-500)]" aria-hidden="true" />

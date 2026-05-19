@@ -91,9 +91,9 @@ export function ItemsPage() {
         />
       ) : (
         <div className="grid gap-[1px] bg-[color:var(--color-border)] lg:grid-cols-2">
-          {items.map((item) => (
+          {items.map((item, index) => (
             <Link
-              key={`${item.kind}-${item.slug}-${item.unit ?? 'unit'}`}
+              key={`${item.kind}-${item.slug}-${item.category}-${item.unit ?? 'unit'}-${item.best_offer_id ?? item.market_quotes_count ?? 'row'}-${index}`}
               to={`/items/${item.slug}`}
               className="group grid min-h-[148px] grid-cols-[116px_minmax(0,1fr)] bg-[color:var(--color-bg-card)] text-[color:var(--color-text-primary)] transition hover:bg-[color:var(--color-bg-card-hover)] sm:min-h-[168px] sm:grid-cols-[148px_minmax(0,1fr)]"
             >

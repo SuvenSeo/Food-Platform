@@ -11,7 +11,7 @@
     <title>FoodLK | Sri Lanka Food Price Intelligence</title>
     <meta
       name="description"
-      content="FoodLK tracks Sri Lankan grocery and wet-market food prices in real time — retail offers from Spar, Glomark, Keells and Cargills, official market data from WFP and CBSL, historical price trends, district comparisons, and household basket estimates."
+      content="FoodLK tracks Sri Lankan grocery and wet-market food prices with scheduled data refreshes — retail offers from Spar, Glomark, Keells and Cargills, official market data, historical price trends, district comparisons, and household basket estimates."
     />
     <meta name="keywords" content="Sri Lanka food prices, grocery prices Sri Lanka, wet market prices, food intelligence, price tracker Sri Lanka, Colombo food prices, retail prices Sri Lanka" />
     <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1" />
@@ -28,14 +28,17 @@
       content="Track Sri Lankan grocery and wet-market food prices — retail, official government data, historical trends, and district comparisons in one intelligence platform."
     />
     <meta property="og:locale" content="en_LK" />
+    <meta property="og:image" content="https://food-platform-one.vercel.app/og-card.svg" />
+    <meta property="og:image:alt" content="FoodLK price intelligence desk with grocery and market price signals" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="FoodLK | Sri Lanka Food Price Intelligence" />
     <meta
       name="twitter:description"
-      content="Real-time Sri Lankan food prices from Spar, Glomark, Keells, WFP, CBSL and more — retail, market quotes, trends."
+      content="Regularly refreshed Sri Lankan food prices from supermarkets and official market sources — retail, market quotes, trends."
     />
+    <meta name="twitter:image" content="https://food-platform-one.vercel.app/og-card.svg" />
 
     <!-- Icons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -75,7 +78,7 @@
           "@id": "https://food-platform-one.vercel.app/#website",
           "url": "https://food-platform-one.vercel.app/",
           "name": "FoodLK",
-          "description": "Real-time food price intelligence for Sri Lanka — grocery, wet markets, trends, and basket estimates.",
+          "description": "Regularly refreshed food price intelligence for Sri Lanka — grocery, wet markets, trends, and basket estimates.",
           "publisher": {
             "@id": "https://food-platform-one.vercel.app/#organization"
           },
@@ -84,7 +87,7 @@
             "@type": "SearchAction",
             "target": {
               "@type": "EntryPoint",
-              "urlTemplate": "https://food-platform-one.vercel.app/retail?search={search_term_string}"
+              "urlTemplate": "https://food-platform-one.vercel.app/items?search={search_term_string}"
             },
             "query-input": "required name=search_term_string"
           }
@@ -93,16 +96,16 @@
           "@type": "WebApplication",
           "name": "FoodLK Price Intelligence",
           "url": "https://food-platform-one.vercel.app/",
-          "applicationCategory": "FinanceApplication",
+          "applicationCategory": "LifestyleApplication",
           "operatingSystem": "Web",
-          "description": "Track grocery and market food prices across Sri Lanka with real-time data from Spar, Glomark, Keells, WFP, CBSL and other official sources.",
+          "description": "Track grocery and market food prices across Sri Lanka with scheduled data refreshes from supermarkets and official sources.",
           "offers": {
             "@type": "Offer",
             "price": "0",
             "priceCurrency": "LKR"
           },
           "featureList": [
-            "Real-time retail price tracking",
+            "Scheduled retail price tracking",
             "Wet market price monitoring",
             "Historical price trends",
             "District price comparison",

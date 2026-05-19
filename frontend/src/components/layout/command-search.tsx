@@ -2,21 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, X } from 'lucide-react'
 
-const destinations = [
-  { label: 'Home', to: '/', group: 'Discover' },
-  { label: 'Retail offers', to: '/retail', group: 'Discover' },
-  { label: 'All items catalog', to: '/items', group: 'Discover' },
-  { label: 'Market quotes', to: '/markets', group: 'Discover' },
-  { label: 'Categories', to: '/categories', group: 'Discover' },
-  { label: 'Intelligence desk', to: '/intelligence', group: 'Intelligence' },
-  { label: 'Price changes', to: '/changes', group: 'Intelligence' },
-  { label: 'Compare districts', to: '/compare', group: 'Tools' },
-  { label: 'Basket workspace', to: '/basket', group: 'Tools' },
-  { label: 'Watchlists', to: '/watchlists', group: 'Tools' },
-  { label: 'Data pipeline', to: '/pipeline', group: 'Trust' },
-  { label: 'Methods & trust', to: '/methods', group: 'Trust' },
-  { label: 'Developers', to: '/developers', group: 'Trust' },
-]
+import { commandDestinations } from '../../config/navigation'
 
 type CommandSearchProps = {
   open: boolean
@@ -43,9 +29,12 @@ export function CommandSearch({ open, onClose }: CommandSearchProps) {
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
-    if (!needle) return destinations
-    return destinations.filter(
-      (d) => d.label.toLowerCase().includes(needle) || d.group.toLowerCase().includes(needle),
+    if (!needle) return commandDestinations
+    return commandDestinations.filter(
+      (d) =>
+        d.label.toLowerCase().includes(needle) ||
+        d.commandLabel?.toLowerCase().includes(needle) ||
+        d.group.toLowerCase().includes(needle),
     )
   }, [query])
 
@@ -101,7 +90,7 @@ export function CommandSearch({ open, onClose }: CommandSearchProps) {
                 }}
               >
                 <span className="font-display text-[16px] text-[color:var(--color-text-primary)] group-hover:text-[color:var(--chili-500)]"
-                  style={{ fontVariationSettings: "'opsz' 36, 'wght' 500" }}>{item.label}</span>
+                  style={{ fontVariationSettings: "'opsz' 36, 'wght' 500" }}>{item.commandLabel ?? item.label}</span>
                 <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-text-muted)]">§ {item.group}</span>
               </button>
             </li>

@@ -1,6 +1,5 @@
 import csv
 import io
-import re
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -13,6 +12,14 @@ from app.core.basket_presets import BASKET_PRESETS
 from app.core.sources import get_source_profile
 from app.db.session import get_database_provider_status, get_db
 from app.models.tables import FairPriceScoreRecord, FoodOfferRecord, MarketQuoteRecord, PriceAggregateRecord, ScrapeRun
+from app.services.item_intelligence import (
+    item_history_series,
+    item_summary_rows,
+    matching_market_item_names,
+    matching_offer_names,
+    price_prediction,
+    slugify,
+)
 from app.services.trust import build_reliability_summary, compute_platform_trust_snapshot
 
 router = APIRouter()
@@ -121,154 +128,6 @@ def _to_iso(value: datetime | None) -> str | None:
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc).isoformat()
     return value.isoformat()
-
-
-def _slugify(value: str | None) -> str:
-    value = (value or "").strip().lower()
-    value = re.sub(r"[^a-z0-9]+", "-", value)
-    return value.strip("-") or "item"
-
-
-def _matches_slug(value: str | None, slug: str) -> bool:
-    return _slugify(value) == slug
-
-
-def _item_history_series(db: Session, slug: str) -> list[dict[str, object]]:
-    rows = db.scalars(
-        select(MarketQuoteRecord).order_by(MarketQuoteRecord.quoted_at.asc(), MarketQuoteRecord.source.asc())
-    ).all()
-    matched = [row for row in rows if _matches_slug(row.item_name, slug)]
-    grouped: dict[str, list[MarketQuoteRecord]] = {}
-    for row in matched:
-        period = row.quoted_at.strftime("%Y-%m-%d") if row.quoted_at else "unknown"
-        grouped.setdefault(period, []).append(row)
-
-    series = []
-    for period, period_rows in sorted(grouped.items()):
-        prices = [float(row.price_lkr) for row in period_rows]
-        series.append(
-            {
-                "period": period,
-                "avg_price_lkr": round(sum(prices) / len(prices), 2),
-                "min_price_lkr": min(prices),
-                "max_price_lkr": max(prices),
-                "data_points": len(period_rows),
-                "sources": sorted({row.source for row in period_rows}),
-                "districts": sorted({row.district for row in period_rows}),
-            }
-        )
-    return series
-
-
-def _price_prediction(series: list[dict[str, object]]) -> dict[str, object]:
-    points = [row for row in series if row.get("avg_price_lkr") is not None]
-    prices = [float(row["avg_price_lkr"]) for row in points]
-    if len(prices) < 2:
-        return {
-            "direction": "insufficient-data",
-            "label": "Not enough history",
-            "next_estimate_lkr": None,
-            "confidence": "low",
-            "basis": "At least two dated price points are needed before forecasting.",
-        }
-
-    last_price = prices[-1]
-    previous_price = prices[-2]
-    delta_lkr = last_price - previous_price
-    delta_pct = (delta_lkr / previous_price * 100) if previous_price else 0.0
-    damped_next = max(0.0, last_price + (delta_lkr * 0.6))
-    if abs(delta_pct) < 2:
-        direction = "steady"
-        label = "Likely stable"
-    elif delta_pct > 0:
-        direction = "up"
-        label = "May increase"
-    else:
-        direction = "down"
-        label = "May reduce"
-
-    confidence = "high" if len(prices) >= 8 else "medium" if len(prices) >= 4 else "low"
-    return {
-        "direction": direction,
-        "label": label,
-        "next_estimate_lkr": round(damped_next, 2),
-        "last_price_lkr": round(last_price, 2),
-        "delta_lkr": round(delta_lkr, 2),
-        "delta_pct": round(delta_pct, 2),
-        "confidence": confidence,
-        "basis": f"Baseline forecast from the latest {min(len(prices), 8)} historical price points.",
-    }
-
-
-def _item_summary_rows(db: Session) -> list[dict[str, object]]:
-    offer_rows = db.scalars(select(FoodOfferRecord).order_by(FoodOfferRecord.price_lkr.asc())).all()
-    best_offer_by_name: dict[str, FoodOfferRecord] = {}
-    sources_by_name: dict[str, set[str]] = {}
-    latest_by_name: dict[str, datetime] = {}
-    for offer in offer_rows:
-        key = offer.canonical_name
-        sources_by_name.setdefault(key, set()).add(offer.source)
-        latest = latest_by_name.get(key)
-        if latest is None or offer.last_seen_at > latest:
-            latest_by_name[key] = offer.last_seen_at
-        if key not in best_offer_by_name:
-            best_offer_by_name[key] = offer
-
-    aggregates = db.scalars(
-        select(PriceAggregateRecord).order_by(PriceAggregateRecord.canonical_name.asc(), PriceAggregateRecord.brand.asc())
-    ).all()
-    rows = []
-    for row in aggregates:
-        best_offer = best_offer_by_name.get(row.canonical_name)
-        latest_updated_at = latest_by_name.get(row.canonical_name, row.calculated_at)
-        rows.append({
-            "slug": _slugify(row.canonical_name),
-            "canonical_name": row.canonical_name,
-            "display_name": best_offer.display_name if best_offer else row.canonical_name,
-            "category": row.category,
-            "kind": "retail",
-            "unit": row.unit,
-            "unit_amount": row.unit_amount,
-            "offers_count": row.offers_count,
-            "median_price_lkr": float(row.median_price_lkr),
-            "lowest_price_lkr": float(best_offer.price_lkr) if best_offer else float(row.min_price_lkr),
-            "price_per_unit_lkr": float(best_offer.price_per_unit_lkr) if best_offer and best_offer.price_per_unit_lkr else None,
-            "image_url": best_offer.image_url if best_offer else None,
-            "best_offer_id": best_offer.id if best_offer else None,
-            "sources": sorted(sources_by_name.get(row.canonical_name, set())),
-            "source_count": len(sources_by_name.get(row.canonical_name, set())),
-            "latest_updated_at": _to_iso(latest_updated_at),
-        })
-
-    market_groups: dict[tuple[str, str, str], list[MarketQuoteRecord]] = {}
-    market_quotes = db.scalars(
-        select(MarketQuoteRecord).order_by(MarketQuoteRecord.item_name.asc(), MarketQuoteRecord.price_lkr.asc())
-    ).all()
-    for quote in market_quotes:
-        market_groups.setdefault((quote.item_name, quote.category, quote.unit), []).append(quote)
-
-    for (item_name, category, unit), quotes in sorted(market_groups.items()):
-        prices = [float(quote.price_lkr) for quote in quotes]
-        latest_quoted_at = max((quote.quoted_at for quote in quotes if quote.quoted_at), default=None)
-        rows.append(
-            {
-                "slug": _slugify(item_name),
-                "canonical_name": item_name,
-                "display_name": item_name,
-                "category": category,
-                "kind": "market",
-                "unit": unit,
-                "unit_amount": 1,
-                "market_quotes_count": len(quotes),
-                "average_market_price_lkr": round(sum(prices) / len(prices), 2) if prices else None,
-                "lowest_price_lkr": round(min(prices), 2) if prices else None,
-                "image_url": None,
-                "sources": sorted({quote.source for quote in quotes}),
-                "source_count": len({quote.source for quote in quotes}),
-                "latest_updated_at": _to_iso(latest_quoted_at),
-            }
-        )
-    return rows
 
 
 def _offer_facets(db: Session) -> dict[str, list[dict[str, object]]]:
@@ -829,7 +688,7 @@ def list_items(
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
-    rows = _item_summary_rows(db)
+    rows = item_summary_rows(db)
     if search:
         term = search.strip().lower()
         rows = [
@@ -851,27 +710,20 @@ def item_history(
     district: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
-    normalized_slug = _slugify(slug)
-    series = _item_history_series(db, normalized_slug)
-    if district:
-        district_lower = district.lower()
-        series = [
-            row
-            for row in series
-            if any(str(row_district).lower() == district_lower for row_district in row["districts"])
-        ]
+    normalized_slug = slugify(slug)
+    series = item_history_series(db, normalized_slug, district=district)
     return {
         "item": {"slug": normalized_slug},
         "district": district,
         "series": series,
         "total_data_points": sum(int(row["data_points"]) for row in series),
-        "forecast": _price_prediction(series),
+        "forecast": price_prediction(series),
     }
 
 
 @router.get("/items/{slug}/history.csv")
 def item_history_csv(slug: str, db: Session = Depends(get_db)) -> StreamingResponse:
-    normalized_slug = _slugify(slug)
+    normalized_slug = slugify(slug)
     output = io.StringIO()
     writer = csv.DictWriter(
         output,
@@ -886,7 +738,7 @@ def item_history_csv(slug: str, db: Session = Depends(get_db)) -> StreamingRespo
         ],
     )
     writer.writeheader()
-    for row in _item_history_series(db, normalized_slug):
+    for row in item_history_series(db, normalized_slug):
         writer.writerow(
             {
                 **row,
@@ -909,24 +761,22 @@ def item_history_json(slug: str, db: Session = Depends(get_db)) -> dict[str, obj
 
 @router.get("/items/{slug}")
 def item_detail(slug: str, db: Session = Depends(get_db)) -> dict[str, object]:
-    normalized_slug = _slugify(slug)
+    normalized_slug = slugify(slug)
+    offer_names = matching_offer_names(db, normalized_slug)
     offer_rows = db.execute(
         select(FoodOfferRecord, FairPriceScoreRecord)
         .outerjoin(FairPriceScoreRecord, FairPriceScoreRecord.food_offer_id == FoodOfferRecord.id)
+        .where(FoodOfferRecord.canonical_name.in_(offer_names) if offer_names else False)
         .order_by(FoodOfferRecord.price_lkr.asc(), FoodOfferRecord.last_seen_at.desc())
     ).all()
-    matched_offers = [
-        (offer, score)
-        for offer, score in offer_rows
-        if _matches_slug(offer.canonical_name, normalized_slug) or _matches_slug(offer.display_name, normalized_slug)
-    ]
-    market_rows = [
-        row
-        for row in db.scalars(
-            select(MarketQuoteRecord).order_by(MarketQuoteRecord.price_lkr.asc(), MarketQuoteRecord.quoted_at.desc())
-        ).all()
-        if _matches_slug(row.item_name, normalized_slug)
-    ]
+    matched_offers = [(offer, score) for offer, score in offer_rows]
+    matching_market_names = matching_market_item_names(db, normalized_slug)
+    market_query = select(MarketQuoteRecord).order_by(MarketQuoteRecord.price_lkr.asc(), MarketQuoteRecord.quoted_at.desc())
+    if matching_market_names:
+        market_query = market_query.where(MarketQuoteRecord.item_name.in_(matching_market_names))
+        market_rows = db.scalars(market_query).all()
+    else:
+        market_rows = []
 
     if not matched_offers and not market_rows:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -937,6 +787,7 @@ def item_detail(slug: str, db: Session = Depends(get_db)) -> dict[str, object]:
         else market_rows[0].item_name
     )
     category = matched_offers[0][0].category if matched_offers else market_rows[0].category
+    history = item_history_series(db, normalized_slug)
 
     return {
         "item": {
@@ -956,8 +807,8 @@ def item_detail(slug: str, db: Session = Depends(get_db)) -> dict[str, object]:
             _serialize_offer_summary(offer, score)
             for offer, score in matched_offers[:20]
         ],
-        "district_history": _item_history_series(db, normalized_slug),
-        "forecast": _price_prediction(_item_history_series(db, normalized_slug)),
+        "district_history": history,
+        "forecast": price_prediction(history),
     }
 
 
