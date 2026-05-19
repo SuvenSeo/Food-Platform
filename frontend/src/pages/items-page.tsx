@@ -17,7 +17,7 @@ function ItemThumb({ item }: { item: ItemSummary }) {
       <img
         src={item.image_url}
         alt={item.display_name || item.canonical_name}
-        className="h-full w-full object-contain p-2 transition group-hover:scale-[1.04]"
+        className="h-full w-full object-contain p-3 transition group-hover:scale-[1.04]"
         loading="lazy"
         decoding="async"
         onError={() => setErrored(true)}
@@ -26,9 +26,9 @@ function ItemThumb({ item }: { item: ItemSummary }) {
   }
 
   return (
-    <div className="flex flex-col items-center gap-1 text-[color:var(--ink-400)]">
-      <ImageOff className="h-5 w-5" aria-hidden="true" />
-      <span className="font-mono text-[9px] uppercase tracking-[0.2em]">{item.kind}</span>
+    <div className="flex flex-col items-center gap-2 text-[color:var(--ink-400)]">
+      <ImageOff className="h-6 w-6" aria-hidden="true" />
+      <span className="font-mono text-[10px] uppercase tracking-[0.2em]">{item.kind}</span>
     </div>
   )
 }
@@ -90,36 +90,40 @@ export function ItemsPage() {
           actionTo="/retail"
         />
       ) : (
-        <div className="grid gap-[1px] bg-[color:var(--color-border)] md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-[1px] bg-[color:var(--color-border)] lg:grid-cols-2">
           {items.map((item) => (
             <Link
               key={`${item.kind}-${item.slug}-${item.unit ?? 'unit'}`}
               to={`/items/${item.slug}`}
-              className="group grid grid-cols-[96px_1fr] bg-[color:var(--color-bg-card)] text-[color:var(--color-text-primary)] transition hover:bg-[color:var(--color-bg-card-hover)]"
+              className="group grid min-h-[148px] grid-cols-[116px_minmax(0,1fr)] bg-[color:var(--color-bg-card)] text-[color:var(--color-text-primary)] transition hover:bg-[color:var(--color-bg-card-hover)] sm:min-h-[168px] sm:grid-cols-[148px_minmax(0,1fr)]"
             >
               <div className="flex aspect-square items-center justify-center border-r border-[color:var(--color-border)] bg-[color:var(--paper-200)]">
                 <ItemThumb item={item} />
               </div>
-              <div className="min-w-0 p-4">
+              <div className="flex min-w-0 flex-col justify-between p-4 sm:p-5">
                 <p className="text-kicker">{item.kind === 'retail' ? `${item.source_count ?? 0} retail sources` : `${item.market_quotes_count ?? 0} market quotes`}</p>
-                <h2 className="mt-2 line-clamp-2 font-display text-lg font-semibold leading-tight">
-                  {item.display_name || item.canonical_name}
-                </h2>
-                <p className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-text-muted)]">
-                  {item.category} · {item.unit_amount ?? 1} {item.unit ?? 'unit'}
-                </p>
-                <div className="mt-4 flex items-end justify-between gap-3">
-                  <p className="num text-2xl font-bold">
-                    <span className="text-xs text-[color:var(--color-text-muted)]">රු </span>
-                    {formatCurrency(item.lowest_price_lkr ?? item.median_price_lkr ?? item.average_market_price_lkr)}
+                <div className="min-w-0">
+                  <h2 className="mt-2 line-clamp-2 font-display text-xl font-semibold leading-tight text-[color:var(--color-text-primary)] sm:text-[22px]">
+                    {item.display_name || item.canonical_name}
+                  </h2>
+                  <p className="mt-2 truncate font-mono text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-text-muted)]">
+                    {item.category} · {item.unit_amount ?? 1} {item.unit ?? 'unit'}
                   </p>
-                  <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--chili-500)]">
-                    details <TrendingUp className="h-3 w-3" aria-hidden="true" />
+                </div>
+                <div className="mt-5 flex items-end justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="num text-[30px] font-bold leading-none sm:text-[34px]">
+                      <span className="text-sm text-[color:var(--color-text-muted)]">රු </span>
+                      {formatCurrency(item.lowest_price_lkr ?? item.median_price_lkr ?? item.average_market_price_lkr)}
+                    </p>
+                    <p className="mt-2 text-sm text-[color:var(--color-text-muted)]">
+                      Updated {formatCompactDate(item.latest_updated_at)}
+                    </p>
+                  </div>
+                  <span className="inline-flex shrink-0 items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--chili-500)]">
+                    details <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
                   </span>
                 </div>
-                <p className="mt-2 text-xs text-[color:var(--color-text-muted)]">
-                  Updated {formatCompactDate(item.latest_updated_at)}
-                </p>
               </div>
             </Link>
           ))}
