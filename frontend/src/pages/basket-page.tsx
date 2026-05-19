@@ -7,6 +7,7 @@ import { RevealSection } from '../components/ui/reveal-section'
 import { SectionHeader } from '../components/ui/section-header'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
+import { WorkflowCue } from '../components/ui/workflow-cue'
 import { useWatchlists } from '../hooks/use-watchlists'
 import { api } from '../lib/api'
 import { formatCompactDate, formatCurrency } from '../lib/format'
@@ -71,6 +72,18 @@ export function BasketPage() {
           ]}
         />
       )}
+
+      <WorkflowCue
+        id="basket-ledger-guidance"
+        eyebrow="Basket path"
+        title="Use presets as a household estimate, then inspect missing lines."
+        body="The total is only as useful as its quoted lines. Filter to missing items before treating a basket as complete."
+        points={['Pick preset', 'Review missing', 'Clip basket']}
+        actionLabel="Compare districts"
+        actionTo="/compare"
+        secondaryActionLabel="Open prices"
+        secondaryActionTo="/items"
+      />
 
       <div className="grid gap-6 lg:grid-cols-[0.72fr_1.28fr]">
         <aside className="min-w-0 space-y-4">

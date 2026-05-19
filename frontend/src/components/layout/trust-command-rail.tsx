@@ -61,8 +61,8 @@ export function TrustCommandRail({ freshness, loading = false }: TrustCommandRai
         </div>
 
         <div className="trust-command-cell bg-[color:var(--paper-50)]">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
+          <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <span className="text-kicker">§ Next action</span>
               <p className="mt-2 text-sm leading-6 text-[color:var(--ink-700)]">
                 {warnings.length
@@ -70,7 +70,7 @@ export function TrustCommandRail({ freshness, loading = false }: TrustCommandRai
                   : 'All expected feeds are within the current trust window.'}
               </p>
             </div>
-            <div className="flex shrink-0 flex-wrap gap-2">
+            <div className="flex min-w-0 flex-wrap gap-2 sm:shrink-0">
               <Link to="/pipeline" className="rail-action">
                 <DatabaseZap className="h-3.5 w-3.5" aria-hidden="true" />
                 Pipeline

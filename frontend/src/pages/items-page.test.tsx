@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -68,7 +68,22 @@ describe('ItemsPage', () => {
 
     expect(screen.getByAltText('Cargills Coconut Oil')).toBeInTheDocument()
     expect(screen.getByText('Tomato')).toBeInTheDocument()
+    expect(screen.getByText(/visible results/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Cargills Coconut Oil/i })).toHaveAttribute('href', '/items/coconut-oil')
     expect(screen.getByRole('link', { name: /Tomato/i })).toHaveAttribute('href', '/items/tomato')
+  })
+
+  it('filters visible catalog results by retail or market signal type', async () => {
+    renderItems()
+
+    await waitFor(() => {
+      expect(screen.getByText('Cargills Coconut Oil')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /market only/i }))
+
+    expect(screen.queryByText('Cargills Coconut Oil')).not.toBeInTheDocument()
+    expect(screen.getByText('Tomato')).toBeInTheDocument()
+    expect(screen.getByText(/visible results/i).nextElementSibling).toHaveTextContent('1')
   })
 })

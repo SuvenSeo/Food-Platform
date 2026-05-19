@@ -116,11 +116,13 @@ describe('MarketIntelligenceBoard', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByLabelText(/live market board/i)).toBeInTheDocument()
-    expect(screen.getByText(/trust first/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/foodlk market overview/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /sri lanka food prices before you shop/i })).toBeInTheDocument()
     expect(screen.getByText(/carrot 1kg/i)).toBeInTheDocument()
     expect(screen.getByText(/tomato · colombo/i)).toBeInTheDocument()
+    expect(screen.getByText(/retail offers/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /open offer/i })).toHaveAttribute('href', '/offers/42')
-    expect(screen.getByRole('link', { name: /compare/i })).toHaveAttribute('href', '/compare')
+    expect(screen.getByRole('link', { name: /open prices/i })).toHaveAttribute('href', '/items')
+    expect(screen.getByRole('link', { name: /compare districts/i })).toHaveAttribute('href', '/compare')
   })
 })

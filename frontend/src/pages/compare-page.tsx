@@ -9,6 +9,7 @@ import { Badge } from '../components/ui/badge'
 import { SectionHeader } from '../components/ui/section-header'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
+import { WorkflowCue } from '../components/ui/workflow-cue'
 import { useWatchlists } from '../hooks/use-watchlists'
 import { api } from '../lib/api'
 import { formatCompactDate, formatCurrency } from '../lib/format'
@@ -102,6 +103,18 @@ export function ComparePage() {
           ]}
         />
       )}
+
+      <WorkflowCue
+        id="compare-receipt-guidance"
+        eyebrow="Compare path"
+        title="Compare only like-for-like rows, then save the useful receipt."
+        body="The chart highlights the largest gaps; the receipt lines below show which side is cheaper and when each quote was observed."
+        points={['Pick two sides', 'Sort by delta', 'Clip receipt']}
+        actionLabel="Build basket"
+        actionTo="/basket"
+        secondaryActionLabel="Open markets"
+        secondaryActionTo="/markets"
+      />
 
       <div className="grid gap-6 lg:grid-cols-[0.72fr_1.28fr]">
         <aside className="min-w-0 space-y-4">
@@ -209,7 +222,7 @@ export function ComparePage() {
 
         <div className="min-w-0 space-y-4">
           {!isLoading && chartData.length > 1 && (
-            <div className="border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4 shadow-paper">
+            <div className="fp-chart-panel">
               <p className="text-kicker">Top receipt lines</p>
               <div className="mt-4 h-56 w-full">
                 <ResponsiveContainer width="100%" height="100%">

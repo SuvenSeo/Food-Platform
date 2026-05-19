@@ -6,6 +6,7 @@ import { OfferCard } from '../components/ui/offer-card'
 import { PipelineCard } from '../components/ui/pipeline-card'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { EmptyState, ErrorState } from '../components/ui/workflow-helpers'
+import { WorkflowCue } from '../components/ui/workflow-cue'
 import { useIntelligenceBrief } from '../hooks/use-intelligence-brief'
 import { useIntelligenceSummary } from '../hooks/use-intelligence-summary'
 import { useMarketTrend } from '../hooks/use-market-trend'
@@ -66,6 +67,18 @@ export function IntelligencePage() {
           links={[{ label: 'Open retail', to: '/retail' }, { label: 'Open markets', to: '/markets' }]}
         />
       )}
+
+      <WorkflowCue
+        id="intelligence-desk-guidance"
+        eyebrow="Read order"
+        title="Treat this page as the trust layer after discovery."
+        body="Start with the command brief, confirm source health, then use the chart only when the series has enough quote history."
+        points={['Read urgency', 'Check source health', 'Open market trend']}
+        actionLabel="Open prices"
+        actionTo="/items"
+        secondaryActionLabel="Open markets"
+        secondaryActionTo="/markets"
+      />
 
       {/* — Command brief panel — */}
       <article className="border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-7">
@@ -220,7 +233,7 @@ export function IntelligencePage() {
       </section>
 
       {/* — Trend chart — */}
-      <article className="border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-6">
+      <article className="fp-chart-panel">
         <div className="flex items-baseline justify-between">
           <span className="text-kicker">§ Market trend</span>
           {topMarketItem && (

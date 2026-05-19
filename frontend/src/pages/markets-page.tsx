@@ -8,6 +8,7 @@ import {
 import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { SectionHeader } from '../components/ui/section-header'
 import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
+import { WorkflowCue } from '../components/ui/workflow-cue'
 import { useMarketTrend } from '../hooks/use-market-trend'
 import { useTrendsSummary } from '../hooks/use-trends-summary'
 import { api } from '../lib/api'
@@ -79,8 +80,20 @@ export function MarketsPage() {
         />
       )}
 
+      <WorkflowCue
+        id="markets-trend-guidance"
+        eyebrow="Market path"
+        title="Use the chart for movement, then use the quote list for today’s price."
+        body="Pick a commodity, narrow to a district only when needed, and keep the spot-price list visible for current context."
+        points={['Choose commodity', 'Optional district', 'Scan spot prices']}
+        actionLabel="Compare districts"
+        actionTo="/compare"
+        secondaryActionLabel="Open catalog"
+        secondaryActionTo="/items"
+      />
+
       {/* — Trend chart — */}
-      <article className="border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-6">
+      <article className="fp-chart-panel">
         <div className="flex items-baseline justify-between">
           <span className="text-kicker">§ Trend explorer</span>
           <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-faint)]">

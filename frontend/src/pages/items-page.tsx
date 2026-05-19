@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useMemo, useState } from 'react'
-import { ImageOff, Search, TrendingUp } from 'lucide-react'
+import { ImageOff, LayoutGrid, Search, Store, TrendingUp, Waves } from 'lucide-react'
 
 import { SectionHeader } from '../components/ui/section-header'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { EmptyState, ErrorState } from '../components/ui/workflow-helpers'
+import { WorkflowCue } from '../components/ui/workflow-cue'
 import { api } from '../lib/api'
 import { formatCompactDate, formatCurrency } from '../lib/format'
 import type { ItemSummary } from '../types'
@@ -45,17 +46,37 @@ export function ItemsPage() {
     queryKey: ['items', params],
     queryFn: () => api.getItems(params),
   })
-  const items = (itemsQuery.data?.items ?? []).filter((item) => (kind === 'all' ? true : item.kind === kind))
+  const allItems = itemsQuery.data?.items ?? []
+  const retailCount = allItems.filter((item) => item.kind === 'retail').length
+  const marketCount = allItems.filter((item) => item.kind === 'market').length
+  const items = allItems.filter((item) => (kind === 'all' ? true : item.kind === kind))
+  const kindOptions = [
+    { value: 'all', label: 'All signals', count: allItems.length, icon: LayoutGrid },
+    { value: 'retail', label: 'Retail only', count: retailCount, icon: Store },
+    { value: 'market', label: 'Market only', count: marketCount, icon: Waves },
+  ] as const
 
   return (
     <section className="space-y-10">
       <SectionHeader
         eyebrow="All Items"
         title="Price catalog"
-        description="A simple searchable index of scraped retail products and public-market items, with product photos where the source provides them."
+        description="Search once, then split the result between supermarket products and public-market items before moving into comparison or basket work."
       />
 
-      <div className="grid gap-4 border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4 md:grid-cols-[1.4fr_0.6fr]">
+      <WorkflowCue
+        id="items-catalog-guidance"
+        eyebrow="Catalog path"
+        title="Start broad, then narrow by signal type."
+        body="Use all signals for discovery, retail when package photos matter, and market when district price movement matters."
+        points={['Search item name', 'Choose signal type', 'Open details']}
+        actionLabel="Compare districts"
+        actionTo="/compare"
+        secondaryActionLabel="Build basket"
+        secondaryActionTo="/basket"
+      />
+
+      <div className="grid gap-4 border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4 lg:grid-cols-[1.2fr_0.8fr]">
         <label className="space-y-2">
           <span className="text-kicker">Search item</span>
           <div className="relative">
@@ -68,14 +89,40 @@ export function ItemsPage() {
             />
           </div>
         </label>
-        <label className="space-y-2">
-          <span className="text-kicker">View</span>
-          <select value={kind} onChange={(event) => setKind(event.target.value as typeof kind)} className="fp-select">
-            <option value="all">Retail + market</option>
-            <option value="retail">Retail products</option>
-            <option value="market">Public-market items</option>
-          </select>
-        </label>
+        <div className="space-y-2">
+          <span className="text-kicker">Signal type</span>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {kindOptions.map(({ value, label, count, icon: Icon }) => (
+              <button
+                key={value}
+                type="button"
+                data-active={kind === value}
+                aria-pressed={kind === value}
+                onClick={() => setKind(value)}
+                className="catalog-kind-button"
+              >
+                <span className="min-w-0">
+                  <span className="block font-mono text-[10px] font-bold uppercase tracking-[0.16em]">{label}</span>
+                  <span className="num mt-1 block text-xl font-bold">{count.toLocaleString()}</span>
+                </span>
+                <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-[1px] bg-[color:var(--color-border)] sm:grid-cols-3">
+        {[
+          { label: 'Visible results', value: items.length },
+          { label: 'Retail products', value: retailCount },
+          { label: 'Market items', value: marketCount },
+        ].map((stat) => (
+          <div key={stat.label} className="bg-[color:var(--color-bg-card)] p-4">
+            <p className="text-kicker">{stat.label}</p>
+            <p className="num mt-2 text-2xl font-bold text-[color:var(--color-text-primary)]">{stat.value.toLocaleString()}</p>
+          </div>
+        ))}
       </div>
 
       {itemsQuery.isError ? (
@@ -95,13 +142,18 @@ export function ItemsPage() {
             <Link
               key={`${item.kind}-${item.slug}-${item.category}-${item.unit ?? 'unit'}-${item.best_offer_id ?? item.market_quotes_count ?? 'row'}-${index}`}
               to={`/items/${item.slug}`}
-              className="group grid min-h-[148px] grid-cols-[116px_minmax(0,1fr)] bg-[color:var(--color-bg-card)] text-[color:var(--color-text-primary)] transition hover:bg-[color:var(--color-bg-card-hover)] sm:min-h-[168px] sm:grid-cols-[148px_minmax(0,1fr)]"
+              className="catalog-result-card group grid min-h-[148px] grid-cols-[116px_minmax(0,1fr)] bg-[color:var(--color-bg-card)] text-[color:var(--color-text-primary)] transition hover:bg-[color:var(--color-bg-card-hover)] sm:min-h-[168px] sm:grid-cols-[148px_minmax(0,1fr)]"
             >
               <div className="flex aspect-square items-center justify-center border-r border-[color:var(--color-border)] bg-[color:var(--paper-200)]">
                 <ItemThumb item={item} />
               </div>
               <div className="flex min-w-0 flex-col justify-between p-4 sm:p-5">
-                <p className="text-kicker">{item.kind === 'retail' ? `${item.source_count ?? 0} retail sources` : `${item.market_quotes_count ?? 0} market quotes`}</p>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-kicker">{item.kind === 'retail' ? `${item.source_count ?? 0} retail sources` : `${item.market_quotes_count ?? 0} market quotes`}</p>
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--color-text-muted)]">
+                    {item.kind === 'retail' ? 'Retail' : 'Market'}
+                  </span>
+                </div>
                 <div className="min-w-0">
                   <h2 className="mt-2 line-clamp-2 font-display text-xl font-semibold leading-tight text-[color:var(--color-text-primary)] sm:text-[22px]">
                     {item.display_name || item.canonical_name}
