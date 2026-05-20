@@ -7,7 +7,7 @@ export function NotFoundPage() {
   return (
     <section className="grid min-h-[62vh] place-items-center">
       <div className="w-full max-w-4xl border-y border-[color:var(--color-border-strong)] py-10">
-        <p className="stamp">Missing page · Mandiya desk</p>
+        <p className="stamp">Missing page · FoodLK desk</p>
         <div className="mt-6 grid gap-8 lg:grid-cols-[0.7fr_1.3fr] lg:items-end">
           <h1
             className="font-display text-[clamp(5rem,18vw,11rem)] font-bold leading-none text-[color:var(--color-text-primary)]"
@@ -23,7 +23,7 @@ export function NotFoundPage() {
               This stall has moved.
             </h2>
             <p className="mt-4 max-w-[58ch] text-base leading-7 text-[color:var(--color-text-secondary)]">
-              The page you opened is not in today’s edition. Jump back into a live price workflow.
+              The page you opened is not in today’s edition. Jump back into a scheduled price workflow.
             </p>
           </div>
         </div>

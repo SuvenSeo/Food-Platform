@@ -64,7 +64,7 @@ export function IntelligencePage() {
           message="Some intelligence modules are temporarily unavailable."
           helper="Try retry, or continue from discovery while upstream reconnects."
           onRetry={() => { void intelligenceQuery.refetch(); void briefQuery.refetch() }}
-          links={[{ label: 'Open retail', to: '/retail' }, { label: 'Open markets', to: '/markets' }]}
+          links={[{ label: 'Open prices', to: '/prices' }, { label: 'Open markets', to: '/markets' }]}
         />
       )}
 
@@ -75,7 +75,7 @@ export function IntelligencePage() {
         body="Start with the command brief, confirm source health, then use the chart only when the series has enough quote history."
         points={['Read urgency', 'Check source health', 'Open market trend']}
         actionLabel="Open prices"
-        actionTo="/items"
+        actionTo="/prices"
         secondaryActionLabel="Open markets"
         secondaryActionTo="/markets"
       />
@@ -151,7 +151,7 @@ export function IntelligencePage() {
             </ul>
           </div>
           <div className="border-l border-[color:var(--color-border)] pl-6">
-            <span className="text-kicker">§ Live spotlight</span>
+            <span className="text-kicker">§ Current spotlight</span>
             {brief?.top_value_offer ? (
               <div className="mt-3">
                 <p
@@ -202,9 +202,9 @@ export function IntelligencePage() {
             <EmptyState
               title="Top-value offers are unavailable right now"
               description="Discovery cards are temporarily empty for this module."
-              hint="Continue from retail while this feed repopulates."
-              actionLabel="Open retail"
-              actionTo="/retail"
+              hint="Continue from prices while this feed repopulates."
+              actionLabel="Open prices"
+              actionTo="/prices"
             />
           )}
         </div>
@@ -225,8 +225,8 @@ export function IntelligencePage() {
             <EmptyState
               title="Source pipeline silent"
               description="No ingestion updates returned for this session."
-              actionLabel="Open retail"
-              actionTo="/retail"
+              actionLabel="Open prices"
+              actionTo="/prices"
             />
           )}
         </div>

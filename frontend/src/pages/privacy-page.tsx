@@ -6,7 +6,7 @@ const sections = [
   {
     icon: Lock,
     title: 'Browser-local watchlists',
-    body: 'Saved baskets, comparison receipts, and clipped offers currently live in local browser storage. They are not synced to a server, shared across devices, or used to profile households.',
+    body: 'Saved baskets, comparison receipts, and clipped offers are currently stored in local browser storage. They are not synced to a server, shared across devices, or used to profile households.',
   },
   {
     icon: Globe,

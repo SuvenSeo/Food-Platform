@@ -44,6 +44,10 @@ vi.mock('../lib/api', () => ({
         },
       ],
     }),
+    getTrendsSummary: vi.fn().mockResolvedValue({
+      generated_at: '2026-05-19T00:00:00+00:00',
+      items: [],
+    }),
   },
 }))
 
@@ -59,16 +63,15 @@ function renderItems() {
 }
 
 describe('ItemsPage', () => {
-  it('renders retail and market items with price, image, and detail links', async () => {
+  it('renders retail and market items with price signals and detail links', async () => {
     renderItems()
 
     await waitFor(() => {
       expect(screen.getByText('Cargills Coconut Oil')).toBeInTheDocument()
     })
 
-    expect(screen.getByAltText('Cargills Coconut Oil')).toBeInTheDocument()
     expect(screen.getByText('Tomato')).toBeInTheDocument()
-    expect(screen.getByText(/visible results/i)).toBeInTheDocument()
+    expect(screen.getByText(/visible rows/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Cargills Coconut Oil/i })).toHaveAttribute('href', '/items/coconut-oil')
     expect(screen.getByRole('link', { name: /Tomato/i })).toHaveAttribute('href', '/items/tomato')
   })
@@ -80,10 +83,10 @@ describe('ItemsPage', () => {
       expect(screen.getByText('Cargills Coconut Oil')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /market only/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^market/i }))
 
     expect(screen.queryByText('Cargills Coconut Oil')).not.toBeInTheDocument()
     expect(screen.getByText('Tomato')).toBeInTheDocument()
-    expect(screen.getByText(/visible results/i).nextElementSibling).toHaveTextContent('1')
+    expect(screen.getByText(/visible rows/i).nextElementSibling).toHaveTextContent('1')
   })
 })

@@ -1,12 +1,11 @@
 import { Suspense, lazy, useEffect } from 'react'
-import { Route, Routes, useLocation } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
 import { AppShell } from '../components/layout/app-shell'
 import { LoadingBlock } from '../components/ui/loading-block'
 
 const HomePage = lazy(() => import('../pages/home-page').then((module) => ({ default: module.HomePage })))
 const IntelligencePage = lazy(() => import('../pages/intelligence-page').then((module) => ({ default: module.IntelligencePage })))
-const RetailPage = lazy(() => import('../pages/retail-page').then((module) => ({ default: module.RetailPage })))
 const MarketsPage = lazy(() => import('../pages/markets-page').then((module) => ({ default: module.MarketsPage })))
 const ItemsPage = lazy(() => import('../pages/items-page').then((module) => ({ default: module.ItemsPage })))
 const ItemDetailPage = lazy(() => import('../pages/item-detail-page').then((module) => ({ default: module.ItemDetailPage })))
@@ -20,7 +19,6 @@ const PrivacyPage = lazy(() => import('../pages/privacy-page').then((module) => 
 const TermsPage = lazy(() => import('../pages/terms-page').then((module) => ({ default: module.TermsPage })))
 const PipelinePage = lazy(() => import('../pages/pipeline-page').then((module) => ({ default: module.PipelinePage })))
 const OfferDetailPage = lazy(() => import('../pages/offer-detail-page').then((module) => ({ default: module.OfferDetailPage })))
-const ChangesPage = lazy(() => import('../pages/changes-page').then((module) => ({ default: module.ChangesPage })))
 const NotFoundPage = lazy(() => import('../pages/not-found-page').then((module) => ({ default: module.NotFoundPage })))
 const AlertConfirmPage = lazy(() => import('../pages/alert-confirm-page').then((module) => ({ default: module.AlertConfirmPage })))
 const AlertManagePage = lazy(() => import('../pages/alert-manage-page').then((module) => ({ default: module.AlertManagePage })))
@@ -39,12 +37,12 @@ const routeMetadata: Record<string, { title: string; description: string }> = {
     description: 'Browse normalised supermarket and grocery offers with source-aware filters and transparent pricing.',
   },
   '/items': {
-    title: 'Price Catalog | FoodLK',
-    description: 'Browse grouped retail products and public-market items with photos, prices, sources, and item intelligence.',
+    title: 'Prices | FoodLK',
+    description: 'Search grouped retail products and public-market items with normalized prices, sources, and item intelligence.',
   },
   '/prices': {
-    title: 'Price Catalog | FoodLK',
-    description: 'Browse grouped retail products and public-market items with photos, prices, sources, and item intelligence.',
+    title: 'Prices | FoodLK',
+    description: 'Search grouped retail products and public-market items with normalized prices, sources, and item intelligence.',
   },
   '/markets': {
     title: 'Market Quotes | FoodLK',
@@ -64,7 +62,7 @@ const routeMetadata: Record<string, { title: string; description: string }> = {
   },
   '/basket': {
     title: 'Basket Workspace | FoodLK',
-    description: 'Estimate household basket costs from live retail and market signals across preset categories.',
+    description: 'Estimate household basket costs from scheduled retail and market signals across preset categories.',
   },
   '/watchlists': {
     title: 'Watchlists | FoodLK',
@@ -127,6 +125,11 @@ function RouteMetadata() {
   return null
 }
 
+function LegacyItemsRedirect() {
+  const location = useLocation()
+  return <Navigate to={`/prices${location.search}`} replace />
+}
+
 export function AppRoutes() {
   return (
     <AppShell>
@@ -135,14 +138,14 @@ export function AppRoutes() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/intelligence" element={<IntelligencePage />} />
-          <Route path="/retail" element={<RetailPage />} />
-          <Route path="/items" element={<ItemsPage />} />
+          <Route path="/retail" element={<Navigate to="/prices?tab=retail" replace />} />
+          <Route path="/items" element={<LegacyItemsRedirect />} />
           <Route path="/prices" element={<ItemsPage />} />
           <Route path="/items/:slug" element={<ItemDetailPage />} />
           <Route path="/markets" element={<MarketsPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/compare" element={<ComparePage />} />
-          <Route path="/changes" element={<ChangesPage />} />
+          <Route path="/changes" element={<Navigate to="/intelligence" replace />} />
           <Route path="/basket" element={<BasketPage />} />
           <Route path="/watchlists" element={<WatchlistsPage />} />
           <Route path="/methods" element={<MethodsPage />} />

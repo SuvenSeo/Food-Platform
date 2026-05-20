@@ -124,7 +124,7 @@ export function AppLoader({ children }: AppLoaderProps) {
                 opacity: 0.18,
               }}
             >
-              MANDIYA
+              FOODLK
             </div>
 
             {/* Foreground composition */}
@@ -193,7 +193,7 @@ export function AppLoader({ children }: AppLoaderProps) {
                 className="mt-6 font-display text-[44px] font-bold leading-none tracking-normal text-[#0E0E0C]"
                 style={{ fontVariationSettings: "'opsz' 144, 'wght' 700" }}
               >
-                Mandiya<span className="text-[#C8321E]">.</span>
+                FoodLK<span className="text-[#C8321E]">.</span>
               </motion.p>
               <motion.p
                 initial={{ opacity: 0 }}

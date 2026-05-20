@@ -152,7 +152,7 @@ export function CategoriesPage() {
         <NextActionLinks
           title="Next actions"
           links={[
-            { label: 'Open retail', to: '/retail' },
+            { label: 'Open prices', to: '/prices' },
             { label: 'Open markets', to: '/markets' },
             { label: 'Compare districts', to: '/compare' },
           ]}

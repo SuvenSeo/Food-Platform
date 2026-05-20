@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom'
-import { ArrowRight, BarChart3, GitCompareArrows, Search, ShieldCheck, ShoppingBasket } from 'lucide-react'
+import { type FormEvent, useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowRight, BarChart3, Bell, GitCompareArrows, Search, ShieldCheck } from 'lucide-react'
 
 import type { HomeSummary, IntelligenceSummary, PlatformFreshnessSummary } from '../../types'
 import { formatCompactDate, formatCurrency } from '../../lib/format'
@@ -11,6 +12,8 @@ type MarketIntelligenceBoardProps = {
 }
 
 export function MarketIntelligenceBoard({ home, intelligence, freshness }: MarketIntelligenceBoardProps) {
+  const navigate = useNavigate()
+  const [query, setQuery] = useState('')
   const leadOffer = intelligence?.rankings.top_value?.[0] ?? home?.spotlights.cheapest_offers?.[0]
   const latestQuote = home?.spotlights.market_quotes?.[0]
   const trend = intelligence?.rankings.trend_snapshot?.[0]
@@ -19,51 +22,73 @@ export function MarketIntelligenceBoard({ home, intelligence, freshness }: Marke
     ? `${freshness.pipeline.healthy_sources}/${freshness.pipeline.total_sources}`
     : `${home?.kpis.sources_count ?? 0}`
   const confidence = freshness?.confidence.grade ?? 'pending'
-  const confidenceLabel = confidence === 'high' ? 'High' : confidence === 'medium' ? 'Watch' : confidence === 'low' ? 'Low' : 'Pending'
+  const confidenceLabel = confidence === 'high' ? 'High trust' : confidence === 'medium' ? 'Watch grade' : confidence === 'low' ? 'Validate first' : 'Pending'
   const latestStamp = formatCompactDate(home?.hero.last_updated_at ?? freshness?.generated_at ?? null)
+  const topSignals = useMemo(
+    () => (intelligence?.rankings.top_value?.length ? intelligence.rankings.top_value : home?.spotlights.cheapest_offers ?? []).slice(0, 3),
+    [home?.spotlights.cheapest_offers, intelligence?.rankings.top_value],
+  )
+
+  function submitSearch(event: FormEvent) {
+    event.preventDefault()
+    const trimmed = query.trim()
+    navigate(trimmed ? `/prices?search=${encodeURIComponent(trimmed)}` : '/prices')
+  }
 
   const kpis = [
-    { label: 'Retail offers', value: home?.kpis.offers_count?.toLocaleString() ?? '—', note: 'normalized shelf prices' },
-    { label: 'Market quotes', value: home?.kpis.market_quotes_count?.toLocaleString() ?? '—', note: 'public-market observations' },
-    { label: 'Sources live', value: sourceHealth, note: 'feeds inside the trust window' },
-    { label: 'Trust grade', value: confidenceLabel, note: warnings.length ? `${warnings.length} feed warning${warnings.length === 1 ? '' : 's'}` : 'ready for daily decisions' },
+    { label: 'Tracked prices', value: home?.kpis.offers_count?.toLocaleString() ?? '-', note: 'normalized retail rows' },
+    { label: 'Market history', value: home?.kpis.market_quotes_count?.toLocaleString() ?? '-', note: 'official and public quote points' },
+    { label: 'Sources checked', value: sourceHealth, note: 'scheduled feeds in the trust window' },
+    { label: 'Confidence', value: confidenceLabel, note: warnings.length ? `${warnings.length} source warning${warnings.length === 1 ? '' : 's'}` : 'no blocking source warnings' },
   ]
 
   return (
     <section className="market-board" aria-label="FoodLK market overview">
-      <div className="market-board-photo" aria-hidden="true" />
-
       <article className="market-board-panel market-board-lead">
-        <span className="text-kicker text-[color:var(--turmeric)]">§ FoodLK · Mandiya</span>
+        <span className="text-kicker text-[color:var(--turmeric)]">§ FoodLK price intelligence</span>
         <h1
-          className="mt-4 max-w-[14ch] font-display text-[clamp(2.35rem,5.2vw,4.7rem)] font-semibold leading-[0.94] text-[color:var(--paper-50)]"
+          className="mt-4 max-w-[13ch] font-display text-[clamp(2.5rem,5.4vw,5rem)] font-semibold leading-[0.94] text-[color:var(--paper-50)]"
           style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 30, 'wght' 660" }}
         >
-          Sri Lanka food prices before you shop.
+          Sri Lanka food price intelligence.
         </h1>
         <p className="mt-5 max-w-[46ch] text-sm leading-7 text-[color:var(--paper-300)]">
-          Search a product, compare districts, price a basket, or inspect the data quality behind every signal.
+          Search a staple, compare normalized prices, inspect trends, then save the signal before the next scheduled refresh.
         </p>
-        <div className="mt-7 flex flex-wrap gap-2" aria-label="Primary homepage actions">
-          <Link to="/items" className="fp-button-primary bg-[color:var(--paper-50)] text-[color:var(--ink-900)] hover:bg-[color:var(--turmeric)] hover:text-[color:var(--ink-900)]">
-            Open prices
+
+        <form onSubmit={submitSearch} className="mt-7 grid gap-2 rounded-none border border-white/20 bg-white/[0.08] p-2 sm:grid-cols-[1fr_auto]">
+          <label className="relative min-w-0">
+            <span className="sr-only">Search food prices</span>
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--paper-300)]" aria-hidden="true" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              className="h-12 w-full bg-transparent pl-10 pr-3 font-display text-[17px] text-[color:var(--paper-50)] placeholder:text-[color:var(--paper-400)] focus:outline-none"
+              placeholder="Search rice, dhal, coconut oil..."
+            />
+          </label>
+          <button type="submit" className="fp-button-primary bg-[color:var(--paper-50)] text-[color:var(--ink-900)] hover:bg-[color:var(--turmeric)] hover:text-[color:var(--ink-900)]">
+            Search prices
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
+          </button>
+        </form>
+
+        <div className="mt-5 flex flex-wrap gap-2" aria-label="Primary homepage actions">
           <Link to="/compare" className="fp-button-secondary border-white/25 text-[color:var(--paper-50)] hover:border-[color:var(--turmeric)] hover:bg-white/[0.08] hover:text-[color:var(--turmeric)]">
             <GitCompareArrows className="h-4 w-4" aria-hidden="true" />
-            Compare districts
-          </Link>
-          <Link to="/basket" className="fp-button-secondary border-white/25 text-[color:var(--paper-50)] hover:border-[color:var(--turmeric)] hover:bg-white/[0.08] hover:text-[color:var(--turmeric)]">
-            <ShoppingBasket className="h-4 w-4" aria-hidden="true" />
-            Build basket
+            Compare item
           </Link>
           <Link to="/intelligence" className="fp-button-secondary border-white/25 text-[color:var(--paper-50)] hover:border-[color:var(--turmeric)] hover:bg-white/[0.08] hover:text-[color:var(--turmeric)]">
             <BarChart3 className="h-4 w-4" aria-hidden="true" />
-            Insights
+            Trends
+          </Link>
+          <Link to="/watchlists" className="fp-button-secondary border-white/25 text-[color:var(--paper-50)] hover:border-[color:var(--turmeric)] hover:bg-white/[0.08] hover:text-[color:var(--turmeric)]">
+            <Bell className="h-4 w-4" aria-hidden="true" />
+            Saved alerts
           </Link>
         </div>
         <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--paper-400)]">
-          Updated {latestStamp}
+          Latest scheduled refresh {latestStamp}
         </p>
       </article>
 
@@ -79,17 +104,28 @@ export function MarketIntelligenceBoard({ home, intelligence, freshness }: Marke
         </article>
       ))}
 
-      <article className="market-board-panel bg-[color:var(--paper-50)]">
-        <span className="text-kicker">§ Best value</span>
-        <p className="mt-4 font-display text-2xl leading-tight text-[color:var(--color-text-primary)]">
-          {leadOffer?.display_name ?? 'Waiting for retail scrape'}
-        </p>
-        <p className="num mt-3 text-3xl font-bold text-[color:var(--chili-600)]">
-          රු {formatCurrency(leadOffer?.price_lkr)}
-        </p>
-        <Link to={leadOffer ? `/offers/${leadOffer.id}` : '/retail'} className="market-board-link">
-          Open offer <ArrowRight className="h-4 w-4" aria-hidden="true" />
-        </Link>
+      <article className="market-board-panel market-board-signal bg-[color:var(--paper-50)]">
+        <span className="text-kicker">§ Best normalized signal</span>
+        {leadOffer ? (
+          <>
+            <p className="mt-4 font-display text-2xl leading-tight text-[color:var(--color-text-primary)]">
+              {leadOffer.display_name}
+            </p>
+            <p className="num mt-3 text-3xl font-bold text-[color:var(--chili-600)]">
+              රු {formatCurrency(leadOffer.price_lkr)}
+            </p>
+            <p className="mt-2 text-sm text-[color:var(--color-text-secondary)]">
+              {leadOffer.delta_vs_median_pct == null
+                ? 'Median comparison still calibrating.'
+                : `${Math.abs(leadOffer.delta_vs_median_pct).toFixed(1)}% ${leadOffer.delta_vs_median_pct > 0 ? 'below' : 'above'} its current median.`}
+            </p>
+            <Link to={`/offers/${leadOffer.id}`} className="market-board-link">
+              Inspect signal <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </>
+        ) : (
+          <p className="mt-4 text-sm text-[color:var(--color-text-secondary)]">Retail source comparison is loading.</p>
+        )}
       </article>
 
       <article className="market-board-panel bg-[color:var(--paper-50)]">
@@ -106,7 +142,7 @@ export function MarketIntelligenceBoard({ home, intelligence, freshness }: Marke
       </article>
 
       <article className="market-board-panel bg-[color:var(--paper-50)]">
-        <span className="text-kicker">§ Trend to watch</span>
+        <span className="text-kicker">§ History to inspect</span>
         <p className="mt-4 font-display text-2xl leading-tight text-[color:var(--color-text-primary)]">
           {trend?.canonical_name ?? 'Trend series loading'}
         </p>
@@ -114,17 +150,38 @@ export function MarketIntelligenceBoard({ home, intelligence, freshness }: Marke
           Median {trend ? `රු ${formatCurrency(trend.median_price_lkr)}` : 'pending'} across {trend?.offers_count ?? 0} offers.
         </p>
         <Link to="/intelligence" className="market-board-link">
-          Open desk <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          Open trends <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
+      </article>
+
+      <article className="market-board-panel market-board-list bg-[color:var(--paper-50)]">
+        <span className="text-kicker">§ Current comparison queue</span>
+        <div className="mt-4 space-y-3">
+          {topSignals.map((offer, index) => (
+            <Link
+              key={offer.id}
+              to={`/offers/${offer.id}`}
+              className="grid grid-cols-[auto_1fr_auto] items-baseline gap-3 border-b border-dotted border-[color:var(--color-border-hover)] pb-3 last:border-b-0"
+            >
+              <span className="num font-mono text-[10px] text-[color:var(--color-text-faint)]">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <span className="truncate text-sm font-semibold text-[color:var(--color-text-primary)]">{offer.display_name}</span>
+              <span className="num text-sm font-bold text-[color:var(--chili-600)]">රු {formatCurrency(offer.price_lkr)}</span>
+            </Link>
+          ))}
+          {!topSignals.length && (
+            <p className="text-sm text-[color:var(--color-text-secondary)]">Top value signals are loading.</p>
+          )}
+        </div>
       </article>
 
       <nav className="market-board-actions" aria-label="Primary food price workflows">
         {[
-          { label: 'Prices', to: '/items', icon: Search },
+          { label: 'Prices', to: '/prices', icon: Search },
           { label: 'Compare', to: '/compare', icon: GitCompareArrows },
-          { label: 'Basket', to: '/basket', icon: ShoppingBasket },
-          { label: 'Insights', to: '/intelligence', icon: BarChart3 },
-          { label: 'Methods', to: '/methods', icon: ShieldCheck },
+          { label: 'Trends', to: '/intelligence', icon: BarChart3 },
+          { label: 'Sources', to: '/methods', icon: ShieldCheck },
         ].map(({ label, to, icon: Icon }) => (
           <Link key={to} to={to} className="market-board-action">
             <Icon className="h-4 w-4" aria-hidden="true" />

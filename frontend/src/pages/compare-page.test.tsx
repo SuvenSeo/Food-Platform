@@ -11,8 +11,35 @@ vi.mock('../hooks/use-watchlists', () => ({
 
 vi.mock('../lib/api', () => ({
   api: {
+    getItems: vi.fn().mockResolvedValue({
+      total: 1,
+      items: [
+        {
+          slug: 'tomato',
+          canonical_name: 'Tomato',
+          display_name: 'Tomato',
+          category: 'vegetables',
+          kind: 'market',
+          unit: 'kg',
+          unit_amount: 1,
+          market_quotes_count: 24,
+          average_market_price_lkr: 320,
+          lowest_price_lkr: 300,
+          image_url: null,
+          sources: ['seed-colombo', 'seed-kandy'],
+          source_count: 2,
+          latest_updated_at: '2026-05-19T00:00:00+00:00',
+        },
+      ],
+    }),
     getMarketQuotes: vi.fn().mockResolvedValue({
       total: 2,
+      facets: {
+        sources: ['seed-colombo', 'seed-kandy'],
+        districts: ['Colombo', 'Kandy'],
+        categories: ['vegetables'],
+        units: ['kg'],
+      },
       items: [
         {
           district: 'Colombo',
@@ -82,7 +109,7 @@ describe('ComparePage', () => {
     renderCompare()
 
     await waitFor(() => {
-      expect(screen.getByText('Tomato')).toBeInTheDocument()
+      expect(screen.getAllByText('Tomato').length).toBeGreaterThan(0)
     })
 
     expect(screen.getAllByText(/last 30 days/i).length).toBeGreaterThan(0)

@@ -855,15 +855,14 @@ a {
     animation: scrub 0.6s linear infinite;
   }
 
-  /* Trust command rail — persistent source health and next actions */
+  /* Trust command rail — compact source freshness and reference links */
   .trust-command-rail {
-    border-bottom: 1px solid var(--color-border-hover);
-    background:
-      linear-gradient(90deg, rgba(200, 50, 30, 0.07), transparent 32%, rgba(44, 74, 34, 0.07));
+    border-bottom: 1px solid var(--color-border);
+    background: var(--paper-100);
   }
   .trust-command-cell {
     min-width: 0;
-    padding: clamp(0.85rem, 1.6vw, 1.15rem);
+    padding: clamp(0.62rem, 1vw, 0.82rem);
   }
   .rail-action {
     display: inline-flex;
@@ -971,14 +970,6 @@ a {
     background: var(--color-text-primary);
     box-shadow: var(--shadow-elevated);
   }
-  .market-board-photo {
-    min-height: 15rem;
-    background-image:
-      linear-gradient(135deg, rgba(14, 14, 12, 0.28), rgba(14, 14, 12, 0.08)),
-      url('https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80');
-    background-position: center;
-    background-size: cover;
-  }
   .market-board-panel {
     min-width: 0;
     padding: clamp(1.1rem, 2.2vw, 1.8rem);
@@ -991,6 +982,12 @@ a {
   }
   .market-board-kpi {
     min-height: 9.5rem;
+  }
+  .market-board-signal {
+    min-height: 14rem;
+  }
+  .market-board-list {
+    min-height: 14rem;
   }
   .market-board-link,
   .market-board-action {
@@ -1195,10 +1192,6 @@ a {
     .market-board-lead {
       order: -2;
     }
-    .market-board-photo {
-      order: -1;
-      min-height: 10rem;
-    }
     .market-pulse-rank {
       border-left: 0;
       border-top: 1px solid var(--color-border);
@@ -1209,17 +1202,14 @@ a {
 
   @media (min-width: 1080px) {
     .market-board {
-      grid-template-columns: 1.08fr 0.96fr 0.96fr;
-    }
-    .market-board-photo,
-    .market-board-lead {
-      min-height: 26rem;
-    }
-    .market-board-photo {
-      grid-row: span 2;
+      grid-template-columns: 1.25fr 0.78fr 0.78fr;
     }
     .market-board-lead {
       grid-row: span 2;
+      min-height: 28rem;
+    }
+    .market-board-list {
+      grid-column: span 2;
     }
   }
 }

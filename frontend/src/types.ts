@@ -104,6 +104,13 @@ export type MarketQuoteItem = {
   notes: string | null
 }
 
+export type MarketQuoteFacets = {
+  sources: Array<{ value: string; label: string; count: number }>
+  districts: Array<{ value: string; label: string; count: number }>
+  categories: Array<{ value: string; label: string; count: number }>
+  units: Array<{ value: string; label: string; count: number }>
+}
+
 export type HomeSummary = {
   hero: HeroSummary
   kpis: {

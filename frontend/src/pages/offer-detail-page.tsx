@@ -46,9 +46,9 @@ export function OfferDetailPage() {
         <div className="fp-panel">
           <EmptyState
             title="Offer not found"
-            description="This offer may have expired. Return to retail and continue from a live listing."
-            actionLabel="Back to retail"
-            actionTo="/retail"
+            description="This offer may have expired. Return to prices and continue from an indexed listing."
+            actionLabel="Back to prices"
+            actionTo="/prices"
           />
         </div>
       )
@@ -59,7 +59,7 @@ export function OfferDetailPage() {
   if (!offerQuery.data) {
     return (
       <div className="fp-panel">
-        <EmptyState title="Offer not found" description="Return to retail and choose another offer." actionLabel="Back to retail" actionTo="/retail" />
+        <EmptyState title="Offer not found" description="Return to prices and choose another offer." actionLabel="Back to prices" actionTo="/prices" />
       </div>
     )
   }
@@ -83,11 +83,11 @@ export function OfferDetailPage() {
       {/* Nav bar */}
       <div className="flex items-center justify-between gap-3">
         <Link
-          to="/retail"
+          to="/prices"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to retail
+          Back to prices
         </Link>
         <div className="flex gap-2">
           <button
@@ -217,7 +217,7 @@ export function OfferDetailPage() {
             <EmptyState
               title="No market history for this item yet"
               description="We could not find enough official market quotes to plot a series for this cluster."
-              hint="Spot retail price above is still live; check markets for related commodities."
+              hint="The retail price above is the latest indexed signal; check markets for related commodities."
               actionLabel="Open markets"
               actionTo="/markets"
             />
@@ -268,7 +268,7 @@ export function OfferDetailPage() {
         links={[
           { label: 'Build basket', to: '/basket' },
           { label: 'Review watchlists', to: '/watchlists' },
-          { label: 'Open catalog', to: '/items' },
+          { label: 'Open prices', to: '/prices' },
         ]}
       />
 
@@ -291,8 +291,8 @@ export function OfferDetailPage() {
             <EmptyState
               title="No related offers yet"
               description="Explore category summaries and markets to continue price discovery."
-              actionLabel="Open catalog"
-              actionTo="/items"
+              actionLabel="Open prices"
+              actionTo="/prices"
             />
           )}
         </section>

@@ -74,7 +74,7 @@ export function MethodsPage() {
           <SectionHeader
             eyebrow="Source freshness"
             title="Source freshness"
-            description="Live operational visibility sits in the public product, not only in internal tools."
+            description="Operational visibility sits in the public product, not only in internal tools."
             level="h2"
           />
           <div className="grid gap-3 lg:grid-cols-2">
@@ -105,7 +105,7 @@ export function MethodsPage() {
             <SectionHeader
               eyebrow="Coverage"
               title="Current public coverage"
-              description="A compact disclosure of how much live data the platform currently presents."
+              description="A compact disclosure of how much refreshed data the platform currently presents."
               level="h2"
             />
             <div className="hairline-grid rounded-lg overflow-hidden grid-cols-3">

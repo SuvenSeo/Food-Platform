@@ -19,8 +19,8 @@ export function MobileMoversStrip() {
         </p>
       </div>
       <div className="flex shrink-0 flex-col gap-1.5">
-        <Link to="/retail" className="bg-[color:var(--ink-900)] px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--paper-50)]">
-          Retail →
+        <Link to="/prices" className="bg-[color:var(--ink-900)] px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--paper-50)]">
+          Prices →
         </Link>
         <Link
           to="/intelligence"

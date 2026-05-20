@@ -21,7 +21,7 @@ const SOURCE_TILT: Record<string, number> = {
   cargills: 1.5,
 }
 
-/* — Mandiya Stall Card — image left, big mono price right, rotated source sticker — */
+/* FoodLK price card: image left, big mono price right, rotated source sticker. */
 
 function StallThumb({ src, alt, label }: { src?: string | null; alt: string; label: string }) {
   const [errored, setErrored] = useState(false)

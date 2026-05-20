@@ -67,7 +67,7 @@ export function AlertConfirmPage() {
       </div>
 
       <div className="mt-10 flex flex-wrap gap-3">
-        <Link className="btn-primary" to="/items">
+        <Link className="btn-primary" to="/prices">
           <Search className="h-4 w-4" aria-hidden="true" />
           Price catalog
         </Link>

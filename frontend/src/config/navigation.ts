@@ -1,6 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
 import {
-  BarChart3,
   Bookmark,
   BookOpenText,
   Code2,
@@ -12,8 +11,6 @@ import {
   Search,
   ShieldCheck,
   ShoppingBasket,
-  Store,
-  Waves,
 } from 'lucide-react'
 
 export type NavigationItem = {
@@ -26,21 +23,18 @@ export type NavigationItem = {
 }
 
 export const primaryNavItems = [
-  { to: '/', label: 'Home', commandLabel: 'Today dashboard', group: 'Everyday', icon: LayoutGrid, end: true },
-  { to: '/items', label: 'Prices', commandLabel: 'Price catalog', group: 'Everyday', icon: Search, end: false },
-  { to: '/compare', label: 'Compare', commandLabel: 'Compare districts and sources', group: 'Everyday', icon: Scale, end: false },
-  { to: '/basket', label: 'Basket', commandLabel: 'Basket workspace', group: 'Everyday', icon: ShoppingBasket, end: false },
-  { to: '/watchlists', label: 'Saved', commandLabel: 'Saved watchlists', group: 'Everyday', icon: Bookmark, end: false },
+  { to: '/', label: 'Today', commandLabel: 'Today price desk', group: 'Primary', icon: LayoutGrid, end: true },
+  { to: '/prices', label: 'Prices', commandLabel: 'Search food prices', group: 'Primary', icon: Search, end: false },
+  { to: '/compare', label: 'Compare', commandLabel: 'Compare districts and sources', group: 'Primary', icon: Scale, end: false },
+  { to: '/intelligence', label: 'Trends', commandLabel: 'Historical price trends', group: 'Primary', icon: History, end: false },
+  { to: '/watchlists', label: 'Saved', commandLabel: 'Saved watchlists and alerts', group: 'Primary', icon: Bookmark, end: false },
 ] as const satisfies readonly NavigationItem[]
 
-export const dataNavItems = [
-  { to: '/markets', label: 'Markets', commandLabel: 'Official market quotes', group: 'Data', icon: Waves, end: false },
-  { to: '/retail', label: 'Retail', commandLabel: 'Retail offer board', group: 'Data', icon: Store, end: false },
-  { to: '/intelligence', label: 'Insights', commandLabel: 'Intelligence desk', group: 'Data', icon: BarChart3, end: false },
-  { to: '/changes', label: 'Changes', commandLabel: 'Recent price changes', group: 'Data', icon: History, end: false },
-  { to: '/pipeline', label: 'Pipeline', commandLabel: 'Data pipeline status', group: 'Data', icon: DatabaseZap, end: false },
-  { to: '/methods', label: 'Methods', commandLabel: 'Methods and trust', group: 'Data', icon: BookOpenText, end: false },
-  { to: '/developers', label: 'API', commandLabel: 'Developers API', group: 'Data', icon: Code2, end: false },
+export const secondaryNavItems = [
+  { to: '/basket', label: 'Basket', commandLabel: 'Basket cost workspace', group: 'Tools', icon: ShoppingBasket, end: false },
+  { to: '/pipeline', label: 'Sources', commandLabel: 'Source health and refresh history', group: 'Reference', icon: DatabaseZap, end: false },
+  { to: '/methods', label: 'Methods', commandLabel: 'Methods and trust', group: 'Reference', icon: BookOpenText, end: false },
+  { to: '/developers', label: 'API', commandLabel: 'FoodLK API reference', group: 'Reference', icon: Code2, end: false },
 ] as const satisfies readonly NavigationItem[]
 
 export const legalNavItems = [
@@ -49,23 +43,23 @@ export const legalNavItems = [
 ] as const satisfies readonly NavigationItem[]
 
 export const mastheadNavGroups = [
-  { label: 'Everyday', items: primaryNavItems },
+  { label: 'Primary', items: primaryNavItems },
 ] as const
 
 export const drawerNavGroups = [
-  { label: 'Everyday', items: primaryNavItems },
-  { label: 'Data', items: dataNavItems },
+  { label: 'Primary', items: primaryNavItems },
+  { label: 'Secondary', items: secondaryNavItems },
 ] as const
 
 export const commandDestinations: NavigationItem[] = [
   ...primaryNavItems.map((item) => ({ ...item })),
-  ...dataNavItems.map((item) => ({ ...item })),
+  ...secondaryNavItems.map((item) => ({ ...item })),
   ...legalNavItems.map((item) => ({ ...item })),
 ]
 
 export const footerSections: Record<string, NavigationItem[]> = {
-  Everyday: primaryNavItems.map((item) => ({ ...item })),
-  Data: dataNavItems.map((item) => ({ ...item })),
+  Primary: primaryNavItems.map((item) => ({ ...item })),
+  Reference: secondaryNavItems.map((item) => ({ ...item })),
   Colophon: legalNavItems.map((item) => ({ ...item })),
 }
 
@@ -73,5 +67,5 @@ export const notFoundRecoveryLinks = [
   primaryNavItems[1],
   primaryNavItems[2],
   primaryNavItems[3],
-  dataNavItems[0],
+  primaryNavItems[4],
 ] as const

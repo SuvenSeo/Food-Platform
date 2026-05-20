@@ -209,6 +209,35 @@ def _offer_facets(db: Session) -> dict[str, list[dict[str, object]]]:
     }
 
 
+def _market_quote_facets(db: Session) -> dict[str, list[dict[str, object]]]:
+    source_rows = db.execute(
+        select(MarketQuoteRecord.source, func.count(MarketQuoteRecord.id))
+        .group_by(MarketQuoteRecord.source)
+        .order_by(MarketQuoteRecord.source.asc())
+    ).all()
+    district_rows = db.execute(
+        select(MarketQuoteRecord.district, func.count(MarketQuoteRecord.id))
+        .group_by(MarketQuoteRecord.district)
+        .order_by(MarketQuoteRecord.district.asc())
+    ).all()
+    category_rows = db.execute(
+        select(MarketQuoteRecord.category, func.count(MarketQuoteRecord.id))
+        .group_by(MarketQuoteRecord.category)
+        .order_by(MarketQuoteRecord.category.asc())
+    ).all()
+    unit_rows = db.execute(
+        select(MarketQuoteRecord.unit, func.count(MarketQuoteRecord.id))
+        .group_by(MarketQuoteRecord.unit)
+        .order_by(MarketQuoteRecord.unit.asc())
+    ).all()
+    return {
+        "sources": [{"value": source, "label": source, "count": count} for source, count in source_rows],
+        "districts": [{"value": district, "label": district, "count": count} for district, count in district_rows],
+        "categories": [{"value": category, "label": category, "count": count} for category, count in category_rows],
+        "units": [{"value": unit, "label": unit, "count": count} for unit, count in unit_rows if unit],
+    }
+
+
 def _apply_offer_filters(
     query: Select,
     *,
@@ -235,6 +264,33 @@ def _apply_offer_filters(
     return query
 
 
+def _apply_market_quote_filters(
+    query: Select,
+    *,
+    district: str | None,
+    category: str | None,
+    source: str | None,
+    search: str | None,
+) -> Select:
+    if district and district != "all":
+        query = query.where(func.lower(MarketQuoteRecord.district) == district.strip().lower())
+    if category and category != "all":
+        query = query.where(func.lower(MarketQuoteRecord.category) == category.strip().lower())
+    if source and source != "all":
+        query = query.where(func.lower(MarketQuoteRecord.source) == source.strip().lower())
+    if search and search.strip():
+        term = f"%{search.strip().lower()}%"
+        query = query.where(
+            func.lower(MarketQuoteRecord.item_name).like(term)
+            | func.lower(MarketQuoteRecord.market_name).like(term)
+            | func.lower(MarketQuoteRecord.district).like(term)
+            | func.lower(MarketQuoteRecord.category).like(term)
+            | func.lower(MarketQuoteRecord.source).like(term)
+            | func.lower(func.coalesce(MarketQuoteRecord.notes, "")).like(term)
+        )
+    return query
+
+
 def _apply_offer_sort(query: Select, sort_by: str) -> Select:
     unit_price = func.coalesce(FoodOfferRecord.price_per_unit_lkr, FoodOfferRecord.price_lkr)
     if sort_by == "unit-high":
@@ -248,6 +304,25 @@ def _apply_offer_sort(query: Select, sort_by: str) -> Select:
     if sort_by == "name":
         return query.order_by(FoodOfferRecord.display_name.asc())
     return query.order_by(FoodOfferRecord.last_seen_at.desc(), FoodOfferRecord.source.asc())
+
+
+def _top_value_offer_query(*, available_only: bool = False) -> Select:
+    query = (
+        select(FoodOfferRecord, FairPriceScoreRecord)
+        .join(FairPriceScoreRecord, FairPriceScoreRecord.food_offer_id == FoodOfferRecord.id)
+        .join(PriceAggregateRecord, PriceAggregateRecord.cluster_key == FairPriceScoreRecord.cluster_key)
+        .where(PriceAggregateRecord.offers_count > 1)
+        .where(FairPriceScoreRecord.delta_vs_median_pct > 0)
+        .order_by(
+            FairPriceScoreRecord.delta_vs_median_pct.desc(),
+            PriceAggregateRecord.offers_count.desc(),
+            FoodOfferRecord.price_lkr.asc(),
+            FoodOfferRecord.last_seen_at.desc(),
+        )
+    )
+    if available_only:
+        query = query.where(FoodOfferRecord.available.is_(True))
+    return query
 
 
 @router.get("/health")
@@ -283,13 +358,7 @@ def intelligence_brief(db: Session = Depends(get_db)) -> dict[str, object]:
     pipeline = trust["pipeline"]
     coverage = trust["coverage"]
 
-    top_offer = db.execute(
-        select(FoodOfferRecord, FairPriceScoreRecord)
-        .outerjoin(FairPriceScoreRecord, FairPriceScoreRecord.food_offer_id == FoodOfferRecord.id)
-        .where(FoodOfferRecord.available.is_(True))
-        .order_by(FoodOfferRecord.price_lkr.asc(), FoodOfferRecord.last_seen_at.desc())
-        .limit(1)
-    ).first()
+    top_offer = db.execute(_top_value_offer_query(available_only=True).limit(1)).first()
     latest_market = db.scalar(
         select(MarketQuoteRecord).order_by(MarketQuoteRecord.quoted_at.desc(), MarketQuoteRecord.price_lkr.asc()).limit(1)
     )
@@ -476,12 +545,7 @@ def home_summary(db: Session = Depends(get_db)) -> dict[str, object]:
 
 @router.get("/intelligence/summary")
 def intelligence_summary(db: Session = Depends(get_db)) -> dict[str, object]:
-    ranking_rows = db.execute(
-        select(FoodOfferRecord, FairPriceScoreRecord)
-        .outerjoin(FairPriceScoreRecord, FairPriceScoreRecord.food_offer_id == FoodOfferRecord.id)
-        .order_by(FoodOfferRecord.last_seen_at.desc(), FoodOfferRecord.price_lkr.asc())
-        .limit(6)
-    ).all()
+    ranking_rows = db.execute(_top_value_offer_query(available_only=True).limit(6)).all()
     trend_rows = db.scalars(select(PriceAggregateRecord).order_by(PriceAggregateRecord.median_price_lkr.asc()).limit(6)).all()
     source_rows = db.scalars(select(ScrapeRun).order_by(ScrapeRun.finished_at.desc())).all()
 
@@ -981,19 +1045,22 @@ def pipeline_status(
 def market_quotes(
     district: str | None = Query(default=None),
     category: str | None = Query(default=None),
+    source: str | None = Query(default=None),
+    search: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
     query = select(MarketQuoteRecord).order_by(MarketQuoteRecord.quoted_at.desc(), MarketQuoteRecord.item_name.asc())
     count_query = select(func.count(MarketQuoteRecord.id))
-
-    if district:
-        query = query.where(MarketQuoteRecord.district == district)
-        count_query = count_query.where(MarketQuoteRecord.district == district)
-    if category:
-        query = query.where(MarketQuoteRecord.category == category)
-        count_query = count_query.where(MarketQuoteRecord.category == category)
+    query = _apply_market_quote_filters(query, district=district, category=category, source=source, search=search)
+    count_query = _apply_market_quote_filters(
+        count_query,
+        district=district,
+        category=category,
+        source=source,
+        search=search,
+    )
 
     rows = db.scalars(query.limit(limit).offset(offset)).all()
     total = db.scalar(count_query) or 0
@@ -1014,6 +1081,7 @@ def market_quotes(
             for row in rows
         ],
         "total": total,
+        "facets": _market_quote_facets(db),
     }
 
 

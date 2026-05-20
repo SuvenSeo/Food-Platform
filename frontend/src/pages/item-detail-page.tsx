@@ -5,6 +5,7 @@ import {
 } from 'recharts'
 import { ArrowLeft, ArrowUpRight, TrendingDown, TrendingUp } from 'lucide-react'
 
+import { AlertSignup } from '../components/retention/alert-signup'
 import { OfferCard } from '../components/ui/offer-card'
 import { LoadingBlock } from '../components/ui/loading-block'
 import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
@@ -29,7 +30,7 @@ export function ItemDetailPage() {
   if (itemQuery.isLoading) return <LoadingBlock message="Loading item intelligence..." />
   if (itemQuery.isError) return <ErrorState message="Unable to load this item right now." onRetry={() => itemQuery.refetch()} />
   if (!itemQuery.data) {
-    return <EmptyState title="Item not found" description="Return to the catalog and choose another item." actionLabel="Open items" actionTo="/items" />
+    return <EmptyState title="Item not found" description="Return to the price workspace and choose another item." actionLabel="Open prices" actionTo="/prices" />
   }
 
   const data = itemQuery.data
@@ -44,9 +45,9 @@ export function ItemDetailPage() {
 
   return (
     <section className="space-y-8">
-      <Link to="/items" className="inline-flex items-center gap-2 text-sm text-[color:var(--color-text-muted)] transition hover:text-[color:var(--color-text-primary)]">
+      <Link to="/prices" className="inline-flex items-center gap-2 text-sm text-[color:var(--color-text-muted)] transition hover:text-[color:var(--color-text-primary)]">
         <ArrowLeft className="h-4 w-4" />
-        Back to items
+        Back to prices
       </Link>
 
       <div className="fp-panel">
@@ -101,11 +102,11 @@ export function ItemDetailPage() {
                       <stop offset="95%" stopColor="#c8321e" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                  <XAxis dataKey="period" tick={{ fill: '#737373', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#737373', fontSize: 10 }} axisLine={false} tickLine={false} width={64} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                  <XAxis dataKey="period" tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} width={64} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#161616', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, color: '#f5f5f5', fontSize: 12 }}
+                    contentStyle={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderRadius: 0, color: 'var(--color-text-primary)', fontSize: 12 }}
                     formatter={(value) => [`රු ${Number(value).toLocaleString()}`, 'Average']}
                   />
                   <Area type="monotone" dataKey="price" stroke="#c8321e" strokeWidth={2} fill="url(#itemHistory)" dot={false} />
@@ -142,6 +143,13 @@ export function ItemDetailPage() {
         )}
       </section>
 
+      <AlertSignup
+        defaultScope="category"
+        defaultScopeValue={data.item.category}
+        title={`Watch ${data.item.canonical_name}`}
+        subtitle="Create a category alert from this item page. If confirmation email is not configured, FoodLK saves it in preview mode."
+      />
+
       <section className="fp-panel space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -160,7 +168,7 @@ export function ItemDetailPage() {
       <NextActionLinks
         title="Continue"
         links={[
-          { label: 'Browse all retail offers', to: '/retail' },
+          { label: 'Browse price workspace', to: '/prices' },
           { label: 'Compare districts', to: '/compare' },
           { label: 'Build a basket', to: '/basket' },
         ]}

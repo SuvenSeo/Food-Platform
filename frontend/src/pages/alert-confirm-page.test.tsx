@@ -36,7 +36,7 @@ describe('AlertConfirmPage', () => {
       expect(fetchMock).toHaveBeenCalledWith('/api/v1/alerts/confirm/abc123', expect.objectContaining({ method: 'POST' }))
     })
     expect(await screen.findByRole('heading', { name: /alert confirmed/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /price catalog/i })).toHaveAttribute('href', '/items')
+    expect(screen.getByRole('link', { name: /price catalog/i })).toHaveAttribute('href', '/prices')
 
     fetchMock.mockRestore()
   })

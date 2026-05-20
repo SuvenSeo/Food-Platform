@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
-import { ArrowLeftRight, Bookmark, ReceiptText, Search } from 'lucide-react'
+import { ArrowLeftRight, Bookmark, ReceiptText, Search, Tag } from 'lucide-react'
 import {
   Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
 
 import { Badge } from '../components/ui/badge'
+import { AlertSignup } from '../components/retention/alert-signup'
 import { SectionHeader } from '../components/ui/section-header'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
@@ -14,10 +15,20 @@ import { useWatchlists } from '../hooks/use-watchlists'
 import { api } from '../lib/api'
 import { formatCompactDate, formatCurrency } from '../lib/format'
 
+type SuggestedCompareItem = {
+  key: string
+  label: string
+  category: string
+}
+
 export function ComparePage() {
   const marketsQuery = useQuery({
-    queryKey: ['market-quotes'],
-    queryFn: () => api.getMarketQuotes(),
+    queryKey: ['market-quotes', 'compare-facets'],
+    queryFn: () => api.getMarketQuotes('?limit=200'),
+  })
+  const itemsQuery = useQuery({
+    queryKey: ['compare-item-search'],
+    queryFn: () => api.getItems('?limit=80'),
   })
   const [compareMode, setCompareMode] = useState<'district' | 'source'>('district')
   const [leftDistrict, setLeftDistrict] = useState('Colombo')
@@ -25,6 +36,7 @@ export function ComparePage() {
   const [leftSource, setLeftSource] = useState('')
   const [rightSource, setRightSource] = useState('')
   const [search, setSearch] = useState('')
+  const [itemNeedle, setItemNeedle] = useState('')
   const [sortBy, setSortBy] = useState<'delta-high' | 'delta-low' | 'item'>('delta-high')
 
   const compareQuery = useQuery({
@@ -39,12 +51,12 @@ export function ComparePage() {
   const { saveEntry } = useWatchlists()
 
   const districts = useMemo(
-    () => Array.from(new Set((marketsQuery.data?.items ?? []).map((item) => item.district))).sort(),
-    [marketsQuery.data?.items],
+    () => (marketsQuery.data?.facets?.districts?.map((item) => item.value) ?? Array.from(new Set((marketsQuery.data?.items ?? []).map((item) => item.district)))).sort(),
+    [marketsQuery.data?.facets?.districts, marketsQuery.data?.items],
   )
   const sources = useMemo(
-    () => Array.from(new Set((marketsQuery.data?.items ?? []).map((item) => item.source))).sort(),
-    [marketsQuery.data?.items],
+    () => (marketsQuery.data?.facets?.sources?.map((item) => item.value) ?? Array.from(new Set((marketsQuery.data?.items ?? []).map((item) => item.source)))).sort(),
+    [marketsQuery.data?.facets?.sources, marketsQuery.data?.items],
   )
   const districtOptions = useMemo(
     () => Array.from(new Set([leftDistrict, rightDistrict, ...districts].filter(Boolean))).sort(),
@@ -64,7 +76,7 @@ export function ComparePage() {
   const modeLabel = compareMode === 'district' ? 'district' : 'source'
 
   const visibleItems = useMemo(() => {
-    const needle = search.trim().toLowerCase()
+    const needle = (itemNeedle.trim() || search.trim()).toLowerCase()
     return (data?.items ?? [])
       .filter((item) => `${item.item_name} ${item.category}`.toLowerCase().includes(needle))
       .sort((a, b) => {
@@ -74,7 +86,35 @@ export function ComparePage() {
         if (sortBy === 'delta-low') return aDelta - bDelta
         return bDelta - aDelta
       })
-  }, [data?.items, search, sortBy])
+  }, [data?.items, itemNeedle, search, sortBy])
+
+  const suggestedItems = useMemo<SuggestedCompareItem[]>(() => {
+    const needle = itemNeedle.trim().toLowerCase()
+    const itemSuggestions = (itemsQuery.data?.items ?? [])
+      .filter((item) => item.kind === 'market' || item.market_quotes_count)
+      .map((item) => ({
+        key: `${item.kind}-${item.slug}-${item.category}`,
+        label: item.display_name || item.canonical_name,
+        category: item.category,
+      }))
+
+    const quoteSuggestionsByKey = new Map<string, SuggestedCompareItem>()
+    for (const quote of marketsQuery.data?.items ?? []) {
+      const key = `${quote.item_name}-${quote.category}`
+      if (!quoteSuggestionsByKey.has(key)) {
+        quoteSuggestionsByKey.set(key, {
+          key,
+          label: quote.item_name,
+          category: quote.category,
+        })
+      }
+    }
+
+    const suggestions = itemSuggestions.length ? itemSuggestions : Array.from(quoteSuggestionsByKey.values())
+    return suggestions
+      .filter((item) => !needle || `${item.label} ${item.category}`.toLowerCase().includes(needle))
+      .slice(0, 6)
+  }, [itemNeedle, itemsQuery.data?.items, marketsQuery.data?.items])
 
   const chartData = visibleItems.slice(0, 8).map((item) => ({
     name: item.item_name.length > 11 ? `${item.item_name.slice(0, 10)}…` : item.item_name,
@@ -93,9 +133,9 @@ export function ComparePage() {
   return (
     <section className="space-y-8">
       <SectionHeader
-        eyebrow="District receipt"
-        title="Compare prices side-by-side"
-        description="Choose district-vs-district or source-vs-source, scan normalized deltas, then clip the comparison into watchlists."
+        eyebrow="Item comparison"
+        title="Compare the price spread for one food item"
+        description="Start with an item or category, then compare district-vs-district or source-vs-source using the current market freshness window."
       />
 
       {(marketsQuery.isError || compareQuery.isError) && (
@@ -105,15 +145,49 @@ export function ComparePage() {
           helper="Keep exploring with retail and markets pages while compare signals recover."
           onRetry={() => { void marketsQuery.refetch(); void compareQuery.refetch() }}
           links={[
-            { label: 'Open retail discovery', to: '/retail' },
+            { label: 'Open prices', to: '/prices' },
             { label: 'Open markets discovery', to: '/markets' },
           ]}
         />
       )}
 
+      <div className="grid gap-4 border-2 border-[color:var(--color-text-primary)] bg-[color:var(--paper-50)] p-4 lg:grid-cols-[0.82fr_1.18fr]">
+        <label className="space-y-2">
+          <span className="text-kicker">1. Choose item or category</span>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--color-text-muted)]" />
+            <input
+              value={itemNeedle}
+              onChange={(event) => setItemNeedle(event.target.value)}
+              className="fp-input pl-10"
+              placeholder="Tomato, rice, coconut oil..."
+            />
+          </div>
+        </label>
+        <div className="space-y-2">
+          <span className="text-kicker">Quick item picks</span>
+          <div className="flex min-h-12 flex-wrap gap-2">
+            {suggestedItems.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setItemNeedle(item.label)}
+                className="inline-flex items-center gap-2 border border-[color:var(--color-border-hover)] bg-[color:var(--color-bg-card)] px-3 py-2 text-left font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--color-text-secondary)] transition hover:border-[color:var(--color-text-primary)] hover:text-[color:var(--color-text-primary)]"
+              >
+                <Tag className="h-3.5 w-3.5 text-[color:var(--chili-600)]" aria-hidden="true" />
+                {item.label}
+              </button>
+            ))}
+            {!itemsQuery.isLoading && !suggestedItems.length && (
+              <p className="text-sm text-[color:var(--color-text-muted)]">Type an item name to focus the receipt.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
       <WorkflowCue
         id="compare-receipt-guidance"
-        eyebrow="Compare path"
+        eyebrow="2. Compare sides"
         title="Compare only like-for-like rows, then save the useful receipt."
         body={`The chart highlights the largest gaps. Older rows and non-food categories are hidden, so this receipt focuses on food quotes from the last ${freshnessWindowDays} days.`}
         points={['Pick two sides', 'Sort by delta', 'Clip receipt']}
@@ -128,7 +202,7 @@ export function ComparePage() {
           <div className="border-2 border-[color:var(--color-text-primary)] bg-[color:var(--paper-50)] p-5 shadow-stamp">
             <div className="flex items-center gap-2">
               <ReceiptText className="h-5 w-5 text-[color:var(--chili-500)]" aria-hidden="true" />
-              <p className="text-kicker">Compare receipt</p>
+              <p className="text-kicker">3. Compare receipt</p>
             </div>
 
             <div className="mt-5 grid gap-4">
@@ -151,7 +225,7 @@ export function ComparePage() {
                         : 'border-[color:var(--color-border-hover)] bg-[color:var(--color-bg-card)] text-[color:var(--color-text-secondary)] hover:border-[color:var(--color-text-primary)]',
                     ].join(' ')}
                   >
-                    {mode}
+                    {mode} mode
                   </button>
                 ))}
               </div>
@@ -198,10 +272,10 @@ export function ComparePage() {
                 type="button"
                 onClick={() => saveEntry({
                   id: `compare-${data.left}-${data.right}`,
-                  title: `${data.left} vs ${data.right}`,
+                  title: `${itemNeedle ? `${itemNeedle} · ` : ''}${data.left} vs ${data.right}`,
                   kind: 'compare',
                   href: '/compare',
-                  summary: `${data.mode} comparison · ${data.items.length ?? 0} shared produce items`,
+                  summary: `${data.mode} comparison · ${visibleItems.length ?? 0} visible item rows`,
                 })}
                 className="fp-button-primary mt-5 w-full"
               >
@@ -231,6 +305,14 @@ export function ComparePage() {
               Showing food quote matches from the last {data.freshness.market_quote_window_days} days. Older archive rows and {data.freshness.filtered_categories.join(', ')} rows are hidden from quick comparisons.
             </div>
           )}
+
+          <AlertSignup
+            compact
+            defaultScope={compareMode === 'district' ? 'district' : 'category'}
+            defaultScopeValue={compareMode === 'district' ? leftDistrict : itemNeedle || 'vegetables'}
+            title="Watch this comparison"
+            subtitle="Save an alert for the selected district or category. Email delivery may be preview-only until confirmation mail is configured."
+          />
         </aside>
 
         <div className="min-w-0 space-y-4">
@@ -286,7 +368,7 @@ export function ComparePage() {
                 description={`No shared food rows were found inside the ${freshnessWindowDays}-day quick-view window. Try another pair or inspect the markets page for raw quotes.`}
                 hint="Next action: continue in markets or categories."
                 actionLabel="Open price catalog"
-                actionTo="/items"
+                actionTo="/prices"
                 secondaryActionLabel="Open markets"
                 secondaryActionTo="/markets"
               />
@@ -340,7 +422,7 @@ export function ComparePage() {
             links={[
               { label: 'Build basket', to: '/basket' },
               { label: 'Review watchlists', to: '/watchlists' },
-              { label: 'Open markets', to: '/markets' },
+              { label: 'Open prices', to: '/prices' },
             ]}
           />
         </div>

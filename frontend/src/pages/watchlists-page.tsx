@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Bookmark, Trash2, Search, ArrowUpRight } from 'lucide-react'
 
+import { AlertSignup } from '../components/retention/alert-signup'
 import { Panel } from '../components/primitives/panel'
 import { SectionHeader } from '../components/ui/section-header'
 import { RevealSection } from '../components/ui/reveal-section'
@@ -56,6 +57,15 @@ export function WatchlistsPage() {
           <div className="mt-8 flex gap-3">
             <Link to="/basket" className="fp-button-primary">Open basket</Link>
             <Link to="/compare" className="fp-button-secondary">Try compare</Link>
+          </div>
+          <div className="mt-8 w-full max-w-xl">
+            <AlertSignup
+              compact
+              defaultScope="basket"
+              defaultScopeValue="essentials"
+              title="Create a saved alert"
+              subtitle="Use this when you want a basket, category, or district watch before any saved views exist."
+            />
           </div>
         </Panel>
       ) : (
@@ -133,8 +143,15 @@ export function WatchlistsPage() {
             links={[
               { label: 'Save new basket', to: '/basket' },
               { label: 'Save new compare view', to: '/compare' },
-              { label: 'Browse retail offers', to: '/retail' },
+              { label: 'Browse prices', to: '/prices' },
             ]}
+          />
+          <AlertSignup
+            compact
+            defaultScope="basket"
+            defaultScopeValue="essentials"
+            title="Add another alert"
+            subtitle="Alerts are visible here as saved work; FoodLK will say when email confirmation is running in preview mode."
           />
         </Panel>
       )}

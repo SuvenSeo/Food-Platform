@@ -33,7 +33,7 @@ const offer: OfferItem = {
 
 const home: HomeSummary = {
   hero: {
-    platform: 'Mandiya',
+    platform: 'FoodLK',
     headline: 'Food intelligence',
     last_updated_at: '2026-05-19T07:30:00+05:30',
   },
@@ -109,7 +109,7 @@ const freshness: PlatformFreshnessSummary = {
 }
 
 describe('MarketIntelligenceBoard', () => {
-  it('renders live price intelligence and primary workflows', () => {
+  it('renders scheduled price intelligence and primary workflows', () => {
     render(
       <MemoryRouter>
         <MarketIntelligenceBoard home={home} intelligence={intelligence} freshness={freshness} />
@@ -117,12 +117,12 @@ describe('MarketIntelligenceBoard', () => {
     )
 
     expect(screen.getByLabelText(/foodlk market overview/i)).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /sri lanka food prices before you shop/i })).toBeInTheDocument()
-    expect(screen.getByText(/carrot 1kg/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /sri lanka food price intelligence/i })).toBeInTheDocument()
+    expect(screen.getAllByText(/carrot 1kg/i).length).toBeGreaterThan(0)
     expect(screen.getByText(/tomato · colombo/i)).toBeInTheDocument()
-    expect(screen.getByText(/retail offers/i)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /open offer/i })).toHaveAttribute('href', '/offers/42')
-    expect(screen.getByRole('link', { name: /open prices/i })).toHaveAttribute('href', '/items')
-    expect(screen.getByRole('link', { name: /compare districts/i })).toHaveAttribute('href', '/compare')
+    expect(screen.getByText(/tracked prices/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /inspect signal/i })).toHaveAttribute('href', '/offers/42')
+    expect(screen.getByRole('link', { name: /^prices$/i })).toHaveAttribute('href', '/prices')
+    expect(screen.getByRole('link', { name: /compare item/i })).toHaveAttribute('href', '/compare')
   })
 })

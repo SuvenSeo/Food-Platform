@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { Bookmark, CheckCircle2, CircleDashed, Search } from 'lucide-react'
 
+import { AlertSignup } from '../components/retention/alert-signup'
 import { Badge } from '../components/ui/badge'
 import { RevealSection } from '../components/ui/reveal-section'
 import { SectionHeader } from '../components/ui/section-header'
@@ -15,7 +16,7 @@ import { formatCompactDate, formatCurrency } from '../lib/format'
 function basketAvailabilityCopy(reason: string | undefined, windowDays: number) {
   if (reason === 'stale_data_hidden') return `Only older quotes were found, so this line is hidden from the ${windowDays}-day quick estimate.`
   if (reason === 'currently_unavailable') return 'Retail item exists, but the latest source marks it unavailable.'
-  if (reason === 'no_match_found') return 'No matching live quote or offer is indexed yet.'
+  if (reason === 'no_match_found') return 'No matching current quote or offer is indexed yet.'
   return 'Ready for this estimate.'
 }
 
@@ -64,9 +65,9 @@ export function BasketPage() {
   return (
     <section className="space-y-8">
       <SectionHeader
-        eyebrow="Basket ledger"
-        title="Shopping-list ledger"
-        description="A workshop page for building household basket estimates with availability, source notes, and a running total on every line."
+        eyebrow="Household estimate"
+        title="Cost a basket with visible source limits"
+        description="Use the presets as a food-cost model, then inspect missing lines and freshness before treating the total as a decision."
       />
 
       {basketQuery.isError && (
@@ -76,7 +77,7 @@ export function BasketPage() {
           helper="Continue with retail and compare discovery while basket calculations recover."
           onRetry={() => basketQuery.refetch()}
           links={[
-            { label: 'Open retail discovery', to: '/retail' },
+            { label: 'Open prices', to: '/prices' },
             { label: 'Open compare', to: '/compare' },
           ]}
         />
@@ -91,7 +92,7 @@ export function BasketPage() {
         actionLabel="Compare districts"
         actionTo="/compare"
         secondaryActionLabel="Open prices"
-        secondaryActionTo="/items"
+        secondaryActionTo="/prices"
       />
 
       <div className="grid gap-6 lg:grid-cols-[0.72fr_1.28fr]">
@@ -155,6 +156,14 @@ export function BasketPage() {
               {staleHiddenCount} basket line{staleHiddenCount === 1 ? '' : 's'} had only older market data, so those prices are hidden from the quick total.
             </div>
           )}
+
+          <AlertSignup
+            compact
+            defaultScope="basket"
+            defaultScopeValue={preset}
+            title="Watch this basket"
+            subtitle="Save the preset as a recurring basket alert. Email delivery may be preview-only until confirmation mail is configured."
+          />
         </aside>
 
         <div className="min-w-0 space-y-4">
@@ -266,7 +275,7 @@ export function BasketPage() {
             title="Next actions"
             links={[
               { label: 'Compare districts', to: '/compare' },
-              { label: 'Retail offers', to: '/retail' },
+              { label: 'Price workspace', to: '/prices' },
               { label: 'Review watchlists', to: '/watchlists' },
             ]}
           />

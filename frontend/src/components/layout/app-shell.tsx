@@ -87,7 +87,7 @@ function Dateline({ freshness }: { freshness: PlatformFreshnessSummary | undefin
       </span>
       {sources && (
         <span className="dateline-sep">
-          <span className="num text-[color:var(--color-text-primary)]">{sources.healthy_sources}/{sources.total_sources}</span> sources live
+          <span className="num text-[color:var(--color-text-primary)]">{sources.healthy_sources}/{sources.total_sources}</span> feeds healthy
         </span>
       )}
       {typeof offers === 'number' && (
@@ -185,7 +185,7 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   )
 }
 
-function MandiyaMasthead() {
+function FoodLKMasthead() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [editionNumber] = useState(() => Math.floor((Date.now() / 86400000) % 9999))
   const command = useCommandSearch()
@@ -200,10 +200,10 @@ function MandiyaMasthead() {
             <FoodLKIcon className="h-6 w-6 text-[color:var(--turmeric)]" />
             <div className="flex items-baseline gap-1.5">
               <span className="font-display text-[19px] font-bold tracking-normal leading-none">
-                MANDIYA<span className="text-[color:var(--turmeric)]">.</span>
+                FoodLK<span className="text-[color:var(--turmeric)]">.</span>
               </span>
               <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--paper-400)] hidden sm:inline">
-                Food&nbsp;Intelligence · LK
+                Price&nbsp;Intelligence · Sri Lanka
               </span>
             </div>
           </NavLink>
@@ -219,10 +219,10 @@ function MandiyaMasthead() {
             type="button"
             onClick={() => command.setOpen(true)}
             className="inline-flex items-center gap-2 rounded-none border border-white/15 bg-white/[0.04] px-3 py-1.5 text-xs text-[color:var(--paper-200)] transition hover:border-[color:var(--turmeric)] hover:text-[color:var(--turmeric)]"
-            aria-label="Open command search"
+            aria-label="Open food price search"
           >
             <Search className="h-3.5 w-3.5" />
-            <span className="hidden md:inline font-mono uppercase tracking-[0.18em]">Search</span>
+            <span className="hidden md:inline font-mono uppercase tracking-[0.18em]">Find prices</span>
             <kbd className="hidden md:inline rounded-sm border border-white/15 px-1.5 py-0.5 font-mono text-[9px] tracking-normal">⌘K</kbd>
           </button>
 
@@ -289,7 +289,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="min-h-screen bg-background">
         <NoiseOverlay />
         <ScrollProgressBar />
-        <MandiyaMasthead />
+        <FoodLKMasthead />
 
         <main id="main-content" className="layout-main min-w-0 overflow-hidden pb-28 pt-8 sm:pb-24 lg:pt-12">
           <AnimatePresence mode="wait">

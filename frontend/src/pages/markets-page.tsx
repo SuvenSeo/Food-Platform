@@ -74,9 +74,9 @@ export function MarketsPage() {
         <ErrorState
           title="Markets desk has gone quiet"
           message="Market quotes could not be loaded."
-          helper="Continue with retail discovery and district compare while market ingestion recovers."
+          helper="Continue with price search and district compare while market ingestion recovers."
           onRetry={() => marketQuotesQuery.refetch()}
-          links={[{ label: 'Open retail floor', to: '/retail' }, { label: 'Open compare', to: '/compare' }]}
+          links={[{ label: 'Open prices', to: '/prices' }, { label: 'Open compare', to: '/compare' }]}
         />
       )}
 
@@ -89,7 +89,7 @@ export function MarketsPage() {
         actionLabel="Compare districts"
         actionTo="/compare"
         secondaryActionLabel="Open catalog"
-        secondaryActionTo="/items"
+        secondaryActionTo="/prices"
       />
 
       {/* — Trend chart — */}
@@ -207,8 +207,8 @@ export function MarketsPage() {
           title="No quotes match this filter"
           description="Try broader filters or switch surfaces."
           hint="Next: retail or compare."
-          actionLabel="Open retail"
-          actionTo="/retail"
+          actionLabel="Open prices"
+          actionTo="/prices"
           secondaryActionLabel="Open compare"
           secondaryActionTo="/compare"
         />
@@ -255,7 +255,7 @@ export function MarketsPage() {
         title="Next column"
         links={[
           { label: 'Compare districts', to: '/compare' },
-          { label: 'Price catalog', to: '/items' },
+          { label: 'Price workspace', to: '/prices' },
           { label: 'Build basket', to: '/basket' },
         ]}
       />

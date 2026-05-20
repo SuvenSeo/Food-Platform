@@ -98,6 +98,7 @@ def seed_api_data() -> None:
                 calculated_at=utc_now(),
             )
         )
+        market_quote_seen_at = utc_now()
         db.add_all(
             [
                 MarketQuoteRecord(
@@ -108,7 +109,7 @@ def seed_api_data() -> None:
                     unit="kg",
                     price_lkr=320.0,
                     source="seed-colombo",
-                    quoted_at=utc_now(),
+                    quoted_at=market_quote_seen_at,
                     notes=None,
                 ),
                 MarketQuoteRecord(
@@ -119,7 +120,7 @@ def seed_api_data() -> None:
                     unit="kg",
                     price_lkr=340.0,
                     source="seed-kandy",
-                    quoted_at=utc_now(),
+                    quoted_at=market_quote_seen_at,
                     notes=None,
                 ),
             ]
@@ -281,6 +282,30 @@ def test_market_quotes_endpoint_returns_district_focused_data() -> None:
     assert response.json()["items"][0]["market_name"] == "Pettah"
 
 
+def test_market_quotes_endpoint_filters_by_source_search_and_returns_facets() -> None:
+    seed_api_data()
+
+    response = client.get(
+        "/api/v1/market-quotes",
+        params={"source": "seed-kandy", "search": "central"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 1
+    assert payload["items"][0]["source"] == "seed-kandy"
+    assert payload["items"][0]["market_name"] == "Kandy Central"
+    assert payload["facets"]["sources"] == [
+        {"value": "seed-colombo", "label": "seed-colombo", "count": 1},
+        {"value": "seed-kandy", "label": "seed-kandy", "count": 1},
+    ]
+    assert payload["facets"]["districts"] == [
+        {"value": "Colombo", "label": "Colombo", "count": 1},
+        {"value": "Kandy", "label": "Kandy", "count": 1},
+    ]
+    assert payload["facets"]["categories"] == [{"value": "vegetables", "label": "vegetables", "count": 2}]
+
+
 def test_hub_manifest_exposes_life_platform_contract() -> None:
     seed_api_data()
 
@@ -334,6 +359,122 @@ def test_intelligence_summary_exposes_rankings_and_freshness() -> None:
     payload = response.json()
     assert payload["rankings"]["top_value"][0]["price_band"] == "good-value"
     assert payload["sources"][0]["source"] == "spar2u"
+
+
+def test_intelligence_value_claims_rank_by_delta_and_ignore_single_offer_clusters() -> None:
+    seed_api_data()
+    with SessionLocal() as db:
+        strong_offer = FoodOfferRecord(
+            source="glomark",
+            source_item_id="501",
+            source_group_id="501",
+            category="grocery",
+            brand="Deal",
+            canonical_name="high delta coconut oil",
+            display_name="High Delta Coconut Oil",
+            unit="l",
+            unit_amount=1.0,
+            pack_descriptor="1l",
+            price_lkr=1800.0,
+            price_per_unit_lkr=1800.0,
+            currency="LKR",
+            available=True,
+            sku="HD-1L",
+            url="https://example.test/high-delta-coconut-oil",
+            district=None,
+            city=None,
+            cluster_key="oil|high-delta|l|1.000",
+            first_seen_at=utc_now() - timedelta(days=5),
+            last_seen_at=utc_now() - timedelta(days=2),
+        )
+        one_offer = FoodOfferRecord(
+            source="field-note",
+            source_item_id="901",
+            source_group_id="901",
+            category="grocery",
+            brand=None,
+            canonical_name="single offer salt",
+            display_name="Single Offer Salt",
+            unit="kg",
+            unit_amount=1.0,
+            pack_descriptor="1kg",
+            price_lkr=50.0,
+            price_per_unit_lkr=50.0,
+            currency="LKR",
+            available=True,
+            sku="SALT-1KG",
+            url="https://example.test/single-offer-salt",
+            district=None,
+            city=None,
+            cluster_key="salt|single|kg|1.000",
+            first_seen_at=utc_now() - timedelta(days=1),
+            last_seen_at=utc_now(),
+        )
+        db.add_all([strong_offer, one_offer])
+        db.flush()
+        db.add_all(
+            [
+                PriceAggregateRecord(
+                    cluster_key="oil|high-delta|l|1.000",
+                    canonical_name="high delta coconut oil",
+                    brand="Deal",
+                    category="grocery",
+                    unit="l",
+                    unit_amount=1.0,
+                    offers_count=4,
+                    min_price_lkr=1800.0,
+                    max_price_lkr=2500.0,
+                    median_price_lkr=2400.0,
+                    average_price_lkr=2200.0,
+                    calculated_at=utc_now(),
+                ),
+                PriceAggregateRecord(
+                    cluster_key="salt|single|kg|1.000",
+                    canonical_name="single offer salt",
+                    brand=None,
+                    category="grocery",
+                    unit="kg",
+                    unit_amount=1.0,
+                    offers_count=1,
+                    min_price_lkr=50.0,
+                    max_price_lkr=50.0,
+                    median_price_lkr=50.0,
+                    average_price_lkr=50.0,
+                    calculated_at=utc_now(),
+                ),
+                FairPriceScoreRecord(
+                    food_offer_id=strong_offer.id,
+                    source_item_id="501",
+                    cluster_key="oil|high-delta|l|1.000",
+                    median_price_lkr=2400.0,
+                    delta_vs_median_pct=25.0,
+                    price_band="good-value",
+                    calculated_at=utc_now(),
+                ),
+                FairPriceScoreRecord(
+                    food_offer_id=one_offer.id,
+                    source_item_id="901",
+                    cluster_key="salt|single|kg|1.000",
+                    median_price_lkr=50.0,
+                    delta_vs_median_pct=90.0,
+                    price_band="good-value",
+                    calculated_at=utc_now(),
+                ),
+            ]
+        )
+        db.commit()
+
+    summary_response = client.get("/api/v1/intelligence/summary")
+    brief_response = client.get("/api/v1/intelligence/brief")
+
+    assert summary_response.status_code == 200
+    summary_payload = summary_response.json()
+    top_value_names = [item["display_name"] for item in summary_payload["rankings"]["top_value"]]
+    assert top_value_names[0] == "High Delta Coconut Oil"
+    assert "Single Offer Salt" not in top_value_names
+
+    assert brief_response.status_code == 200
+    assert brief_response.json()["top_value_offer"]["display_name"] == "High Delta Coconut Oil"
 
 
 def test_categories_summary_combines_retail_and_market_coverage() -> None:

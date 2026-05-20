@@ -8,7 +8,7 @@ export function SiteFooter() {
   return (
     <footer className="relative mt-24 border-t-2 border-[color:var(--color-text-primary)] bg-[color:var(--paper-100)]">
       <div className="mx-auto max-w-[1320px] px-4 pt-10 sm:px-6">
-        <section className="footer-cta" aria-label="Mandiya data tools">
+        <section className="footer-cta" aria-label="FoodLK data tools">
           <div>
             <span className="text-kicker">§ Put the desk to work</span>
             <h2
@@ -50,7 +50,7 @@ export function SiteFooter() {
             padding: '0.4em 0.2em 0.15em',
           }}
         >
-          MANDIYA.
+          FOODLK.
         </div>
       </div>
 
@@ -64,11 +64,11 @@ export function SiteFooter() {
               className="mt-3 font-display text-[40px] leading-[0.95] tracking-normal text-[color:var(--color-text-primary)]"
               style={{ fontVariationSettings: "'opsz' 96, 'wght' 700" }}
             >
-              Mandiya<span className="text-[color:var(--chili-500)]">.</span>
+              FoodLK<span className="text-[color:var(--chili-500)]">.</span>
             </h3>
             <p className="mt-4 max-w-[36ch] font-display text-[15px] italic leading-[1.55] text-[color:var(--color-text-secondary)]">
-              Sri Lanka’s daily price desk. We walk shelves and stalls so you can read one number per
-              item, one trend per week.
+              Sri Lanka’s food price intelligence desk. We normalize shelves and market feeds so
+              comparisons, trends, and saved alerts stay readable.
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -107,7 +107,7 @@ export function SiteFooter() {
         {/* Bottom — colophon */}
         <div className="mt-6 flex flex-col items-start justify-between gap-3 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-muted)] sm:flex-row sm:items-baseline">
           <p>
-            © {year} Mandiya · Set in <span className="text-[color:var(--color-text-primary)]">Fraunces</span> &amp;{' '}
+            © {year} FoodLK · Set in <span className="text-[color:var(--color-text-primary)]">Fraunces</span> &amp;{' '}
             <span className="text-[color:var(--color-text-primary)]">JetBrains Mono</span> · Published from Colombo
           </p>
           <p>An Ardeno Studio thing · v1.0 · <span className="text-[color:var(--chili-500)]">— 30 —</span></p>

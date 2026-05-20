@@ -11,9 +11,9 @@ type TrustCommandRailProps = {
 }
 
 function gradeLabel(grade?: string) {
-  if (grade === 'high') return 'Publish-ready'
+  if (grade === 'high') return 'Current window'
   if (grade === 'medium') return 'Watch mode'
-  return 'Verify before acting'
+  return 'Needs review'
 }
 
 function gradeTone(grade?: string) {
@@ -31,39 +31,39 @@ export function TrustCommandRail({ freshness, loading = false }: TrustCommandRai
   const lastScrape = freshness?.freshness.last_scrape_at
 
   return (
-    <aside className="trust-command-rail" aria-label="Platform trust and quick actions">
-      <div className="mx-auto grid max-w-[1320px] gap-[1px] bg-[color:var(--color-border)] px-4 sm:px-6 lg:grid-cols-[1.15fr_0.9fr_1.3fr]">
+    <aside className="trust-command-rail" aria-label="Platform trust and quick actions: source freshness and reference links">
+      <div className="mx-auto grid max-w-[1320px] gap-[1px] bg-[color:var(--color-border)] px-4 sm:px-6 lg:grid-cols-[1fr_0.82fr_1.15fr]">
         <div className="trust-command-cell bg-[color:var(--paper-50)]">
-          <span className="text-kicker">§ Trust state</span>
+          <span className="text-kicker">§ Trust window</span>
           <div className="mt-2 flex items-center gap-2">
             {confidence?.grade === 'high' ? (
               <CheckCircle2 className="h-4 w-4 text-[color:var(--curry-leaf)]" aria-hidden="true" />
             ) : (
               <AlertTriangle className="h-4 w-4 text-[color:var(--chili-600)]" aria-hidden="true" />
             )}
-            <p className={cn('font-display text-xl font-semibold leading-none', gradeTone(confidence?.grade))}>
-              {loading ? 'Calibrating' : gradeLabel(confidence?.grade)}
+            <p className={cn('font-display text-base font-semibold leading-none', gradeTone(confidence?.grade))}>
+              {loading ? 'Checking' : gradeLabel(confidence?.grade)}
             </p>
           </div>
           <p className="mt-1 text-xs leading-5 text-[color:var(--ink-500)]">
-            {confidence?.note ?? 'Checking scraper freshness and coverage.'}
+            {confidence?.note ?? 'Checking scheduled refreshes and source coverage.'}
           </p>
         </div>
 
         <div className="trust-command-cell bg-[color:var(--paper-50)]">
-          <span className="text-kicker">§ Source board</span>
-          <p className="num mt-2 text-2xl font-bold leading-none text-[color:var(--ink-900)]">
+          <span className="text-kicker">§ Source freshness</span>
+          <p className="num mt-2 text-xl font-bold leading-none text-[color:var(--ink-900)]">
             {healthy}/{total || '—'}
           </p>
           <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[color:var(--ink-500)]">
-            sources live · refreshed {formatCompactDate(lastScrape)}
+            feeds healthy · scheduled refresh {formatCompactDate(lastScrape)}
           </p>
         </div>
 
         <div className="trust-command-cell bg-[color:var(--paper-50)]">
           <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <span className="text-kicker">§ Next action</span>
+              <span className="text-kicker">§ Reference</span>
               <p className="mt-2 text-sm leading-6 text-[color:var(--ink-700)]">
                 {warnings.length
                   ? `${warnings.length} expected feeds need attention before publishing analysis.`
@@ -71,15 +71,15 @@ export function TrustCommandRail({ freshness, loading = false }: TrustCommandRai
               </p>
             </div>
             <div className="flex min-w-0 flex-wrap gap-2 sm:shrink-0">
-              <Link to="/pipeline" className="rail-action">
+              <Link to="/pipeline" className="rail-action" aria-label="Pipeline source status">
                 <DatabaseZap className="h-3.5 w-3.5" aria-hidden="true" />
-                Pipeline
+                Sources
               </Link>
               <Link to="/methods" className="rail-action">
                 <RefreshCcw className="h-3.5 w-3.5" aria-hidden="true" />
                 Methods
               </Link>
-              <Link to="/developers" className="rail-action rail-action-strong">
+              <Link to="/developers" className="rail-action">
                 API
                 <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
               </Link>

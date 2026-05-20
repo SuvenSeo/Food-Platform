@@ -8,6 +8,7 @@ import type {
   ItemDetailResponse,
   ItemSummary,
   MarketQuoteItem,
+  MarketQuoteFacets,
   OffersResponse,
   PlatformFreshnessSummary,
   PipelineStatusResponse,
@@ -65,7 +66,7 @@ export const api = {
   getItem: (slug: string) => fetchJson<ItemDetailResponse>(`/items/${encodeURIComponent(slug)}`),
   getTrends: (category: string) => fetchJson<{ items: TrendItem[] }>(`/trends/${category}`),
   getPipeline: () => fetchJson<PipelineStatusResponse>('/pipeline/status'),
-  getMarketQuotes: (searchParams = '') => fetchJson<{ items: MarketQuoteItem[]; total: number }>(`/market-quotes${searchParams}`),
+  getMarketQuotes: (searchParams = '') => fetchJson<{ items: MarketQuoteItem[]; total: number; facets?: MarketQuoteFacets }>(`/market-quotes${searchParams}`),
   getMarketPriceTrend: (item: string, district?: string, granularity: 'monthly' | 'yearly' = 'monthly') => {
     const params = new URLSearchParams({ item, granularity })
     if (district) params.set('district', district)
