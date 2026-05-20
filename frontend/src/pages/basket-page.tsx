@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { Bookmark, CheckCircle2, CircleDashed, Search } from 'lucide-react'
 
 import { AlertSignup } from '../components/retention/alert-signup'
+import { FoodItemImage } from '../components/primitives/food-item-image'
 import { Badge } from '../components/ui/badge'
 import { RevealSection } from '../components/ui/reveal-section'
 import { SectionHeader } from '../components/ui/section-header'
@@ -218,8 +219,9 @@ export function BasketPage() {
               />
             ) : (
               <div className="overflow-hidden border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)]">
-                <div className="hidden grid-cols-[48px_1fr_0.8fr_0.7fr_0.75fr] border-b border-[color:var(--color-text-primary)] bg-[color:var(--color-bg-secondary)] px-4 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[color:var(--color-text-muted)] md:grid">
+                <div className="hidden grid-cols-[48px_64px_1fr_0.8fr_0.7fr_0.75fr] border-b border-[color:var(--color-text-primary)] bg-[color:var(--color-bg-secondary)] px-4 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[color:var(--color-text-muted)] md:grid">
                   <span>No.</span>
+                  <span aria-hidden="true" />
                   <span>Item</span>
                   <span>Source</span>
                   <span className="text-right">Line price</span>
@@ -228,7 +230,7 @@ export function BasketPage() {
                 {runningRows.map((item, index) => (
                   <article
                     key={`${item.label}-${index}`}
-                    className="grid gap-3 border-b border-dotted border-[color:var(--color-border-hover)] px-4 py-4 last:border-b-0 md:grid-cols-[48px_1fr_0.8fr_0.7fr_0.75fr] md:items-center"
+                    className="grid gap-3 border-b border-dotted border-[color:var(--color-border-hover)] px-4 py-4 last:border-b-0 md:grid-cols-[48px_64px_1fr_0.8fr_0.7fr_0.75fr] md:items-center"
                   >
                     <div className="flex items-center gap-2">
                       {item.price_lkr == null ? (
@@ -238,6 +240,12 @@ export function BasketPage() {
                       )}
                       <span className="num font-mono text-xs text-[color:var(--color-text-muted)]">{String(index + 1).padStart(2, '0')}</span>
                     </div>
+                    <FoodItemImage
+                      src={item.image_url}
+                      name={item.label}
+                      source={item.source}
+                      className="h-16 w-16"
+                    />
                     <div>
                       <h3 className="font-display text-lg font-semibold text-[color:var(--color-text-primary)]">{item.label}</h3>
                       <p className="mt-1 text-xs text-[color:var(--color-text-muted)]">

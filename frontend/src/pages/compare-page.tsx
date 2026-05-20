@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
-import { ArrowLeftRight, Bookmark, ReceiptText, Search, Tag } from 'lucide-react'
+import { ArrowLeftRight, Bookmark, ReceiptText, Search } from 'lucide-react'
 import {
   Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
 
 import { Badge } from '../components/ui/badge'
 import { AlertSignup } from '../components/retention/alert-signup'
+import { FoodItemImage } from '../components/primitives/food-item-image'
 import { SectionHeader } from '../components/ui/section-header'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
@@ -18,6 +19,7 @@ import { formatCompactDate, formatCurrency } from '../lib/format'
 type SuggestedCompareItem = {
   key: string
   label: string
+  imageUrl?: string | null
   category: string
 }
 
@@ -95,6 +97,7 @@ export function ComparePage() {
       .map((item) => ({
         key: `${item.kind}-${item.slug}-${item.category}`,
         label: item.display_name || item.canonical_name,
+        imageUrl: item.image_url,
         category: item.category,
       }))
 
@@ -105,6 +108,7 @@ export function ComparePage() {
         quoteSuggestionsByKey.set(key, {
           key,
           label: quote.item_name,
+          imageUrl: quote.image_url,
           category: quote.category,
         })
       }
@@ -174,7 +178,7 @@ export function ComparePage() {
                 onClick={() => setItemNeedle(item.label)}
                 className="inline-flex items-center gap-2 border border-[color:var(--color-border-hover)] bg-[color:var(--color-bg-card)] px-3 py-2 text-left font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--color-text-secondary)] transition hover:border-[color:var(--color-text-primary)] hover:text-[color:var(--color-text-primary)]"
               >
-                <Tag className="h-3.5 w-3.5 text-[color:var(--chili-600)]" aria-hidden="true" />
+                <FoodItemImage src={item.imageUrl} name={item.label} category={item.category} className="h-8 w-8" />
                 {item.label}
               </button>
             ))}
@@ -379,11 +383,17 @@ export function ComparePage() {
               return (
                 <article
                   key={item.item_name}
-                  className="grid gap-3 border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4 shadow-paper md:grid-cols-[56px_1fr_auto]"
+                  className="grid gap-3 border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4 shadow-paper md:grid-cols-[56px_72px_1fr_auto]"
                 >
                   <p className="num font-mono text-xs font-bold text-[color:var(--color-text-muted)]">
                     {String(index + 1).padStart(2, '0')}
                   </p>
+                  <FoodItemImage
+                    src={item.image_url}
+                    name={item.item_name}
+                    category={item.category}
+                    className="h-[72px] w-[72px]"
+                  />
                   <div>
                     <h3 className="font-display text-xl font-semibold text-[color:var(--color-text-primary)]">{item.item_name}</h3>
                     <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--color-text-muted)]">{item.category}</p>

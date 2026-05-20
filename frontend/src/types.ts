@@ -51,6 +51,7 @@ export type OffersResponse = {
 export type TrendItem = {
   cluster_key: string
   canonical_name: string
+  image_url?: string | null
   brand: string | null
   median_price_lkr: number
   average_price_lkr: number
@@ -96,6 +97,7 @@ export type MarketQuoteItem = {
   district: string
   market_name: string
   item_name: string
+  image_url?: string | null
   category: string
   unit: string
   price_lkr: number
@@ -126,6 +128,7 @@ export type HomeSummary = {
       district: string
       market_name: string
       item_name: string
+      image_url?: string | null
       category: string
       unit: string
       price_lkr: number
@@ -152,6 +155,7 @@ export type CategorySummaryItem = {
 
 export type DistrictCompareItem = {
   item_name: string
+  image_url?: string | null
   category: string
   left_price_lkr: number
   right_price_lkr: number
@@ -189,6 +193,7 @@ export type BasketEstimateResponse = {
   }
   items: Array<{
     label: string
+    image_url?: string | null
     kind: string
     price_lkr: number | null
     source: string | null
@@ -200,6 +205,7 @@ export type BasketEstimateResponse = {
     alternatives?: Array<{
       source: string | null
       label: string
+      image_url?: string | null
       price_lkr: number
       observed_at: string | null
     }>
@@ -315,6 +321,7 @@ export type ItemDetailResponse = {
   item: {
     slug: string
     canonical_name: string
+    image_url?: string | null
     category: string
     retail_offers_count: number
     market_quotes_count: number
@@ -332,6 +339,7 @@ export type ItemDetailResponse = {
 
 export type TrendSummaryItem = {
   item_name: string
+  image_url?: string | null
   data_points: number
   earliest: string | null
   latest: string | null
@@ -361,6 +369,7 @@ export type IntelligenceBrief = {
     district: string
     market_name: string
     item_name: string
+    image_url?: string | null
     price_lkr: number
     quoted_at: string | null
   } | null

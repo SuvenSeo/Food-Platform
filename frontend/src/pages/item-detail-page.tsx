@@ -6,6 +6,7 @@ import {
 import { ArrowLeft, ArrowUpRight, TrendingDown, TrendingUp } from 'lucide-react'
 
 import { AlertSignup } from '../components/retention/alert-signup'
+import { FoodItemImage } from '../components/primitives/food-item-image'
 import { OfferCard } from '../components/ui/offer-card'
 import { LoadingBlock } from '../components/ui/loading-block'
 import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
@@ -50,26 +51,36 @@ export function ItemDetailPage() {
         Back to prices
       </Link>
 
-      <div className="fp-panel">
-        <p className="eyebrow-accent">{data.item.category}</p>
-        <h1
-          className="mt-3 font-display text-[color:var(--color-text-primary)]"
-          style={{ fontSize: 'clamp(2rem, 5vw, 4rem)', letterSpacing: 0, fontVariationSettings: "'opsz' 120, 'wght' 650" }}
-        >
-          {data.item.canonical_name}
-        </h1>
-        <div className="mt-6 grid gap-[1px] overflow-hidden rounded-lg bg-[color:var(--color-border)] md:grid-cols-4">
-          {[
-            { label: 'Retail offers', value: data.item.retail_offers_count },
-            { label: 'Market quotes', value: data.item.market_quotes_count },
-            { label: 'Retail low', value: data.summary.lowest_retail_price_lkr ? `රු ${formatCurrency(data.summary.lowest_retail_price_lkr)}` : '—' },
-            { label: 'Market low', value: data.summary.lowest_market_price_lkr ? `රු ${formatCurrency(data.summary.lowest_market_price_lkr)}` : '—' },
-          ].map((item) => (
-            <div key={item.label} className="bg-[color:var(--color-bg-card)] p-4">
-              <p className="text-kicker">{item.label}</p>
-              <p className="num mt-2 text-2xl font-bold text-[color:var(--color-text-primary)]">{item.value}</p>
+      <div className="fp-panel grid gap-6 lg:grid-cols-[220px_1fr]">
+        <FoodItemImage
+          src={data.item.image_url}
+          name={data.item.canonical_name}
+          category={data.item.category}
+          className="h-56 w-full"
+          imgClassName="p-4"
+          priority
+        />
+        <div className="min-w-0">
+          <p className="eyebrow-accent">{data.item.category}</p>
+          <h1
+            className="mt-3 font-display text-[color:var(--color-text-primary)]"
+            style={{ fontSize: 'clamp(2rem, 5vw, 4rem)', letterSpacing: 0, fontVariationSettings: "'opsz' 120, 'wght' 650" }}
+          >
+            {data.item.canonical_name}
+          </h1>
+          <div className="mt-6 grid gap-[1px] overflow-hidden rounded-lg bg-[color:var(--color-border)] md:grid-cols-4">
+            {[
+              { label: 'Retail offers', value: data.item.retail_offers_count },
+              { label: 'Market quotes', value: data.item.market_quotes_count },
+              { label: 'Retail low', value: data.summary.lowest_retail_price_lkr ? `රු ${formatCurrency(data.summary.lowest_retail_price_lkr)}` : '—' },
+              { label: 'Market low', value: data.summary.lowest_market_price_lkr ? `රු ${formatCurrency(data.summary.lowest_market_price_lkr)}` : '—' },
+            ].map((item) => (
+              <div key={item.label} className="bg-[color:var(--color-bg-card)] p-4">
+                <p className="text-kicker">{item.label}</p>
+                <p className="num mt-2 text-2xl font-bold text-[color:var(--color-text-primary)]">{item.value}</p>
+              </div>
+            ))}
             </div>
-          ))}
         </div>
       </div>
 

@@ -142,6 +142,63 @@ def test_stats_summary_and_offer_browse() -> None:
     assert offers.json()["items"][0]["price_band"] == "good-value"
 
 
+def test_public_retail_surfaces_hide_non_food_source_products() -> None:
+    seed_api_data()
+    with SessionLocal() as db:
+        non_food_offer = FoodOfferRecord(
+            source="spar2u",
+            source_item_id="gate-101",
+            source_group_id="gate",
+            category="baby care",
+            brand=None,
+            canonical_name="safety gate",
+            display_name="Safety Gate 6-12 Months",
+            unit=None,
+            unit_amount=None,
+            pack_descriptor=None,
+            price_lkr=9900.0,
+            price_per_unit_lkr=None,
+            currency="LKR",
+            available=True,
+            sku="GATE-1",
+            url="https://spar2u.lk/products/safety-gate",
+            image_url="https://example.com/gate.png",
+            district=None,
+            city=None,
+            cluster_key="spar|safety gate|unit|1.000",
+            first_seen_at=utc_now(),
+            last_seen_at=utc_now(),
+        )
+        db.add(non_food_offer)
+        db.add(
+            PriceAggregateRecord(
+                cluster_key="spar|safety gate|unit|1.000",
+                canonical_name="safety gate",
+                brand=None,
+                category="baby care",
+                unit=None,
+                unit_amount=None,
+                offers_count=1,
+                min_price_lkr=9900.0,
+                max_price_lkr=9900.0,
+                median_price_lkr=9900.0,
+                average_price_lkr=9900.0,
+                calculated_at=utc_now(),
+            )
+        )
+        db.commit()
+
+    offers = client.get("/api/v1/offers", params={"search": "gate"})
+    items = client.get("/api/v1/items", params={"search": "gate"})
+    summary = client.get("/api/v1/stats/summary")
+
+    assert offers.status_code == 200
+    assert offers.json()["total"] == 0
+    assert items.status_code == 200
+    assert items.json()["total"] == 0
+    assert summary.json()["offers_count"] == 1
+
+
 def test_platform_freshness_exposes_confidence_and_provenance() -> None:
     seed_api_data()
 

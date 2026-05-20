@@ -12,6 +12,7 @@ import { useMarketTrend } from '../../hooks/use-market-trend'
 import { useTrendsSummary } from '../../hooks/use-trends-summary'
 import { formatCurrency, mapTrendSeriesToChart } from '../../lib/format'
 import type { TrendSummaryItem } from '../../types'
+import { FoodItemImage } from '../primitives/food-item-image'
 import { EmptyState } from '../ui/workflow-helpers'
 import { SectionSkeleton } from '../ui/section-skeleton'
 
@@ -49,6 +50,7 @@ export function MarketPulseChartView({
 }: MarketPulseChartViewProps) {
   const movement = priceMovement(chartData)
   const hasChart = chartData.length > 1
+  const activeItemRecord = topItems.find((item) => item.item_name === activeItem) ?? topItems[0]
 
   return (
     <section className="fp-chart-panel market-pulse" aria-label="Market pulse">
@@ -81,13 +83,22 @@ export function MarketPulseChartView({
         <div className="mt-6 grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
           <div className="min-w-0">
             <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
+              <div className="flex items-center gap-3">
+                {activeItem && (
+                  <FoodItemImage
+                    src={activeItemRecord?.image_url}
+                    name={activeItem}
+                    className="h-16 w-16"
+                  />
+                )}
+                <div className="min-w-0">
                 <p className="font-display text-xl font-semibold text-[color:var(--color-text-primary)]">
                   {activeItem}
                 </p>
                 <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-text-muted)]">
                   Monthly public-market average
                 </p>
+                </div>
               </div>
               {movement && (
                 <p className="num text-right font-mono text-[13px] font-bold uppercase tracking-[0.14em] text-[color:var(--color-text-primary)]">
@@ -128,6 +139,7 @@ export function MarketPulseChartView({
                   <span className="num font-mono text-[10px] text-[color:var(--color-text-faint)]">
                     {String(index + 1).padStart(2, '0')}
                   </span>
+                  <FoodItemImage src={item.image_url} name={item.item_name} className="h-10 w-10" />
                   <span className="min-w-0 flex-1 truncate font-display text-[15px] text-[color:var(--color-text-primary)]">
                     {item.item_name}
                   </span>

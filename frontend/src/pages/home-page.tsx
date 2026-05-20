@@ -4,6 +4,7 @@ import { ArrowRight, BarChart3, Bell, Scale, Search, ShieldCheck } from 'lucide-
 import { AlertSignup } from '../components/retention/alert-signup'
 import { MarketIntelligenceBoard } from '../components/marketing/market-intelligence-board'
 import { MarketPulseChart } from '../components/marketing/market-pulse-chart'
+import { FoodItemImage } from '../components/primitives/food-item-image'
 import { PriceSignalRow } from '../components/primitives/price-signal-row'
 import { SectionHeader } from '../components/ui/section-header'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
@@ -147,7 +148,14 @@ export function HomePage() {
           <div className="space-y-3">
             {quotes.length
               ? quotes.slice(0, 3).map((quote) => (
-                <article key={quote.id} className="grid grid-cols-[1fr_auto] gap-4 border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4">
+                <article key={quote.id} className="grid grid-cols-[64px_1fr_auto] gap-4 border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4">
+                  <FoodItemImage
+                    src={quote.image_url}
+                    name={quote.item_name}
+                    category={quote.category}
+                    source={quote.market_name}
+                    className="h-16 w-16"
+                  />
                   <div className="min-w-0">
                     <p className="text-kicker">{quote.district} · {quote.market_name}</p>
                     <h3 className="mt-2 truncate font-display text-xl font-semibold text-[color:var(--color-text-primary)]">
@@ -183,8 +191,18 @@ export function HomePage() {
           <div className="grid gap-[1px] bg-[color:var(--color-border)] sm:grid-cols-2">
             {trends.map((trend, index) => (
               <div key={trend.cluster_key} className="bg-[color:var(--color-bg-card)] p-4">
-                <p className="font-mono text-[10px] text-[color:var(--color-text-faint)]">{String(index + 1).padStart(2, '0')}</p>
-                <h3 className="mt-2 truncate font-display text-lg font-semibold text-[color:var(--color-text-primary)]">{trend.canonical_name}</h3>
+                <div className="flex items-start gap-3">
+                  <FoodItemImage
+                    src={trend.image_url}
+                    name={trend.canonical_name}
+                    category={trend.brand}
+                    className="h-14 w-14"
+                  />
+                  <div className="min-w-0">
+                    <p className="font-mono text-[10px] text-[color:var(--color-text-faint)]">{String(index + 1).padStart(2, '0')}</p>
+                    <h3 className="mt-2 truncate font-display text-lg font-semibold text-[color:var(--color-text-primary)]">{trend.canonical_name}</h3>
+                  </div>
+                </div>
                 <p className="num mt-2 text-xl font-bold text-[color:var(--color-text-primary)]">
                   රු {formatCurrency(trend.median_price_lkr)}
                 </p>

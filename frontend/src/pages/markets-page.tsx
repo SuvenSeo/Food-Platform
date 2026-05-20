@@ -5,6 +5,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 
+import { FoodItemImage } from '../components/primitives/food-item-image'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { SectionHeader } from '../components/ui/section-header'
 import { EmptyState, ErrorState, NextActionLinks } from '../components/ui/workflow-helpers'
@@ -39,6 +40,14 @@ export function MarketsPage() {
   }, [quotes, trendsSummaryQuery.data?.top_items])
 
   const activeTrendItem = trendItem ?? commodityOptions[0] ?? ''
+  const activeTrendMeta = useMemo(() => {
+    const trend = trendsSummaryQuery.data?.top_items?.find((item) => item.item_name === activeTrendItem)
+    const quote = quotes.find((item) => item.item_name === activeTrendItem)
+    return {
+      imageUrl: trend?.image_url ?? quote?.image_url ?? null,
+      category: quote?.category ?? null,
+    }
+  }, [activeTrendItem, quotes, trendsSummaryQuery.data?.top_items])
   const trendDistrictParam = trendDistrict === 'all' ? undefined : trendDistrict
   const marketTrendQuery = useMarketTrend(activeTrendItem, {
     district: trendDistrictParam,
@@ -102,7 +111,13 @@ export function MarketsPage() {
         </div>
         <div className="rule-double mt-2 h-1.5 w-full" aria-hidden="true" />
 
-        <div className="mt-6 grid gap-4 md:grid-cols-[2fr_1fr]">
+        <div className="mt-6 grid gap-4 md:grid-cols-[96px_2fr_1fr]">
+          <FoodItemImage
+            src={activeTrendMeta.imageUrl}
+            name={activeTrendItem || 'Market item'}
+            category={activeTrendMeta.category}
+            className="h-24 w-24"
+          />
           <label className="space-y-2">
             <span className="text-kicker">Commodity</span>
             <select
@@ -216,6 +231,14 @@ export function MarketsPage() {
         <div className="grid gap-[1px] bg-[color:var(--color-border)] sm:grid-cols-2 lg:grid-cols-3">
           {visibleQuotes.map((quote) => (
             <article key={quote.id} className="group flex flex-col gap-3 bg-[color:var(--color-bg-card)] p-5 transition-colors hover:bg-[color:var(--color-bg-card-hover)]">
+              <FoodItemImage
+                src={quote.image_url}
+                name={quote.item_name}
+                category={quote.category}
+                source={quote.market_name}
+                className="h-32 w-full"
+                imgClassName="p-3"
+              />
               <div className="flex items-baseline justify-between">
                 <span className="text-kicker">§ {quote.district}</span>
                 <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-faint)]">

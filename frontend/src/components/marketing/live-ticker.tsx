@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom'
 import type { OfferItem } from '../../types'
 import { formatCurrency } from '../../lib/format'
 import { cn } from '../../lib/utils'
+import { FoodItemImage } from '../primitives/food-item-image'
 
 type LiveTickerProps = {
   offers: OfferItem[]
   className?: string
 }
 
-/** Today's Tape — horizontal newspaper ticker. */
+/** Scheduled price tape — horizontal newspaper ticker. */
 export function LiveTicker({ offers, className }: LiveTickerProps) {
   if (!offers.length) return null
 
@@ -22,7 +23,7 @@ export function LiveTicker({ offers, className }: LiveTickerProps) {
         'group relative grid grid-cols-[auto_1fr] overflow-hidden border-y-2 border-[color:var(--color-text-primary)] bg-[color:var(--color-bg-card)]',
         className,
       )}
-      aria-label="Today's price tape"
+      aria-label="Scheduled price tape"
     >
       {/* Vertical TAPE label */}
       <div className="flex items-center justify-center bg-[color:var(--color-text-primary)] px-3 py-3">
@@ -30,7 +31,7 @@ export function LiveTicker({ offers, className }: LiveTickerProps) {
           className="font-mono text-[10px] font-bold uppercase tracking-[0.32em] text-[color:var(--paper-50)]"
           style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
         >
-          § Today’s Tape
+          § Price Tape
         </p>
       </div>
 
@@ -57,8 +58,9 @@ export function LiveTicker({ offers, className }: LiveTickerProps) {
               <Link
                 key={`${offer.id}-${i}`}
                 to={`/offers/${offer.id}`}
-                className="flex shrink-0 items-baseline gap-3 whitespace-nowrap px-5 transition-colors hover:bg-[color:var(--paper-200)]"
+                className="flex shrink-0 items-center gap-3 whitespace-nowrap px-5 transition-colors hover:bg-[color:var(--paper-200)]"
               >
+                <FoodItemImage src={offer.image_url} name={offer.display_name} category={offer.category} className="h-10 w-10" />
                 <span className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-[color:var(--color-text-muted)]">
                   {offer.source}
                 </span>

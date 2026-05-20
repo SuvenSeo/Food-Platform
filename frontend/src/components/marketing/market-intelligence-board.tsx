@@ -2,6 +2,7 @@ import { type FormEvent, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, BarChart3, Bell, GitCompareArrows, Search, ShieldCheck } from 'lucide-react'
 
+import { FoodItemImage } from '../primitives/food-item-image'
 import type { HomeSummary, IntelligenceSummary, PlatformFreshnessSummary } from '../../types'
 import { formatCompactDate, formatCurrency } from '../../lib/format'
 
@@ -108,6 +109,15 @@ export function MarketIntelligenceBoard({ home, intelligence, freshness }: Marke
         <span className="text-kicker">§ Best normalized signal</span>
         {leadOffer ? (
           <>
+            <FoodItemImage
+              src={leadOffer.image_url}
+              name={leadOffer.display_name}
+              category={leadOffer.category}
+              source={leadOffer.source}
+              className="mt-4 h-28 w-full"
+              imgClassName="p-3"
+              priority
+            />
             <p className="mt-4 font-display text-2xl leading-tight text-[color:var(--color-text-primary)]">
               {leadOffer.display_name}
             </p>
@@ -130,6 +140,16 @@ export function MarketIntelligenceBoard({ home, intelligence, freshness }: Marke
 
       <article className="market-board-panel bg-[color:var(--paper-50)]">
         <span className="text-kicker">§ Wet-market signal</span>
+        {latestQuote && (
+          <FoodItemImage
+            src={latestQuote.image_url}
+            name={latestQuote.item_name}
+            category={latestQuote.category}
+            source={latestQuote.market_name}
+            className="mt-4 h-24 w-full"
+            imgClassName="p-3"
+          />
+        )}
         <p className="mt-4 font-display text-2xl leading-tight text-[color:var(--color-text-primary)]">
           {latestQuote ? `${latestQuote.item_name} · ${latestQuote.district}` : 'No market quote yet'}
         </p>
@@ -143,6 +163,15 @@ export function MarketIntelligenceBoard({ home, intelligence, freshness }: Marke
 
       <article className="market-board-panel bg-[color:var(--paper-50)]">
         <span className="text-kicker">§ History to inspect</span>
+        {trend && (
+          <FoodItemImage
+            src={trend.image_url}
+            name={trend.canonical_name}
+            category={trend.brand}
+            className="mt-4 h-24 w-full"
+            imgClassName="p-3"
+          />
+        )}
         <p className="mt-4 font-display text-2xl leading-tight text-[color:var(--color-text-primary)]">
           {trend?.canonical_name ?? 'Trend series loading'}
         </p>
@@ -161,11 +190,17 @@ export function MarketIntelligenceBoard({ home, intelligence, freshness }: Marke
             <Link
               key={offer.id}
               to={`/offers/${offer.id}`}
-              className="grid grid-cols-[auto_1fr_auto] items-baseline gap-3 border-b border-dotted border-[color:var(--color-border-hover)] pb-3 last:border-b-0"
+              className="grid grid-cols-[auto_44px_1fr_auto] items-center gap-3 border-b border-dotted border-[color:var(--color-border-hover)] pb-3 last:border-b-0"
             >
               <span className="num font-mono text-[10px] text-[color:var(--color-text-faint)]">
                 {String(index + 1).padStart(2, '0')}
               </span>
+              <FoodItemImage
+                src={offer.image_url}
+                name={offer.display_name}
+                category={offer.category}
+                className="h-11 w-11"
+              />
               <span className="truncate text-sm font-semibold text-[color:var(--color-text-primary)]">{offer.display_name}</span>
               <span className="num text-sm font-bold text-[color:var(--chili-600)]">රු {formatCurrency(offer.price_lkr)}</span>
             </Link>

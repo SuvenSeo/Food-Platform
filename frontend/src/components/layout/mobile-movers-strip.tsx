@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 
+import { FoodItemImage } from '../primitives/food-item-image'
 import { useIntelligenceSummary } from '../../hooks/use-intelligence-summary'
 import { formatCurrency } from '../../lib/format'
 
@@ -11,6 +12,7 @@ export function MobileMoversStrip() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-between gap-3 border-t-2 border-[color:var(--ink-900)] bg-[color:var(--paper-50)] px-4 py-3 sm:hidden">
+      <FoodItemImage src={top.image_url} name={top.display_name} category={top.category} className="h-14 w-14" />
       <div className="min-w-0">
         <p className="text-kicker">§ Top value</p>
         <p className="truncate font-display text-[15px] font-semibold text-[color:var(--ink-900)]">{top.display_name}</p>

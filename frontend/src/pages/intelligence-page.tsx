@@ -2,6 +2,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 
+import { FoodItemImage } from '../components/primitives/food-item-image'
 import { OfferCard } from '../components/ui/offer-card'
 import { PipelineCard } from '../components/ui/pipeline-card'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
@@ -35,7 +36,8 @@ export function IntelligencePage() {
   const trendSnapshot = data?.rankings?.trend_snapshot ?? []
   const sourceItems = data?.sources ?? []
   const trendsSummary = trendsSummaryQuery.data
-  const topMarketItem = trendsSummary?.top_items?.[0]?.item_name
+  const topMarketItemRecord = trendsSummary?.top_items?.[0]
+  const topMarketItem = topMarketItemRecord?.item_name
   const marketTrendQuery = useMarketTrend(topMarketItem, { enabled: Boolean(topMarketItem) })
   const marketTrendChartData = mapTrendSeriesToChart(marketTrendQuery.data?.series ?? [])
 
@@ -153,31 +155,48 @@ export function IntelligencePage() {
           <div className="border-l border-[color:var(--color-border)] pl-6">
             <span className="text-kicker">§ Current spotlight</span>
             {brief?.top_value_offer ? (
-              <div className="mt-3">
-                <p
-                  className="font-display text-[18px] leading-[1.15] text-[color:var(--color-text-primary)]"
-                  style={{ fontVariationSettings: "'opsz' 36, 'wght' 600" }}
-                >
-                  {brief.top_value_offer.display_name}
-                </p>
-                <p className="num mt-1 text-[28px] font-bold leading-none text-[color:var(--chili-500)]">
-                  <span className="text-[12px] font-semibold text-[color:var(--color-text-muted)]">රු </span>
-                  {formatCurrency(brief.top_value_offer.price_lkr)}
-                </p>
+              <div className="mt-3 grid grid-cols-[72px_1fr] gap-3">
+                <FoodItemImage
+                  src={brief.top_value_offer.image_url}
+                  name={brief.top_value_offer.display_name}
+                  category={brief.top_value_offer.category}
+                  source={brief.top_value_offer.source}
+                  className="h-[72px] w-[72px]"
+                />
+                <div className="min-w-0">
+                  <p
+                    className="font-display text-[18px] leading-[1.15] text-[color:var(--color-text-primary)]"
+                    style={{ fontVariationSettings: "'opsz' 36, 'wght' 600" }}
+                  >
+                    {brief.top_value_offer.display_name}
+                  </p>
+                  <p className="num mt-1 text-[28px] font-bold leading-none text-[color:var(--chili-500)]">
+                    <span className="text-[12px] font-semibold text-[color:var(--color-text-muted)]">රු </span>
+                    {formatCurrency(brief.top_value_offer.price_lkr)}
+                  </p>
+                </div>
               </div>
             ) : (
               <p className="mt-3 font-display text-[14px] italic text-[color:var(--color-text-muted)]">Spotlight unavailable.</p>
             )}
             {brief?.latest_market_signal && (
-              <div className="mt-4 border-t border-[color:var(--color-border-hover)] pt-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-muted)]">Latest market signal</p>
-                <p className="mt-1 font-display text-[14px] text-[color:var(--color-text-secondary)]"
-                  style={{ fontVariationSettings: "'opsz' 24" }}>
-                  {brief.latest_market_signal.item_name} <em>in</em> {brief.latest_market_signal.district}
-                </p>
-                <p className="num text-[16px] font-bold text-[color:var(--color-text-primary)]">
-                  රු {formatCurrency(brief.latest_market_signal.price_lkr)}
-                </p>
+              <div className="mt-4 grid grid-cols-[56px_1fr] gap-3 border-t border-[color:var(--color-border-hover)] pt-3">
+                <FoodItemImage
+                  src={brief.latest_market_signal.image_url}
+                  name={brief.latest_market_signal.item_name}
+                  source={brief.latest_market_signal.market_name}
+                  className="h-14 w-14"
+                />
+                <div className="min-w-0">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-muted)]">Latest market signal</p>
+                  <p className="mt-1 font-display text-[14px] text-[color:var(--color-text-secondary)]"
+                    style={{ fontVariationSettings: "'opsz' 24" }}>
+                    {brief.latest_market_signal.item_name} <em>in</em> {brief.latest_market_signal.district}
+                  </p>
+                  <p className="num text-[16px] font-bold text-[color:var(--color-text-primary)]">
+                    රු {formatCurrency(brief.latest_market_signal.price_lkr)}
+                  </p>
+                </div>
               </div>
             )}
           </div>
@@ -237,9 +256,10 @@ export function IntelligencePage() {
         <div className="flex items-baseline justify-between">
           <span className="text-kicker">§ Market trend</span>
           {topMarketItem && (
-            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-muted)]">
+            <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-muted)]">
+              <FoodItemImage src={topMarketItemRecord?.image_url} name={topMarketItem} className="h-10 w-10" />
               {topMarketItem}
-            </span>
+            </div>
           )}
         </div>
         <div className="rule-double mt-2 h-1.5 w-full" aria-hidden="true" />
@@ -283,13 +303,15 @@ export function IntelligencePage() {
             <span className="text-kicker">§ Cluster snapshot</span>
             <div className="mt-3 grid gap-[1px] bg-[color:var(--color-border)] sm:grid-cols-2">
               {trendSnapshot.map((item) => (
-                <article key={item.cluster_key} className="bg-[color:var(--color-bg-card)] p-4">
-                  <p
-                    className="font-display text-[16px] leading-[1.2] text-[color:var(--color-text-primary)]"
-                    style={{ fontVariationSettings: "'opsz' 36, 'wght' 600" }}
-                  >
-                    {item.brand ? `${item.brand} ` : ''}{item.canonical_name}
-                  </p>
+                <article key={item.cluster_key} className="grid grid-cols-[56px_1fr] gap-3 bg-[color:var(--color-bg-card)] p-4">
+                  <FoodItemImage src={item.image_url} name={item.canonical_name} category={item.brand} className="h-14 w-14" />
+                  <div className="min-w-0">
+                    <p
+                      className="font-display text-[16px] leading-[1.2] text-[color:var(--color-text-primary)]"
+                      style={{ fontVariationSettings: "'opsz' 36, 'wght' 600" }}
+                    >
+                      {item.brand ? `${item.brand} ` : ''}{item.canonical_name}
+                    </p>
                   <div className="mt-2 flex items-baseline justify-between">
                     <p className="num text-[20px] font-bold text-[color:var(--color-text-primary)]">
                       <span className="text-[10px] font-semibold text-[color:var(--color-text-muted)]">රු </span>
@@ -298,6 +320,7 @@ export function IntelligencePage() {
                     <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-text-muted)]">
                       <span className="num text-[color:var(--color-text-primary)]">{item.offers_count}</span> offers
                     </span>
+                  </div>
                   </div>
                 </article>
               ))}

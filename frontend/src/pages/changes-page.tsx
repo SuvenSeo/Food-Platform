@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react'
 
+import { FoodItemImage } from '../components/primitives/food-item-image'
 import { Badge } from '../components/ui/badge'
 import { SectionHeader } from '../components/ui/section-header'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
@@ -60,7 +61,7 @@ export function ChangesPage() {
       <SectionHeader
         eyebrow="Revision feed"
         title={t('nav.changes')}
-        description="A flip-board of today’s movers: every row reads like a price-tape receipt with source, timestamp, and direction."
+        description="A flip-board of latest movers: every row reads like a price-tape receipt with source, timestamp, and direction."
       />
 
       {changesQuery.isError && (
@@ -84,8 +85,8 @@ export function ChangesPage() {
         <>
           <div className="grid gap-[1px] bg-[color:var(--color-border)] md:grid-cols-3">
             {[
-              { label: 'Up today', value: upCount, tone: 'text-[color:var(--chili-600)]' },
-              { label: 'Down today', value: downCount, tone: 'text-[color:var(--curry-leaf)]' },
+              { label: 'Up latest', value: upCount, tone: 'text-[color:var(--chili-600)]' },
+              { label: 'Down latest', value: downCount, tone: 'text-[color:var(--curry-leaf)]' },
               { label: 'Flat / new', value: unchangedCount, tone: 'text-[color:var(--color-text-primary)]' },
             ].map((stat) => (
               <div key={stat.label} className="bg-[color:var(--color-bg-card)] p-5">
@@ -101,9 +102,16 @@ export function ChangesPage() {
               return (
                 <li
                   key={`${item.kind}-${item.label}-${item.observed_at ?? index}`}
-                  className="group grid gap-4 border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4 shadow-paper transition hover:-translate-y-0.5 hover:border-[color:var(--color-border-strong)] md:grid-cols-[auto_1fr_auto]"
+                  className="group grid gap-4 border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4 shadow-paper transition hover:-translate-y-0.5 hover:border-[color:var(--color-border-strong)] md:grid-cols-[auto_72px_1fr_auto]"
                 >
                   <DirectionStamp item={item} />
+                  <FoodItemImage
+                    src={item.image_url}
+                    name={item.label}
+                    category={item.category}
+                    source={item.source}
+                    className="h-[72px] w-[72px]"
+                  />
 
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">

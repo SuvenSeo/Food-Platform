@@ -5,16 +5,20 @@ from __future__ import annotations
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.food_filters import retail_food_offer_clause
 from app.models.tables import FairPriceScoreRecord, FoodOfferRecord, MarketQuoteRecord
+from app.services.item_intelligence import item_image_lookup, representative_item_image
 
 
 def list_price_changes(db: Session, *, limit: int = 50) -> dict[str, object]:
     retail_limit = max(1, limit // 2)
     market_limit = max(1, limit - retail_limit)
+    image_lookup = item_image_lookup(db)
 
     retail_rows = db.execute(
         select(FoodOfferRecord, FairPriceScoreRecord)
         .join(FairPriceScoreRecord, FairPriceScoreRecord.food_offer_id == FoodOfferRecord.id)
+        .where(retail_food_offer_clause(FoodOfferRecord))
         .where(FoodOfferRecord.available.is_(True))
         .order_by(
             func.abs(FairPriceScoreRecord.delta_vs_median_pct).desc(),
@@ -31,6 +35,7 @@ def list_price_changes(db: Session, *, limit: int = 50) -> dict[str, object]:
                 "kind": "retail_offer",
                 "source": offer.source,
                 "label": offer.display_name,
+                "image_url": offer.image_url,
                 "category": offer.category,
                 "price_lkr": float(offer.price_lkr),
                 "median_price_lkr": float(score.median_price_lkr),
@@ -41,7 +46,7 @@ def list_price_changes(db: Session, *, limit: int = 50) -> dict[str, object]:
             }
         )
 
-    market_events = _market_revision_events(db, limit=market_limit)
+    market_events = _market_revision_events(db, limit=market_limit, image_lookup=image_lookup)
 
     combined = sorted(
         retail_events + market_events,
@@ -59,7 +64,7 @@ def list_price_changes(db: Session, *, limit: int = 50) -> dict[str, object]:
     }
 
 
-def _market_revision_events(db: Session, *, limit: int) -> list[dict[str, object]]:
+def _market_revision_events(db: Session, *, limit: int, image_lookup: dict[str, str]) -> list[dict[str, object]]:
     rows = db.scalars(
         select(MarketQuoteRecord).order_by(
             MarketQuoteRecord.item_name.asc(),
@@ -95,6 +100,7 @@ def _market_revision_events(db: Session, *, limit: int) -> list[dict[str, object
                 "kind": "market_quote",
                 "source": latest.source,
                 "label": item_name,
+                "image_url": representative_item_image(image_lookup, item_name),
                 "category": latest.category,
                 "district": district,
                 "market_name": latest.market_name,

@@ -3,6 +3,7 @@ import { ArrowUpRight, ShieldCheck } from 'lucide-react'
 
 import { formatCompactDate, formatCurrency } from '../../lib/format'
 import type { OfferItem } from '../../types'
+import { FoodItemImage } from './food-item-image'
 
 function deltaCopy(delta: number | null) {
   if (delta === null) return { label: 'Median pending', className: 'text-[color:var(--color-text-muted)]' }
@@ -18,10 +19,18 @@ export function PriceSignalRow({ offer, rank }: { offer: OfferItem; rank?: numbe
   const confidence = Math.round((offer.normalization_confidence ?? 0) * 100)
 
   return (
-    <article className="grid gap-4 border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4 transition hover:border-[color:var(--color-border-strong)] hover:bg-[color:var(--color-bg-card-hover)] md:grid-cols-[48px_minmax(0,1.35fr)_minmax(150px,0.7fr)_minmax(150px,0.7fr)_auto] md:items-center">
+    <article className="grid gap-4 border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4 transition hover:border-[color:var(--color-border-strong)] hover:bg-[color:var(--color-bg-card-hover)] md:grid-cols-[48px_64px_minmax(0,1.35fr)_minmax(150px,0.7fr)_minmax(150px,0.7fr)_auto] md:items-center">
       <p className="num font-mono text-xs font-bold text-[color:var(--color-text-muted)]">
         {rank ? String(rank).padStart(2, '0') : '—'}
       </p>
+
+      <FoodItemImage
+        src={offer.image_url}
+        name={offer.display_name}
+        category={offer.category}
+        source={offer.source}
+        className="h-16 w-16"
+      />
 
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">

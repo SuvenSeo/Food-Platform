@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Search, X } from 'lucide-react'
 
+import { FoodItemImage } from '../primitives/food-item-image'
 import { commandDestinations } from '../../config/navigation'
 import { api } from '../../lib/api'
 
@@ -110,12 +111,18 @@ export function CommandSearch({ open, onClose }: CommandSearchProps) {
                 <button
                   key={`${item.kind}-${item.slug}`}
                   type="button"
-                  className="grid grid-cols-[1fr_auto] gap-3 border border-transparent px-3 py-2 text-left transition hover:border-[color:var(--color-border-hover)] hover:bg-[color:var(--paper-50)]"
+                  className="grid grid-cols-[44px_1fr_auto] gap-3 border border-transparent px-3 py-2 text-left transition hover:border-[color:var(--color-border-hover)] hover:bg-[color:var(--paper-50)]"
                   onClick={() => {
                     navigate(`/items/${item.slug}`)
                     handleClose()
                   }}
                 >
+                  <FoodItemImage
+                    src={item.image_url}
+                    name={item.display_name || item.canonical_name}
+                    category={item.category}
+                    className="h-11 w-11"
+                  />
                   <span className="min-w-0">
                     <span className="block truncate font-display text-[15px] font-semibold text-[color:var(--color-text-primary)]">
                       {item.display_name || item.canonical_name}

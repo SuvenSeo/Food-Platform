@@ -80,6 +80,7 @@ export type PriceChangeItem = {
   kind: 'retail_offer' | 'market_quote'
   source: string
   label: string
+  image_url?: string | null
   category?: string
   price_lkr: number
   observed_at: string | null

@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
+from app.core.food_filters import is_food_offer_text, retail_food_offer_clause
 from app.core.market_quotes import NON_FOOD_MARKET_CATEGORIES, actionable_market_quote_cutoff
 from app.models.tables import FoodOfferRecord, MarketQuoteRecord, PriceAggregateRecord
 
@@ -28,13 +29,58 @@ def matches_slug(value: str | None, slug: str) -> bool:
     return slugify(value) == slug
 
 
+def _slug_tokens(value: str) -> set[str]:
+    return {part for part in value.split("-") if len(part) > 2}
+
+
+def _image_lookup_from_offers(offers: list[FoodOfferRecord]) -> dict[str, str]:
+    lookup: dict[str, str] = {}
+    for offer in offers:
+        if not offer.image_url:
+            continue
+        for value in (offer.canonical_name, offer.display_name, offer.original_title):
+            key = slugify(value)
+            if key and key not in lookup:
+                lookup[key] = offer.image_url
+    return lookup
+
+
+def item_image_lookup(db: Session) -> dict[str, str]:
+    offers = db.scalars(
+        select(FoodOfferRecord)
+        .where(FoodOfferRecord.image_url.is_not(None))
+        .where(retail_food_offer_clause(FoodOfferRecord))
+        .order_by(FoodOfferRecord.price_lkr.asc(), FoodOfferRecord.last_seen_at.desc())
+    ).all()
+    return _image_lookup_from_offers(offers)
+
+
+def representative_item_image(lookup: dict[str, str], item_name: str | None) -> str | None:
+    item_slug = slugify(item_name)
+    if item_slug in lookup:
+        return lookup[item_slug]
+
+    item_tokens = _slug_tokens(item_slug)
+    if not item_tokens:
+        return None
+
+    for candidate_slug, image_url in lookup.items():
+        candidate_tokens = _slug_tokens(candidate_slug)
+        if item_slug in candidate_slug or item_tokens.issubset(candidate_tokens):
+            return image_url
+
+    return None
+
+
 def matching_market_item_names(db: Session, slug: str) -> list[str]:
     names = db.scalars(select(distinct(MarketQuoteRecord.item_name))).all()
     return [name for name in names if matches_slug(name, slug)]
 
 
 def matching_offer_names(db: Session, slug: str) -> list[str]:
-    names = db.scalars(select(distinct(FoodOfferRecord.canonical_name))).all()
+    names = db.scalars(
+        select(distinct(FoodOfferRecord.canonical_name)).where(retail_food_offer_clause(FoodOfferRecord))
+    ).all()
     return [name for name in names if matches_slug(name, slug)]
 
 
@@ -113,7 +159,12 @@ def price_prediction(series: list[dict[str, object]]) -> dict[str, object]:
 
 
 def item_summary_rows(db: Session) -> list[dict[str, object]]:
-    offer_rows = db.scalars(select(FoodOfferRecord).order_by(FoodOfferRecord.price_lkr.asc())).all()
+    offer_rows = db.scalars(
+        select(FoodOfferRecord)
+        .where(retail_food_offer_clause(FoodOfferRecord))
+        .order_by(FoodOfferRecord.price_lkr.asc())
+    ).all()
+    image_lookup = _image_lookup_from_offers(offer_rows)
     best_offer_by_name: dict[str, FoodOfferRecord] = {}
     sources_by_name: dict[str, set[str]] = {}
     latest_by_name: dict[str, datetime] = {}
@@ -131,6 +182,8 @@ def item_summary_rows(db: Session) -> list[dict[str, object]]:
     ).all()
     rows: list[dict[str, object]] = []
     for row in aggregates:
+        if not is_food_offer_text(row.category, row.canonical_name, row.brand):
+            continue
         best_offer = best_offer_by_name.get(row.canonical_name)
         latest_updated_at = latest_by_name.get(row.canonical_name, row.calculated_at)
         rows.append(
@@ -196,7 +249,7 @@ def item_summary_rows(db: Session) -> list[dict[str, object]]:
                 "market_quotes_count": int(quote_count or 0),
                 "average_market_price_lkr": round(float(avg_price), 2) if avg_price is not None else None,
                 "lowest_price_lkr": round(float(min_price), 2) if min_price is not None else None,
-                "image_url": None,
+                "image_url": representative_item_image(image_lookup, item_name),
                 "sources": sources,
                 "source_count": len(sources),
                 "latest_updated_at": to_iso(latest_quoted_at),

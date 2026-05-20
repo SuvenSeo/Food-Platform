@@ -9,6 +9,7 @@ from sqlalchemy import Select, distinct, func, select
 from sqlalchemy.orm import Session
 
 from app.core.basket_presets import BASKET_PRESETS
+from app.core.food_filters import is_food_offer_text, retail_food_offer_clause
 from app.core.market_quotes import (
     ACTIONABLE_MARKET_QUOTE_DAYS,
     NON_FOOD_MARKET_CATEGORIES,
@@ -18,11 +19,13 @@ from app.core.sources import get_source_profile
 from app.db.session import get_database_provider_status, get_db
 from app.models.tables import FairPriceScoreRecord, FoodOfferRecord, MarketQuoteRecord, PriceAggregateRecord, ScrapeRun
 from app.services.item_intelligence import (
+    item_image_lookup,
     item_history_series,
     item_summary_rows,
     matching_market_item_names,
     matching_offer_names,
     price_prediction,
+    representative_item_image,
     slugify,
 )
 from app.services.trust import build_reliability_summary, compute_platform_trust_snapshot
@@ -184,16 +187,19 @@ def _to_iso(value: datetime | None) -> str | None:
 def _offer_facets(db: Session) -> dict[str, list[dict[str, object]]]:
     source_rows = db.execute(
         select(FoodOfferRecord.source, func.count(FoodOfferRecord.id))
+        .where(retail_food_offer_clause(FoodOfferRecord))
         .group_by(FoodOfferRecord.source)
         .order_by(FoodOfferRecord.source.asc())
     ).all()
     category_rows = db.execute(
         select(FoodOfferRecord.category, func.count(FoodOfferRecord.id))
+        .where(retail_food_offer_clause(FoodOfferRecord))
         .group_by(FoodOfferRecord.category)
         .order_by(FoodOfferRecord.category.asc())
     ).all()
     unit_rows = db.execute(
         select(FoodOfferRecord.unit, func.count(FoodOfferRecord.id))
+        .where(retail_food_offer_clause(FoodOfferRecord))
         .where(FoodOfferRecord.unit.is_not(None))
         .group_by(FoodOfferRecord.unit)
         .order_by(FoodOfferRecord.unit.asc())
@@ -246,6 +252,7 @@ def _apply_offer_filters(
     unit: str | None,
     search: str | None,
 ) -> Select:
+    query = query.where(retail_food_offer_clause(FoodOfferRecord))
     if category and category != "all":
         query = query.where(FoodOfferRecord.category == category.lower())
     if source and source != "all":
@@ -311,6 +318,7 @@ def _top_value_offer_query(*, available_only: bool = False) -> Select:
         select(FoodOfferRecord, FairPriceScoreRecord)
         .join(FairPriceScoreRecord, FairPriceScoreRecord.food_offer_id == FoodOfferRecord.id)
         .join(PriceAggregateRecord, PriceAggregateRecord.cluster_key == FairPriceScoreRecord.cluster_key)
+        .where(retail_food_offer_clause(FoodOfferRecord))
         .where(PriceAggregateRecord.offers_count > 1)
         .where(FairPriceScoreRecord.delta_vs_median_pct > 0)
         .order_by(
@@ -357,6 +365,7 @@ def intelligence_brief(db: Session = Depends(get_db)) -> dict[str, object]:
     freshness = trust["freshness"]
     pipeline = trust["pipeline"]
     coverage = trust["coverage"]
+    image_lookup = item_image_lookup(db)
 
     top_offer = db.execute(_top_value_offer_query(available_only=True).limit(1)).first()
     latest_market = db.scalar(
@@ -430,6 +439,7 @@ def intelligence_brief(db: Session = Depends(get_db)) -> dict[str, object]:
                 "district": latest_market.district,
                 "market_name": latest_market.market_name,
                 "item_name": latest_market.item_name,
+                "image_url": representative_item_image(image_lookup, latest_market.item_name),
                 "price_lkr": float(latest_market.price_lkr),
                 "quoted_at": latest_market.quoted_at.isoformat() if latest_market.quoted_at else None,
             }
@@ -441,9 +451,13 @@ def intelligence_brief(db: Session = Depends(get_db)) -> dict[str, object]:
 
 @router.get("/stats/summary")
 def stats_summary(db: Session = Depends(get_db)) -> dict[str, object]:
-    offers_count = db.scalar(select(func.count(FoodOfferRecord.id))) or 0
-    sources_count = db.scalar(select(func.count(distinct(FoodOfferRecord.source)))) or 0
-    categories_count = db.scalar(select(func.count(distinct(FoodOfferRecord.category)))) or 0
+    offers_count = db.scalar(select(func.count(FoodOfferRecord.id)).where(retail_food_offer_clause(FoodOfferRecord))) or 0
+    sources_count = db.scalar(
+        select(func.count(distinct(FoodOfferRecord.source))).where(retail_food_offer_clause(FoodOfferRecord))
+    ) or 0
+    categories_count = db.scalar(
+        select(func.count(distinct(FoodOfferRecord.category))).where(retail_food_offer_clause(FoodOfferRecord))
+    ) or 0
     latest_run = db.scalar(select(func.max(ScrapeRun.finished_at)))
     return {
         "offers_count": offers_count,
@@ -460,6 +474,7 @@ def categories_summary(db: Session = Depends(get_db)) -> dict[str, object]:
         for category, count in db.execute(
             select(FoodOfferRecord.category, func.count(FoodOfferRecord.id)).group_by(FoodOfferRecord.category)
         ).all()
+        if is_food_offer_text(category)
     }
     market_counts = {
         category: count
@@ -474,6 +489,7 @@ def categories_summary(db: Session = Depends(get_db)) -> dict[str, object]:
                 PriceAggregateRecord.category
             )
         ).all()
+        if is_food_offer_text(category)
     }
     market_price_summary = {
         category: float(price or 0)
@@ -500,9 +516,11 @@ def categories_summary(db: Session = Depends(get_db)) -> dict[str, object]:
 @router.get("/home/summary")
 def home_summary(db: Session = Depends(get_db)) -> dict[str, object]:
     latest_run = db.scalar(select(func.max(ScrapeRun.finished_at)))
+    image_lookup = item_image_lookup(db)
     cheapest_rows = db.execute(
         select(FoodOfferRecord, FairPriceScoreRecord)
         .outerjoin(FairPriceScoreRecord, FairPriceScoreRecord.food_offer_id == FoodOfferRecord.id)
+        .where(retail_food_offer_clause(FoodOfferRecord))
         .order_by(FoodOfferRecord.price_lkr.asc(), FoodOfferRecord.last_seen_at.desc())
         .limit(3)
     ).all()
@@ -519,9 +537,15 @@ def home_summary(db: Session = Depends(get_db)) -> dict[str, object]:
             "last_updated_at": latest_run.isoformat() if latest_run else None,
         },
         "kpis": {
-            "offers_count": db.scalar(select(func.count(FoodOfferRecord.id))) or 0,
-            "sources_count": db.scalar(select(func.count(distinct(FoodOfferRecord.source)))) or 0,
-            "categories_count": db.scalar(select(func.count(distinct(FoodOfferRecord.category)))) or 0,
+            "offers_count": db.scalar(
+                select(func.count(FoodOfferRecord.id)).where(retail_food_offer_clause(FoodOfferRecord))
+            ) or 0,
+            "sources_count": db.scalar(
+                select(func.count(distinct(FoodOfferRecord.source))).where(retail_food_offer_clause(FoodOfferRecord))
+            ) or 0,
+            "categories_count": db.scalar(
+                select(func.count(distinct(FoodOfferRecord.category))).where(retail_food_offer_clause(FoodOfferRecord))
+            ) or 0,
             "market_quotes_count": db.scalar(select(func.count(MarketQuoteRecord.id))) or 0,
         },
         "spotlights": {
@@ -532,6 +556,7 @@ def home_summary(db: Session = Depends(get_db)) -> dict[str, object]:
                     "district": row.district,
                     "market_name": row.market_name,
                     "item_name": row.item_name,
+                    "image_url": representative_item_image(image_lookup, row.item_name),
                     "category": row.category,
                     "unit": row.unit,
                     "price_lkr": float(row.price_lkr),
@@ -548,6 +573,7 @@ def intelligence_summary(db: Session = Depends(get_db)) -> dict[str, object]:
     ranking_rows = db.execute(_top_value_offer_query(available_only=True).limit(6)).all()
     trend_rows = db.scalars(select(PriceAggregateRecord).order_by(PriceAggregateRecord.median_price_lkr.asc()).limit(6)).all()
     source_rows = db.scalars(select(ScrapeRun).order_by(ScrapeRun.finished_at.desc())).all()
+    image_lookup = item_image_lookup(db)
 
     return {
         "rankings": {
@@ -556,6 +582,7 @@ def intelligence_summary(db: Session = Depends(get_db)) -> dict[str, object]:
                 {
                     "cluster_key": row.cluster_key,
                     "canonical_name": row.canonical_name,
+                    "image_url": representative_item_image(image_lookup, row.canonical_name),
                     "brand": row.brand,
                     "median_price_lkr": float(row.median_price_lkr),
                     "average_price_lkr": float(row.average_price_lkr),
@@ -564,6 +591,7 @@ def intelligence_summary(db: Session = Depends(get_db)) -> dict[str, object]:
                     "unit_amount": row.unit_amount,
                 }
                 for row in trend_rows
+                if is_food_offer_text(row.category, row.canonical_name, row.brand)
             ],
         },
         "sources": [
@@ -595,6 +623,7 @@ def compare_districts(left: str, right: str, db: Session = Depends(get_db)) -> d
         latest_by_side[row.district].setdefault(row.item_name, row)
 
     common_items = sorted(set(latest_by_side[left]) & set(latest_by_side[right]))
+    image_lookup = item_image_lookup(db)
     items = []
     for item_name in common_items:
         left_row = latest_by_side[left][item_name]
@@ -603,6 +632,7 @@ def compare_districts(left: str, right: str, db: Session = Depends(get_db)) -> d
         items.append(
             {
                 "item_name": item_name,
+                "image_url": representative_item_image(image_lookup, item_name),
                 "category": left_row.category,
                 "left_price_lkr": float(left_row.price_lkr),
                 "right_price_lkr": float(right_row.price_lkr),
@@ -639,6 +669,7 @@ def compare_sources(left: str, right: str, db: Session = Depends(get_db)) -> dic
         latest_by_side[row.source].setdefault(row.item_name, row)
 
     common_items = sorted(set(latest_by_side[left]) & set(latest_by_side[right]))
+    image_lookup = item_image_lookup(db)
     items = []
     for item_name in common_items:
         left_row = latest_by_side[left][item_name]
@@ -647,6 +678,7 @@ def compare_sources(left: str, right: str, db: Session = Depends(get_db)) -> dic
         items.append(
             {
                 "item_name": item_name,
+                "image_url": representative_item_image(image_lookup, item_name),
                 "category": left_row.category,
                 "left_price_lkr": float(left_row.price_lkr),
                 "right_price_lkr": float(right_row.price_lkr),
@@ -678,6 +710,7 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
     items = []
     total_lkr = 0.0
     available_items = 0
+    image_lookup = item_image_lookup(db)
     totals_by_kind: dict[str, dict[str, float | int]] = {
         "offer": {"count": 0, "total_lkr": 0.0},
         "market_quote": {"count": 0, "total_lkr": 0.0},
@@ -687,6 +720,7 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
         if preset_item["kind"] == "offer":
             offer = db.scalar(
                 select(FoodOfferRecord)
+                .where(retail_food_offer_clause(FoodOfferRecord))
                 .where(FoodOfferRecord.canonical_name == preset_item["canonical_name"])
                 .where(FoodOfferRecord.available.is_(True))
                 .order_by(FoodOfferRecord.price_lkr.asc())
@@ -699,6 +733,7 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
                 totals_by_kind["offer"]["total_lkr"] += price
                 alternatives = db.scalars(
                     select(FoodOfferRecord)
+                    .where(retail_food_offer_clause(FoodOfferRecord))
                     .where(FoodOfferRecord.canonical_name == preset_item["canonical_name"])
                     .where(FoodOfferRecord.available.is_(True))
                     .where(FoodOfferRecord.id != offer.id)
@@ -708,6 +743,7 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
                 items.append(
                     {
                         "label": preset_item["label"],
+                        "image_url": offer.image_url,
                         "kind": "offer",
                         "price_lkr": price,
                         "source": offer.source,
@@ -718,6 +754,7 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
                             {
                                 "source": alt.source,
                                 "label": alt.display_name,
+                                "image_url": alt.image_url,
                                 "price_lkr": float(alt.price_lkr),
                                 "observed_at": _to_iso(alt.last_seen_at),
                             }
@@ -750,6 +787,7 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
                 items.append(
                     {
                         "label": preset_item["label"],
+                        "image_url": representative_item_image(image_lookup, quote.item_name),
                         "kind": "market_quote",
                         "price_lkr": price,
                         "source": quote.market_name,
@@ -762,6 +800,7 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
                             {
                                 "source": alt.market_name,
                                 "label": alt.item_name,
+                                "image_url": representative_item_image(image_lookup, alt.item_name),
                                 "price_lkr": float(alt.price_lkr),
                                 "observed_at": _to_iso(alt.quoted_at),
                             }
@@ -774,6 +813,7 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
         if preset_item["kind"] == "offer":
             unavailable_exists = db.scalar(
                 select(func.count(FoodOfferRecord.id))
+                .where(retail_food_offer_clause(FoodOfferRecord))
                 .where(FoodOfferRecord.canonical_name == preset_item["canonical_name"])
                 .where(FoodOfferRecord.available.is_(False))
             )
@@ -787,6 +827,10 @@ def basket_estimate(preset: str = Query(default="essentials"), db: Session = Dep
         items.append(
             {
                 "label": preset_item["label"],
+                "image_url": representative_item_image(
+                    image_lookup,
+                    preset_item.get("canonical_name") or preset_item.get("item_name") or preset_item.get("label"),
+                ),
                 "kind": preset_item["kind"],
                 "price_lkr": None,
                 "source": None,
@@ -919,11 +963,14 @@ def item_detail(slug: str, db: Session = Depends(get_db)) -> dict[str, object]:
     )
     category = matched_offers[0][0].category if matched_offers else market_rows[0].category
     history = item_history_series(db, normalized_slug)
+    image_lookup = item_image_lookup(db)
+    image_url = matched_offers[0][0].image_url if matched_offers else representative_item_image(image_lookup, canonical_name)
 
     return {
         "item": {
             "slug": normalized_slug,
             "canonical_name": canonical_name,
+            "image_url": image_url,
             "category": category,
             "retail_offers_count": len(matched_offers),
             "market_quotes_count": len(market_rows),
@@ -979,6 +1026,7 @@ def get_offer(offer_id: int, db: Session = Depends(get_db)) -> dict[str, object]
     row = db.execute(
         select(FoodOfferRecord, FairPriceScoreRecord)
         .outerjoin(FairPriceScoreRecord, FairPriceScoreRecord.food_offer_id == FoodOfferRecord.id)
+        .where(retail_food_offer_clause(FoodOfferRecord))
         .where(FoodOfferRecord.id == offer_id)
     ).first()
     if not row:
@@ -1064,6 +1112,7 @@ def market_quotes(
 
     rows = db.scalars(query.limit(limit).offset(offset)).all()
     total = db.scalar(count_query) or 0
+    image_lookup = item_image_lookup(db)
     return {
         "items": [
             {
@@ -1071,6 +1120,7 @@ def market_quotes(
                 "district": row.district,
                 "market_name": row.market_name,
                 "item_name": row.item_name,
+                "image_url": representative_item_image(image_lookup, row.item_name),
                 "category": row.category,
                 "unit": row.unit,
                 "price_lkr": float(row.price_lkr),
@@ -1141,10 +1191,16 @@ def hub_summary(db: Session = Depends(get_db)) -> dict[str, object]:
     return {
         "platform": "food",
         "coverage": {
-            "offers_count": db.scalar(select(func.count(FoodOfferRecord.id))) or 0,
             "market_quotes_count": db.scalar(select(func.count(MarketQuoteRecord.id))) or 0,
-            "sources_count": db.scalar(select(func.count(distinct(FoodOfferRecord.source)))) or 0,
-            "categories_count": db.scalar(select(func.count(distinct(FoodOfferRecord.category)))) or 0,
+            "offers_count": db.scalar(
+                select(func.count(FoodOfferRecord.id)).where(retail_food_offer_clause(FoodOfferRecord))
+            ) or 0,
+            "sources_count": db.scalar(
+                select(func.count(distinct(FoodOfferRecord.source))).where(retail_food_offer_clause(FoodOfferRecord))
+            ) or 0,
+            "categories_count": db.scalar(
+                select(func.count(distinct(FoodOfferRecord.category))).where(retail_food_offer_clause(FoodOfferRecord))
+            ) or 0,
         },
         "available_pages": [
             "home",
@@ -1332,9 +1388,11 @@ def get_trends_summary(db: Session = Depends(get_db)) -> dict[str, object]:
         .order_by(func.count().desc())
         .limit(20)
     )
+    image_lookup = item_image_lookup(db)
     top_items = [
         {
             "item_name": row.item_name,
+            "image_url": representative_item_image(image_lookup, row.item_name),
             "data_points": row.count,
             "earliest": _to_iso(row.earliest),
             "latest": _to_iso(row.latest),
@@ -1383,11 +1441,13 @@ def trends(category: str, db: Session = Depends(get_db)) -> dict[str, object]:
         .where(PriceAggregateRecord.category == category.lower())
         .order_by(PriceAggregateRecord.canonical_name.asc())
     ).all()
+    image_lookup = item_image_lookup(db)
     return {
         "items": [
             {
                 "cluster_key": row.cluster_key,
                 "canonical_name": row.canonical_name,
+                "image_url": representative_item_image(image_lookup, row.canonical_name),
                 "brand": row.brand,
                 "median_price_lkr": float(row.median_price_lkr),
                 "average_price_lkr": float(row.average_price_lkr),
@@ -1396,5 +1456,6 @@ def trends(category: str, db: Session = Depends(get_db)) -> dict[str, object]:
                 "unit_amount": row.unit_amount,
             }
             for row in rows
+            if is_food_offer_text(row.category, row.canonical_name, row.brand)
         ]
     }

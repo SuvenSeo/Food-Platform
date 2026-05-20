@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Bookmark, Trash2, Search, ArrowUpRight } from 'lucide-react'
 
 import { AlertSignup } from '../components/retention/alert-signup'
+import { FoodItemImage } from '../components/primitives/food-item-image'
 import { Panel } from '../components/primitives/panel'
 import { SectionHeader } from '../components/ui/section-header'
 import { RevealSection } from '../components/ui/reveal-section'
@@ -118,7 +119,8 @@ export function WatchlistsPage() {
                     transition={{ delay: i * 0.05, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                     whileHover={{ y: -2 }}
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="grid grid-cols-[64px_1fr_auto] items-start gap-3">
+                      <FoodItemImage name={entry.title} category={entry.kind} className="h-16 w-16" />
                       <Badge variant={kindVariant[entry.kind] ?? 'neutral'}>{entry.kind}</Badge>
                       <Bookmark className="h-4 w-4 text-ink-faint group-hover:text-orange-400 transition-colors" />
                     </div>

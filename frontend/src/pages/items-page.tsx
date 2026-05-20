@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { ArrowUpRight, Clock3, LayoutGrid, Search, Store, Waves } from 'lucide-react'
 
 import { AlertSignup } from '../components/retention/alert-signup'
+import { FoodItemImage } from '../components/primitives/food-item-image'
 import { SectionHeader } from '../components/ui/section-header'
 import { SectionSkeleton } from '../components/ui/section-skeleton'
 import { EmptyState, ErrorState } from '../components/ui/workflow-helpers'
@@ -151,8 +152,9 @@ export function ItemsPage() {
           />
         ) : (
           <div className="overflow-hidden border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)]">
-            <div className="hidden grid-cols-[56px_1fr_0.8fr_0.8fr_auto] border-b border-[color:var(--color-text-primary)] bg-[color:var(--color-bg-secondary)] px-4 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--color-text-muted)] md:grid">
+            <div className="hidden grid-cols-[56px_64px_1fr_0.8fr_0.8fr_auto] border-b border-[color:var(--color-text-primary)] bg-[color:var(--color-bg-secondary)] px-4 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--color-text-muted)] md:grid">
               <span>No.</span>
+              <span aria-hidden="true" />
               <span>Item</span>
               <span>Data points</span>
               <span>Average</span>
@@ -162,9 +164,10 @@ export function ItemsPage() {
               <Link
                 key={`${row.item_name}-${index}`}
                 to={`/items/${slugify(row.item_name)}`}
-                className="grid gap-3 border-b border-dotted border-[color:var(--color-border-hover)] px-4 py-4 last:border-b-0 md:grid-cols-[56px_1fr_0.8fr_0.8fr_auto] md:items-center"
+                className="grid gap-3 border-b border-dotted border-[color:var(--color-border-hover)] px-4 py-4 last:border-b-0 md:grid-cols-[56px_64px_1fr_0.8fr_0.8fr_auto] md:items-center"
               >
                 <span className="num font-mono text-xs text-[color:var(--color-text-muted)]">{String(index + 1).padStart(2, '0')}</span>
+                <FoodItemImage src={row.image_url} name={row.item_name} className="h-16 w-16" />
                 <span>
                   <span className="block font-display text-lg font-semibold text-[color:var(--color-text-primary)]">{row.item_name}</span>
                   <span className="text-sm text-[color:var(--color-text-muted)]">{formatCompactDate(row.earliest)} - {formatCompactDate(row.latest)}</span>
@@ -189,8 +192,9 @@ export function ItemsPage() {
         />
       ) : (
         <div className="overflow-hidden border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)]">
-          <div className="hidden grid-cols-[56px_1.2fr_0.72fr_0.65fr_0.75fr_auto] border-b border-[color:var(--color-text-primary)] bg-[color:var(--color-bg-secondary)] px-4 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--color-text-muted)] md:grid">
+          <div className="hidden grid-cols-[56px_64px_1.2fr_0.72fr_0.65fr_0.75fr_auto] border-b border-[color:var(--color-text-primary)] bg-[color:var(--color-bg-secondary)] px-4 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--color-text-muted)] md:grid">
             <span>No.</span>
+            <span aria-hidden="true" />
             <span>Item</span>
             <span>Signal</span>
             <span>Sources</span>
@@ -201,9 +205,16 @@ export function ItemsPage() {
             <Link
               key={`${item.kind}-${item.slug}-${item.category}-${item.unit ?? 'unit'}-${index}`}
               to={`/items/${item.slug}`}
-              className="grid gap-3 border-b border-dotted border-[color:var(--color-border-hover)] px-4 py-4 last:border-b-0 md:grid-cols-[56px_1.2fr_0.72fr_0.65fr_0.75fr_auto] md:items-center"
+              className="grid gap-3 border-b border-dotted border-[color:var(--color-border-hover)] px-4 py-4 last:border-b-0 md:grid-cols-[56px_64px_1.2fr_0.72fr_0.65fr_0.75fr_auto] md:items-center"
             >
               <span className="num font-mono text-xs text-[color:var(--color-text-muted)]">{String(index + 1).padStart(2, '0')}</span>
+              <FoodItemImage
+                src={item.image_url}
+                name={item.display_name || item.canonical_name}
+                category={item.category}
+                source={item.kind === 'retail' ? item.sources?.[0] : undefined}
+                className="h-16 w-16"
+              />
               <span className="min-w-0">
                 <span className="block truncate font-display text-lg font-semibold text-[color:var(--color-text-primary)]">
                   {item.display_name || item.canonical_name}

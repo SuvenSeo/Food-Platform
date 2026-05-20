@@ -6,6 +6,7 @@ import {
 } from 'recharts'
 import { ArrowLeft, ArrowUpRight, Bookmark, TrendingDown, TrendingUp } from 'lucide-react'
 
+import { FoodItemImage } from '../components/primitives/food-item-image'
 import { LoadingBlock } from '../components/ui/loading-block'
 import { SectionHeader } from '../components/ui/section-header'
 import { RevealSection } from '../components/ui/reveal-section'
@@ -119,14 +120,21 @@ export function OfferDetailPage() {
 
       {/* Hero */}
       <motion.div
-        className="fp-panel relative overflow-hidden"
+        className="fp-panel grid gap-6 lg:grid-cols-[260px_1fr]"
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
-        <div className="pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full blur-3xl"
-          style={{ background: 'rgba(249,115,22,0.10)' }} />
-        <div className="relative">
+        <FoodItemImage
+          src={offer.image_url}
+          name={offer.display_name}
+          category={offer.category}
+          source={offer.source}
+          className="h-64 w-full"
+          imgClassName="p-4"
+          priority
+        />
+        <div className="min-w-0">
           <p className="eyebrow-accent">Single-stall profile · {offer.source}</p>
           <h1
             className="mt-3 text-balance text-foreground"

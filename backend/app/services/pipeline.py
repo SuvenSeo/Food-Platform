@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
+from app.core.food_filters import is_food_offer_text
 from app.db.sequences import sync_postgres_id_sequence
 from app.models.tables import FairPriceScoreRecord, FoodOfferRecord, PriceAggregateRecord, RawOfferRecord, ScrapeRun
 from app.schemas.domain import RawOffer
@@ -139,6 +140,8 @@ def rebuild_normalized_views(db: Session) -> None:
                 image_url=raw_record.image_url,
             )
         )
+        if not is_food_offer_text(normalized.category, normalized.display_name, normalized.canonical_name):
+            continue
         normalized_domain.append(normalized)
 
         row = FoodOfferRecord(
