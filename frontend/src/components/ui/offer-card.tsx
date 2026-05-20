@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { ImageOff } from 'lucide-react'
 
 import { formatCompactDate, formatCurrency } from '../../lib/format'
+import { formatPackSize } from '../../lib/unit-display'
 import type { OfferItem } from '../../types'
 import { cn } from '../../lib/utils'
 
@@ -30,8 +30,12 @@ function StallThumb({ src, alt, label }: { src?: string | null; alt: string; lab
   if (!src || errored) {
     return (
       <div className="relative flex h-full w-full flex-col items-center justify-center bg-[color:var(--paper-200)] text-[color:var(--ink-400)]">
-        <ImageOff className="h-6 w-6 opacity-50" aria-hidden="true" />
-        <span className="mt-2 font-mono text-[10px] font-bold uppercase tracking-[0.22em]">{initials}</span>
+        <div className="absolute inset-0 bg-halftone bg-halftone-md opacity-[0.10]" aria-hidden="true" />
+        <div
+          className="absolute inset-[18%] border border-[color:var(--color-border)] bg-[color:var(--paper-50)]/35 shadow-[0_10px_24px_rgba(14,14,12,0.10)]"
+          aria-hidden="true"
+        />
+        <span className="sr-only">{initials || alt}</span>
       </div>
     )
   }
@@ -41,8 +45,21 @@ function StallThumb({ src, alt, label }: { src?: string | null; alt: string; lab
       <div className="absolute inset-0 bg-halftone bg-halftone-md opacity-[0.07]" aria-hidden="true" />
       <img
         src={src}
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 h-full w-full scale-110 object-cover opacity-[0.18] blur-md saturate-[0.9]"
+        loading="lazy"
+        decoding="async"
+        onError={() => setErrored(true)}
+      />
+      <div
+        className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(255,255,255,0.72),rgba(255,255,255,0.20)_48%,rgba(14,14,12,0.12)_100%)]"
+        aria-hidden="true"
+      />
+      <img
+        src={src}
         alt={alt}
-        className="relative z-10 h-full w-full object-contain p-3 transition-transform duration-500 ease-out group-hover:scale-[1.06]"
+        className="relative z-10 h-full w-full scale-[1.16] object-contain p-1.5 drop-shadow-[0_8px_18px_rgba(14,14,12,0.20)] transition-transform duration-500 ease-out group-hover:scale-[1.24]"
         loading="lazy"
         decoding="async"
         onError={() => setErrored(true)}
@@ -83,7 +100,7 @@ export function OfferCard({ offer }: { offer: OfferItem }) {
   const delta = offer.delta_vs_median_pct
   const sourceLabel = SOURCE_LABELS[offer.source] ?? offer.source
   const tilt = SOURCE_TILT[offer.source] ?? -2.5
-  const unitLabel = offer.unit_amount ? `${offer.unit_amount} ${offer.unit ?? ''}`.trim() : offer.unit ?? '—'
+  const unitLabel = formatPackSize(offer.unit, offer.unit_amount) ?? offer.unit ?? '—'
   const freshnessLabel = offer.last_seen_at ? `Fresh ${formatCompactDate(offer.last_seen_at)}` : 'Freshness pending'
 
   return (
@@ -152,7 +169,7 @@ export function OfferCard({ offer }: { offer: OfferItem }) {
           </div>
 
           <div className="shrink-0 text-right">
-            <p className="num font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-text-secondary)] sm:text-[11px]">
+            <p className="num font-mono text-[10px] tracking-[0.08em] text-[color:var(--color-text-secondary)] sm:text-[11px]">
               {unitLabel}
             </p>
             <Link

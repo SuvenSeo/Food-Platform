@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { ImageOff } from 'lucide-react'
 
 import { cn } from '../../lib/utils'
 
@@ -8,6 +7,7 @@ type FoodItemImageProps = {
   name: string
   category?: string | null
   source?: string | null
+  showSourceBadge?: boolean
   className?: string
   imgClassName?: string
   priority?: boolean
@@ -46,6 +46,7 @@ export function FoodItemImage({
   name,
   category,
   source,
+  showSourceBadge = false,
   className,
   imgClassName,
   priority = false,
@@ -58,12 +59,29 @@ export function FoodItemImage({
     <div
       data-food-item-image="true"
       className={cn(
-        'relative isolate flex shrink-0 items-center justify-center overflow-hidden border border-[color:var(--color-border)] bg-[color:var(--paper-100)]',
+        'group relative isolate flex shrink-0 items-center justify-center overflow-hidden border border-[color:var(--color-border)] bg-[color:var(--paper-100)]',
         className,
       )}
       aria-label={name}
     >
       <div className={cn('absolute inset-0 bg-gradient-to-br opacity-95', toneFor(category))} aria-hidden="true" />
+      {showImage && (
+        <>
+          <img
+            src={src ?? undefined}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-[0.18] blur-md saturate-[0.9]"
+            loading={priority ? 'eager' : 'lazy'}
+            decoding="async"
+            onError={() => setFailed(true)}
+          />
+          <div
+            className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,0.70),rgba(255,255,255,0.18)_46%,rgba(14,14,12,0.12)_100%)]"
+            aria-hidden="true"
+          />
+        </>
+      )}
       <div
         className="absolute inset-x-0 bottom-0 h-1/3 bg-[linear-gradient(180deg,transparent,rgba(14,14,12,0.10))]"
         aria-hidden="true"
@@ -72,18 +90,25 @@ export function FoodItemImage({
         <img
           src={src ?? undefined}
           alt={name}
-          className={cn('relative z-10 h-full w-full object-contain p-2', imgClassName)}
+          className={cn(
+            'relative z-10 h-full w-full scale-[1.18] object-contain p-1.5 drop-shadow-[0_8px_18px_rgba(14,14,12,0.20)] transition-transform duration-300 group-hover:scale-[1.26]',
+            imgClassName,
+          )}
           loading={priority ? 'eager' : 'lazy'}
           decoding="async"
           onError={() => setFailed(true)}
         />
       ) : (
-        <div className="relative z-10 flex flex-col items-center justify-center gap-1 text-[color:var(--ink-500)]">
-          <ImageOff className="h-4 w-4 opacity-60" aria-hidden="true" />
-          <span className="font-display text-lg font-semibold uppercase leading-none">{initials}</span>
+        <div className="relative z-10 flex h-full w-full items-center justify-center">
+          <div className="absolute inset-0 bg-halftone bg-halftone-md opacity-[0.10]" aria-hidden="true" />
+          <div
+            className="absolute inset-[18%] border border-[color:var(--color-border)] bg-[color:var(--paper-50)]/35 shadow-[0_10px_24px_rgba(14,14,12,0.10)]"
+            aria-hidden="true"
+          />
+          <span className="sr-only">{initials || name}</span>
         </div>
       )}
-      {source && (
+      {source && showSourceBadge && (
         <span
           className="absolute bottom-1 left-1 z-20 max-w-[calc(100%-0.5rem)] truncate border border-black/10 bg-[color:var(--paper-50)] px-1.5 py-0.5 font-mono text-[8px] font-bold uppercase tracking-[0.12em] text-[color:var(--ink-500)]"
           title={source}

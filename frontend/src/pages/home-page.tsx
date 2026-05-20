@@ -13,6 +13,7 @@ import { useHomeSummary } from '../hooks/use-home-summary'
 import { useIntelligenceSummary } from '../hooks/use-intelligence-summary'
 import { usePlatformFreshness } from '../hooks/use-platform-freshness'
 import { formatCompactDate, formatCurrency } from '../lib/format'
+import { bestItemImage } from '../lib/item-images'
 
 const decisionPath = [
   {
@@ -49,6 +50,12 @@ export function HomePage() {
   ).slice(0, 5)
   const trends = intelligence?.rankings.trend_snapshot?.slice(0, 4) ?? []
   const quotes = home?.spotlights.market_quotes ?? []
+  const imageCandidates = [
+    ...(intelligence?.rankings.top_value ?? []),
+    ...(home?.spotlights.cheapest_offers ?? []),
+    ...(intelligence?.rankings.trend_snapshot ?? []),
+    ...(home?.spotlights.market_quotes ?? []),
+  ]
   const latestStamp = formatCompactDate(home?.hero.last_updated_at ?? freshnessQuery.data?.freshness.last_scrape_at ?? null)
   const healthySources = freshnessQuery.data?.pipeline
     ? `${freshnessQuery.data.pipeline.healthy_sources}/${freshnessQuery.data.pipeline.total_sources}`
@@ -150,7 +157,7 @@ export function HomePage() {
               ? quotes.slice(0, 3).map((quote) => (
                 <article key={quote.id} className="grid grid-cols-[64px_1fr_auto] gap-4 border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4">
                   <FoodItemImage
-                    src={quote.image_url}
+                    src={bestItemImage(quote.item_name, imageCandidates, quote.image_url)}
                     name={quote.item_name}
                     category={quote.category}
                     source={quote.market_name}
@@ -193,7 +200,7 @@ export function HomePage() {
               <div key={trend.cluster_key} className="bg-[color:var(--color-bg-card)] p-4">
                 <div className="flex items-start gap-3">
                   <FoodItemImage
-                    src={trend.image_url}
+                    src={bestItemImage(trend.canonical_name, imageCandidates, trend.image_url)}
                     name={trend.canonical_name}
                     category={trend.brand}
                     className="h-14 w-14"

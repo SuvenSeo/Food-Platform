@@ -16,6 +16,7 @@ import { useMarketTrend } from '../hooks/use-market-trend'
 import { useWatchlists } from '../hooks/use-watchlists'
 import { ApiError, api } from '../lib/api'
 import { formatCompactDate, formatCurrency, mapTrendSeriesToChart } from '../lib/format'
+import { formatPackSize, normalizedPriceDisplay } from '../lib/unit-display'
 
 export function OfferDetailPage() {
   const { offerId } = useParams()
@@ -70,6 +71,12 @@ export function OfferDetailPage() {
   const delta = offer.delta_vs_median_pct
   const isCheap = delta !== null && delta > 5
   const isExpensive = delta !== null && delta < -5
+  const unitDisplay = normalizedPriceDisplay({
+    pricePerUnitLkr: offer.normalized_unit_price_lkr ?? offer.price_per_unit_lkr,
+    unit: offer.normalized_unit ?? offer.unit,
+    unitAmount: offer.normalized_unit_amount ?? offer.unit_amount,
+  })
+  const packSize = formatPackSize(offer.unit, offer.unit_amount)
   const deltaCopy =
     delta === null
       ? 'Pending median signal'
@@ -239,10 +246,10 @@ export function OfferDetailPage() {
           <div className="fp-soft-card space-y-2">
             <p className="eyebrow-label">Per unit price</p>
             <p className="num text-xl font-semibold text-foreground">
-              {offer.price_per_unit_lkr ? `Rs ${formatCurrency(offer.price_per_unit_lkr)}` : '—'}
+              {unitDisplay ? `Rs ${formatCurrency(unitDisplay.price)} / ${unitDisplay.unit}` : '—'}
             </p>
             <p className="text-xs text-muted-foreground">
-              Normalised as {offer.normalized_unit_amount ?? offer.unit_amount ?? '—'} {offer.normalized_unit ?? offer.unit ?? ''}; source unit {offer.original_unit_text || 'not supplied'}.
+              {packSize ? `Source pack ${packSize}. ` : ''}Source unit {offer.original_unit_text || 'not supplied'}.
             </p>
           </div>
           <div className="fp-soft-card space-y-2">

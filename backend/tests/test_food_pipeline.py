@@ -274,6 +274,29 @@ def test_normalize_offer_extracts_brand_measurement_and_cluster_key() -> None:
     )
 
 
+def test_normalize_offer_uses_variant_measurement_before_title_measurement() -> None:
+    normalized = normalize_offer(
+        RawOffer(
+            source="spar2u",
+            source_item_id="102",
+            source_group_id="1",
+            category="Grocery",
+            title="SPAR Local Coconut Oil, 1L",
+            variant_title="WT / 500",
+            price_lkr=825.0,
+            currency="LKR",
+            available=True,
+            sku="COCO-500",
+            url="https://spar2u.lk/products/spar-local-coconut-oil-1l",
+        )
+    )
+
+    assert normalized.unit == "l"
+    assert normalized.unit_amount == 0.5
+    assert normalized.price_per_unit_lkr == 1650.0
+    assert normalized.cluster_key == "spar|local coconut oil|l|0.500"
+
+
 def test_normalize_offer_handles_fresh_produce_per_100g() -> None:
     normalized = normalize_offer(
         RawOffer(
@@ -298,6 +321,52 @@ def test_normalize_offer_handles_fresh_produce_per_100g() -> None:
     assert normalized.unit_amount == 0.1
     assert normalized.price_per_unit_lkr == 720.0
     assert normalized.cluster_key == "generic|chinese cabbage|kg|0.100"
+
+
+def test_normalize_offer_infers_small_yoghurt_pack_from_weight_slash() -> None:
+    normalized = normalize_offer(
+        RawOffer(
+            source="cargills",
+            source_item_id="yoghurt-80",
+            source_group_id="yoghurt",
+            category="Dairy",
+            title="Newdale Set Plain Yoghurt",
+            variant_title="WT / 80",
+            price_lkr=72.0,
+            currency="LKR",
+            available=True,
+            sku=None,
+            url="https://example.com/yoghurt",
+        )
+    )
+
+    assert normalized.unit == "kg"
+    assert normalized.unit_amount == 0.08
+    assert normalized.price_per_unit_lkr == 900.0
+    assert normalized.cluster_key == "newdale|set plain yoghurt|kg|0.080"
+
+
+def test_normalize_offer_does_not_guess_weight_for_unknown_slash_variant() -> None:
+    normalized = normalize_offer(
+        RawOffer(
+            source="spar2u",
+            source_item_id="unknown-80",
+            source_group_id="unknown",
+            category="Grocery",
+            title="Sample Pantry Item",
+            variant_title="WT / 80",
+            price_lkr=72.0,
+            currency="LKR",
+            available=True,
+            sku=None,
+            url="https://example.com/sample",
+        )
+    )
+
+    assert normalized.unit is None
+    assert normalized.unit_amount is None
+    assert normalized.price_per_unit_lkr == 72.0
+    assert normalized.cluster_key == "sample|pantry item|unit|0.000"
 
 
 def test_normalize_offer_handles_glomark_unit_variant_without_polluting_name() -> None:

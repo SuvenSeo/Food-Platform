@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { ArrowUpRight, ShieldCheck } from 'lucide-react'
 
 import { formatCompactDate, formatCurrency } from '../../lib/format'
+import { formatPackSize, normalizedPriceDisplay } from '../../lib/unit-display'
 import type { OfferItem } from '../../types'
 import { FoodItemImage } from './food-item-image'
 
@@ -13,13 +14,17 @@ function deltaCopy(delta: number | null) {
 }
 
 export function PriceSignalRow({ offer, rank }: { offer: OfferItem; rank?: number }) {
-  const unitPrice = offer.normalized_unit_price_lkr ?? offer.price_per_unit_lkr
-  const unitLabel = offer.normalized_unit ?? offer.unit ?? 'unit'
+  const normalizedDisplay = normalizedPriceDisplay({
+    pricePerUnitLkr: offer.normalized_unit_price_lkr ?? offer.price_per_unit_lkr,
+    unit: offer.normalized_unit ?? offer.unit,
+    unitAmount: offer.normalized_unit_amount ?? offer.unit_amount,
+  })
+  const packSize = formatPackSize(offer.unit, offer.unit_amount)
   const delta = deltaCopy(offer.delta_vs_median_pct)
   const confidence = Math.round((offer.normalization_confidence ?? 0) * 100)
 
   return (
-    <article className="grid gap-4 border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4 transition hover:border-[color:var(--color-border-strong)] hover:bg-[color:var(--color-bg-card-hover)] md:grid-cols-[48px_64px_minmax(0,1.35fr)_minmax(150px,0.7fr)_minmax(150px,0.7fr)_auto] md:items-center">
+    <article className="grid gap-4 border border-[color:var(--color-border)] bg-[color:var(--color-bg-card)] p-4 transition hover:border-[color:var(--color-border-strong)] hover:bg-[color:var(--color-bg-card-hover)] md:grid-cols-[48px_96px_minmax(0,1.35fr)_minmax(150px,0.7fr)_minmax(150px,0.7fr)_auto] md:items-center">
       <p className="num font-mono text-xs font-bold text-[color:var(--color-text-muted)]">
         {rank ? String(rank).padStart(2, '0') : '—'}
       </p>
@@ -29,7 +34,7 @@ export function PriceSignalRow({ offer, rank }: { offer: OfferItem; rank?: numbe
         name={offer.display_name}
         category={offer.category}
         source={offer.source}
-        className="h-16 w-16"
+        className="h-24 w-24"
       />
 
       <div className="min-w-0">
@@ -47,7 +52,7 @@ export function PriceSignalRow({ offer, rank }: { offer: OfferItem; rank?: numbe
           {offer.display_name}
         </h3>
         <p className="mt-1 truncate text-sm text-[color:var(--color-text-secondary)]">
-          {offer.category} · updated {formatCompactDate(offer.last_seen_at)}
+          {offer.category}{packSize ? ` · ${packSize}` : ''} · updated {formatCompactDate(offer.last_seen_at)}
         </p>
       </div>
 
@@ -62,12 +67,12 @@ export function PriceSignalRow({ offer, rank }: { offer: OfferItem; rank?: numbe
       <div>
         <p className="text-kicker">Normalized</p>
         <p className="num mt-1 text-xl font-bold text-[color:var(--color-text-primary)]">
-          {unitPrice ? (
+          {normalizedDisplay ? (
             <>
               <span className="text-sm text-[color:var(--color-text-muted)]">රු </span>
-              {formatCurrency(unitPrice)}
-              <span className="ml-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[color:var(--color-text-muted)]">
-                / {unitLabel}
+              {formatCurrency(normalizedDisplay.price)}
+              <span className="ml-1 font-mono text-[10px] tracking-[0.08em] text-[color:var(--color-text-muted)]">
+                / {normalizedDisplay.unit}
               </span>
             </>
           ) : '—'}

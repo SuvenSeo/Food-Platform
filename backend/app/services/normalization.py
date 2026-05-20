@@ -41,6 +41,24 @@ FRESH_TITLE_TERMS = {
     "tomato",
 }
 
+LIQUID_TITLE_TERMS = {
+    "beverage",
+    "drink",
+    "juice",
+    "milk",
+    "oil",
+    "sauce",
+    "water",
+}
+
+SOLID_SMALL_PACK_TITLE_TERMS = {
+    "butter",
+    "cheese",
+    "curd",
+    "yoghurt",
+    "yogurt",
+}
+
 
 def _is_fresh_category(category: str) -> bool:
     normalized = category.lower()
@@ -86,24 +104,39 @@ def _extract_brand_and_name(title: str, category: str) -> tuple[str | None, str]
 
 
 def _extract_measurement(title: str, variant_title: str | None) -> tuple[str | None, float | None]:
-    text = " ".join(part for part in [title, variant_title] if part)
-    per_match = PER_UNIT_PATTERN.search(text)
+    if variant_title:
+        per_match = PER_UNIT_PATTERN.search(variant_title)
+        if per_match:
+            amount = float(per_match.group("amount"))
+            unit, multiplier = _normalize_unit(per_match.group("unit"))
+            return unit, amount * multiplier
+
+        match = MEASUREMENT_PATTERN.search(variant_title)
+        if match:
+            amount = float(match.group("amount"))
+            unit, multiplier = _normalize_unit(match.group("unit"))
+            return unit, amount * multiplier
+
+        weight_match = re.search(r"/\s*(\d+(?:\.\d+)?)", variant_title)
+        if weight_match:
+            amount = float(weight_match.group(1))
+            words = set(re.findall(r"[a-z]+", f"{title} {variant_title}".lower()))
+            if words & LIQUID_TITLE_TERMS:
+                return "l", amount / 1000
+            if words & SOLID_SMALL_PACK_TITLE_TERMS:
+                return "kg", amount / 1000
+
+    per_match = PER_UNIT_PATTERN.search(title)
     if per_match:
         amount = float(per_match.group("amount"))
         unit, multiplier = _normalize_unit(per_match.group("unit"))
         return unit, amount * multiplier
 
-    match = MEASUREMENT_PATTERN.search(text)
+    match = MEASUREMENT_PATTERN.search(title)
     if match:
         amount = float(match.group("amount"))
         unit, multiplier = _normalize_unit(match.group("unit"))
         return unit, amount * multiplier
-
-    if variant_title:
-        weight_match = re.search(r"/\s*(\d+(?:\.\d+)?)", variant_title)
-        if weight_match:
-            amount = float(weight_match.group(1))
-            return "kg", amount / 1000
 
     return None, None
 
